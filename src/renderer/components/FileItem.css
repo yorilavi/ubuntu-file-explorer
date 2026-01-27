@@ -1,0 +1,114 @@
+/* FileItem - Compact file/folder item for Miller columns */
+/* BEM naming convention */
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  height: 28px; /* Fixed height for virtualization */
+  user-select: none;
+}
+
+.file-item:hover {
+  background: #2a2a2a;
+}
+
+.file-item--selected {
+  background: #2563eb30;
+}
+
+.file-item--selected:hover {
+  background: #2563eb40;
+}
+
+.file-item--focused {
+  outline: 2px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+.file-item--selected.file-item--focused {
+  background: #2563eb50;
+}
+
+/* Icon */
+.file-item__icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+.file-item__icon--folder::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 12px;
+  background: #f59e0b;
+  border-radius: 1px 1px 2px 2px;
+  top: 3px;
+  left: 1px;
+}
+
+.file-item__icon--folder::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 3px;
+  background: #d97706;
+  border-radius: 1px 1px 0 0;
+  top: 1px;
+  left: 1px;
+}
+
+.file-item__icon--file::before {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 16px;
+  background: #666;
+  border-radius: 1px;
+  top: 1px;
+  left: 3px;
+}
+
+.file-item__symlink-badge {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  border: 1.5px solid #1a1a1a;
+}
+
+/* Name */
+.file-item__name {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-item--directory .file-item__name {
+  font-weight: 500;
+}
+
+/* Chevron for folders */
+.file-item__chevron {
+  flex-shrink: 0;
+  margin-left: 0.25rem;
+  color: #666;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.file-item--selected .file-item__chevron,
+.file-item:hover .file-item__chevron {
+  color: #888;
+}
