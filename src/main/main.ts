@@ -10,10 +10,16 @@ if (started) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      // Security defaults (explicit for documentation)
+      nodeIntegration: false,     // Default since Electron 5
+      contextIsolation: true,     // Default since Electron 12
+      sandbox: true,              // Default since Electron 20
+      webSecurity: true,          // Default
+      allowRunningInsecureContent: false, // Default
     },
   });
 
