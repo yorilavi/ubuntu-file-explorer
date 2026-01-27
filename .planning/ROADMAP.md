@@ -12,7 +12,7 @@ This roadmap delivers a macOS Finder-like SSH file explorer in 6 phases. We star
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation & Security** - Electron scaffolding with secure IPC bridge
+- [x] **Phase 1: Foundation & Security** - Electron scaffolding with secure IPC bridge
 - [ ] **Phase 2: SSH/SFTP Core** - Connect to servers and browse directories
 - [ ] **Phase 3: Column View Navigator** - Miller column UI with keyboard navigation
 - [ ] **Phase 4: Preview Panel** - Image and code previews with syntax highlighting
@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Create Electron + React + TypeScript foundation with HMR
-- [ ] 01-02-PLAN.md — Establish typed IPC bridge with contextBridge
+- [x] 01-01-PLAN.md — Create Electron + React + TypeScript foundation with HMR
+- [x] 01-02-PLAN.md — Establish typed IPC bridge with contextBridge
 
 ### Phase 2: SSH/SFTP Core
 **Goal**: User can connect to remote servers and browse directory contents
@@ -117,8 +117,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Security | 0/2 | Ready | - |
-| 2. SSH/SFTP Core | 0/TBD | Not started | - |
+| 1. Foundation & Security | 2/2 | ✓ Complete | 2026-01-27 |
+| 2. SSH/SFTP Core | 0/TBD | Ready | - |
 | 3. Column View Navigator | 0/TBD | Not started | - |
 | 4. Preview Panel | 0/TBD | Not started | - |
 | 5. File Operations | 0/TBD | Not started | - |
