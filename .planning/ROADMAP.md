@@ -46,10 +46,13 @@ Plans:
   3. User can connect to a server using SSH key authentication
   4. Connected server shows root directory listing with file names and metadata
   5. Credentials are stored securely (macOS Keychain via safeStorage API)
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — Install SSH dependencies and create foundational types/storage
+- [ ] 02-02-PLAN.md — Create SSH/SFTP services and IPC handlers
+- [ ] 02-03-PLAN.md — Create server sidebar UI with connection status
+- [ ] 02-04-PLAN.md — Create directory listing UI with sorting and metadata
 
 ### Phase 3: Column View Navigator
 **Goal**: User can browse directories in Finder-style Miller columns with keyboard and mouse navigation
@@ -118,7 +121,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Security | 2/2 | ✓ Complete | 2026-01-27 |
-| 2. SSH/SFTP Core | 0/TBD | Ready | - |
+| 2. SSH/SFTP Core | 0/4 | Ready | - |
 | 3. Column View Navigator | 0/TBD | Not started | - |
 | 4. Preview Panel | 0/TBD | Not started | - |
 | 5. File Operations | 0/TBD | Not started | - |
