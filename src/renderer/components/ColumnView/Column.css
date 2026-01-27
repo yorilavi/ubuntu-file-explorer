@@ -1,0 +1,70 @@
+/* Column - Single column in Miller column view */
+/* BEM naming convention */
+
+.column {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #1a1a1a;
+  border-right: 1px solid #333;
+  outline: none;
+}
+
+.column:focus {
+  /* Focus visible on container handled via --active state */
+}
+
+.column--active {
+  background: #1e1e1e;
+}
+
+.column--loading,
+.column--error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.column__virtual-container {
+  width: 100%;
+}
+
+/* Loading state */
+.column__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+}
+
+.column__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #333;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: column-spin 0.8s linear infinite;
+}
+
+@keyframes column-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
+.column__error {
+  padding: 1rem;
+  color: #f87171;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* Empty state */
+.column__empty {
+  padding: 1rem;
+  color: #666;
+  font-size: 0.8125rem;
+  text-align: center;
+}
