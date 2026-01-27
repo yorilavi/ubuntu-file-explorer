@@ -10,29 +10,29 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 2 of 6 (SSH/SFTP Core)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: In progress
-Last activity: 2026-01-27 - Completed 02-01-PLAN.md
+Last activity: 2026-01-27 - Completed 02-02-PLAN.md
 
-Progress: [███░░░░░░░] 30%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 4 min 22 sec
-- Total execution time: 0.22 hours
+- Total plans completed: 4
+- Average duration: 4 min 15 sec
+- Total execution time: 0.28 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-security | 2 | 10 min 8 sec | 5 min 4 sec |
-| 02-ssh-sftp-core | 1 | 2 min 54 sec | 2 min 54 sec |
+| 02-ssh-sftp-core | 2 | 6 min 48 sec | 3 min 24 sec |
 
 **Recent Trend:**
-- Last 5 plans: 8m32s, 1m36s, 2m54s
-- Trend: Improving
+- Last 5 plans: 8m32s, 1m36s, 2m54s, 3m54s
+- Trend: Stable
 
 *Updated after each plan completion*
 
@@ -51,6 +51,9 @@ Recent decisions affecting current work:
 | Import shared/types.ts for Window augmentation | Ensures TypeScript sees extended Window interface | 01-02 |
 | electron-conf over electron-store | CommonJS/ESM compatibility with Electron Forge Vite | 02-01 |
 | Separate credentials config file | Isolates sensitive data from general connection metadata | 02-01 |
+| Mark ssh2/ssh-config/electron-conf as Vite externals | Native modules cannot be bundled by Vite | 02-02 |
+| Cache SFTP wrappers per connection | SFTP session creation is expensive, reuse for performance | 02-02 |
+| Duplicate types in preload and shared | Vite bundler isolation prevents importing from main | 02-02 |
 
 ### Pending Todos
 
@@ -62,8 +65,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-27 18:44 UTC
-Stopped at: Completed 02-01-PLAN.md (SSH Dependencies & Storage Foundation)
+Last session: 2026-01-27 18:50 UTC
+Stopped at: Completed 02-02-PLAN.md (SSH Service & IPC Integration)
 Resume file: None
 
 ---
