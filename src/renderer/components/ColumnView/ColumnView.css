@@ -1,0 +1,39 @@
+/* ColumnView - Miller column container with resizable panels */
+/* BEM naming convention */
+
+.column-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: #1a1a1a;
+}
+
+.column-view__panel-group {
+  flex: 1;
+  min-width: max-content;
+}
+
+.column-view__panel {
+  min-width: 120px;
+}
+
+/* Resize handle */
+.column-view__resize-handle {
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.column-view__resize-handle:hover,
+.column-view__resize-handle[data-resize-handle-active] {
+  background: #3b82f6;
+}
+
+/* Ensure panels don't overflow */
+.column-view__panel > * {
+  height: 100%;
+}
