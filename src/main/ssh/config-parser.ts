@@ -60,6 +60,13 @@ export function parseSSHConfig(configContent: string): Server[] {
     if (identityFile) {
       // IdentityFile can be a string or array; use first one
       keyPath = Array.isArray(identityFile) ? identityFile[0] : identityFile;
+
+      // Strip surrounding quotes if present (SSH config allows quoted paths for spaces)
+      if ((keyPath.startsWith('"') && keyPath.endsWith('"')) ||
+          (keyPath.startsWith("'") && keyPath.endsWith("'"))) {
+        keyPath = keyPath.slice(1, -1);
+      }
+
       // Expand ~ to home directory if present
       if (keyPath.startsWith('~')) {
         keyPath = join(homedir(), keyPath.slice(1));

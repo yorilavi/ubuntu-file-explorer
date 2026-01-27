@@ -66,13 +66,15 @@ export function connectSSH(server: Server, password?: string): Promise<void> {
       case 'key':
         if (server.keyPath) {
           try {
+            console.log(`[ssh-service] Reading key file: ${server.keyPath}`);
             config.privateKey = readFileSync(server.keyPath);
             if (password) {
               config.passphrase = password;
             }
           } catch (err) {
             const error = err instanceof Error ? err.message : 'Unknown error';
-            updateState(server.id, { status: 'error', message: `Failed to read key file: ${error}` });
+            console.error(`[ssh-service] Failed to read key file at path: ${server.keyPath}`);
+            updateState(server.id, { status: 'error', message: `Failed to read key file: ${server.keyPath}` });
             reject(new Error(`Failed to read key file: ${error}`));
             return;
           }
