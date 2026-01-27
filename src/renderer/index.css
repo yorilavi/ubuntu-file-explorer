@@ -241,6 +241,25 @@ body {
   color: #ef4444;
 }
 
+.server-item__delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  margin-left: 0.25rem;
+}
+
+.server-item:hover .server-item__delete {
+  opacity: 0.5;
+}
+
+.server-item__delete:hover {
+  opacity: 1;
+}
+
 .server-item__error-details {
   margin-top: 0.5rem;
   padding: 0.5rem;

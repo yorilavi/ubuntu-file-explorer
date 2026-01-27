@@ -8,6 +8,7 @@ interface ServerListItemProps {
   onDisconnect: () => void;
   isSelected: boolean;
   onSelect: () => void;
+  onDelete?: () => void; // Only for custom connections
 }
 
 /**
@@ -21,6 +22,7 @@ function ServerListItem({
   onDisconnect,
   isSelected,
   onSelect,
+  onDelete,
 }: ServerListItemProps): React.JSX.Element {
   const [showErrorDetails, setShowErrorDetails] = useState(false);
 
@@ -40,6 +42,13 @@ function ServerListItem({
   const handleDisconnect = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDisconnect();
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete && confirm(`Delete connection "${server.name}"?`)) {
+      onDelete();
+    }
   };
 
   const toggleErrorDetails = (e: React.MouseEvent) => {
@@ -107,6 +116,15 @@ function ServerListItem({
               title="Disconnect"
             >
               &times;
+            </button>
+          )}
+          {onDelete && !isConnected && !isConnecting && (
+            <button
+              className="server-item__delete"
+              onClick={handleDelete}
+              title="Delete connection"
+            >
+              🗑
             </button>
           )}
         </div>

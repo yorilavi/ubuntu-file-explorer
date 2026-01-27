@@ -87,6 +87,17 @@ function ServerSidebar({
     }
   };
 
+  const handleDelete = async (serverId: string) => {
+    try {
+      await window.electronAPI.removeConnection(serverId);
+      // Refresh server list after deletion
+      const serverList = await window.electronAPI.listServers();
+      setServers(serverList);
+    } catch (error) {
+      console.error('Failed to delete connection:', error);
+    }
+  };
+
   // Group servers by source
   const sshConfigServers = servers.filter((s) => s.source === 'ssh-config');
   const customServers = servers.filter((s) => s.source === 'custom');
@@ -145,6 +156,7 @@ function ServerSidebar({
                   onDisconnect={() => handleDisconnect(server.id)}
                   isSelected={selectedServerId === server.id}
                   onSelect={() => onServerSelect(server.id)}
+                  onDelete={() => handleDelete(server.id)}
                 />
               ))}
             </div>
