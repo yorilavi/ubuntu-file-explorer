@@ -24,7 +24,25 @@ body {
 .main-content {
   flex: 1;
   overflow: auto;
+}
+
+.main-content > .placeholder {
   padding: 1rem;
+}
+
+/* Connection Status */
+.connection-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+}
+
+.connection-status__message {
+  font-size: 0.9375rem;
+  color: #888;
+  text-align: center;
 }
 
 .placeholder {
