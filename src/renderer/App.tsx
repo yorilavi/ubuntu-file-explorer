@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import '../shared/types'; // Import for Window interface extension
 import type { ConnectionState, FileEntry } from '../shared/types';
 import ServerSidebar from './components/ServerSidebar';
-import DirectoryList from './components/DirectoryList';
+import ColumnView from './components/ColumnView';
+import PathBar from './components/PathBar';
 
 /**
  * Render connection status message for display during connection process.
@@ -17,12 +18,14 @@ function renderConnectionStatus(state: ConnectionState | undefined): string {
 }
 
 /**
- * Main application component with sidebar and content area.
- * Sidebar displays servers, content area shows directory listing when connected.
+ * Main application component with sidebar and column view.
+ * Sidebar displays servers, main area shows Miller column file browser.
  */
 function App(): React.JSX.Element {
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionState>>({});
+  const [currentPath, setCurrentPath] = useState('/');
+  const [showHidden, setShowHidden] = useState(false);
 
   // Subscribe to connection state changes
   useEffect(() => {
@@ -40,13 +43,24 @@ function App(): React.JSX.Element {
     };
   }, []);
 
-  const handleFileSelect = (file: FileEntry) => {
-    console.log('Selected file:', file.name, file.path);
-  };
+  // Reset path when server changes
+  useEffect(() => {
+    setCurrentPath('/');
+  }, [selectedServer]);
 
-  const handleDirectoryOpen = (path: string) => {
-    console.log('Opened directory:', path);
-  };
+  const handleFileSelect = useCallback((file: FileEntry, columnIndex: number) => {
+    console.log('Selected file:', file.name, 'in column', columnIndex);
+  }, []);
+
+  const handlePathChange = useCallback((path: string) => {
+    setCurrentPath(path);
+  }, []);
+
+  const handlePathNavigate = useCallback((path: string) => {
+    // This will be handled by ColumnView through a ref or state update
+    // For now, just update the displayed path
+    setCurrentPath(path);
+  }, []);
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
 
@@ -59,12 +73,35 @@ function App(): React.JSX.Element {
       <main className="main-content">
         {selectedServer ? (
           currentState?.status === 'ready' ? (
-            <DirectoryList
-              serverId={selectedServer}
-              connectionState={currentState}
-              onFileSelect={handleFileSelect}
-              onDirectoryOpen={handleDirectoryOpen}
-            />
+            <div className="browser-container">
+              {/* Toolbar with path bar and controls */}
+              <div className="browser-toolbar">
+                <PathBar
+                  path={currentPath}
+                  onNavigate={handlePathNavigate}
+                />
+                <div className="browser-toolbar__controls">
+                  <label className="browser-toolbar__toggle">
+                    <input
+                      type="checkbox"
+                      checked={showHidden}
+                      onChange={(e) => setShowHidden(e.target.checked)}
+                    />
+                    Show hidden
+                  </label>
+                </div>
+              </div>
+
+              {/* Column view */}
+              <ColumnView
+                key={`${selectedServer}-${currentPath}`}
+                serverId={selectedServer}
+                initialPath={currentPath}
+                showHidden={showHidden}
+                onFileSelect={handleFileSelect}
+                onPathChange={handlePathChange}
+              />
+            </div>
           ) : (
             <div className="connection-status">
               <div className="connection-status__message">
