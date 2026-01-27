@@ -67,6 +67,9 @@ export function parseSSHConfig(configContent: string): Server[] {
         keyPath = keyPath.slice(1, -1);
       }
 
+      // Unescape backslash-escaped spaces (SSH config uses "\ " for spaces in paths)
+      keyPath = keyPath.replace(/\\ /g, ' ');
+
       // Expand ~ to home directory if present
       if (keyPath.startsWith('~')) {
         keyPath = join(homedir(), keyPath.slice(1));
