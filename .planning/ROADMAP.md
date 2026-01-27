@@ -13,7 +13,7 @@ This roadmap delivers a macOS Finder-like SSH file explorer in 6 phases. We star
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Security** - Electron scaffolding with secure IPC bridge
-- [ ] **Phase 2: SSH/SFTP Core** - Connect to servers and browse directories
+- [x] **Phase 2: SSH/SFTP Core** - Connect to servers and browse directories
 - [ ] **Phase 3: Column View Navigator** - Miller column UI with keyboard navigation
 - [ ] **Phase 4: Preview Panel** - Image and code previews with syntax highlighting
 - [ ] **Phase 5: File Operations** - Upload, download, and file management
@@ -49,10 +49,10 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Install SSH dependencies and create foundational types/storage
-- [ ] 02-02-PLAN.md — Create SSH/SFTP services and IPC handlers
-- [ ] 02-03-PLAN.md — Create server sidebar UI with connection status
-- [ ] 02-04-PLAN.md — Create directory listing UI with sorting and metadata
+- [x] 02-01-PLAN.md — Install SSH dependencies and create foundational types/storage
+- [x] 02-02-PLAN.md — Create SSH/SFTP services and IPC handlers
+- [x] 02-03-PLAN.md — Create server sidebar UI with connection status
+- [x] 02-04-PLAN.md — Create directory listing UI with sorting and metadata
 
 ### Phase 3: Column View Navigator
 **Goal**: User can browse directories in Finder-style Miller columns with keyboard and mouse navigation
@@ -121,7 +121,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Security | 2/2 | ✓ Complete | 2026-01-27 |
-| 2. SSH/SFTP Core | 0/4 | Ready | - |
+| 2. SSH/SFTP Core | 4/4 | ✓ Complete | 2026-01-27 |
 | 3. Column View Navigator | 0/TBD | Not started | - |
 | 4. Preview Panel | 0/TBD | Not started | - |
 | 5. File Operations | 0/TBD | Not started | - |
