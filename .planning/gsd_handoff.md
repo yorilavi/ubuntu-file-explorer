@@ -1,8 +1,8 @@
 # GSD Handoff Document
 
 **Created:** 2026-01-28
-**Updated:** 2026-01-28 (Session 2 - Post Phase 6 bug fixes)
-**Last Commit:** `8c6c638` - fix(preview): increase max preview panel width to 800px
+**Updated:** 2026-01-28 (Session 3 - Lightbox navigation & preview resize)
+**Last Commit:** `b15eb7e` - feat(lightbox): add arrow key navigation and expand preview panel max width
 
 ---
 
@@ -24,11 +24,29 @@
 
 ---
 
-## This Session Summary
+## Session 3 Summary (Latest)
+
+Two enhancements based on user feedback:
+
+| Feature | Description | Commit |
+|---------|-------------|--------|
+| Lightbox arrow navigation | Arrow up/down keys navigate between images while lightbox is open | `b15eb7e` |
+| Dynamic preview panel width | Preview panel can now expand to full width (leaving 150px for one column) | `b15eb7e` |
+
+### How Lightbox Navigation Works
+1. App.tsx intercepts arrow keys in capture phase when lightbox is open
+2. Dispatches `lightbox-navigate` custom event with direction
+3. ColumnView listens and navigates to prev/next file
+4. PreviewPanel loads new image and calls `onImagePreviewReady`
+5. App.tsx updates `lightboxSrc` to show new image in lightbox
+
+---
+
+## Session 2 Summary
 
 User tested the app after Phase 6 completion and reported multiple bugs. All have been fixed.
 
-### Bugs Fixed This Session
+### Bugs Fixed
 
 | Issue | Root Cause | Fix | Commit |
 |-------|-----------|-----|--------|
@@ -71,11 +89,28 @@ const [resizing, setResizing] = useState<{index, startX, startWidth} | null>(nul
 // App.tsx now manages:
 const [previewWidth, setPreviewWidth] = useState(300);  // Default
 const [previewResizing, setPreviewResizing] = useState<{startX, startWidth} | null>(null);
+const browserMainRef = useRef<HTMLDivElement>(null);
 
-// Limits: min 200px, max 800px
+// Limits: min 200px, max dynamic (containerWidth - 150px)
+// This allows expanding to nearly full width while keeping one column visible
 ```
 
-### 3. Favorites Refresh Callback Chain
+### 3. Lightbox Navigation (NEW - Session 3)
+
+```typescript
+// App.tsx - intercepts arrow keys in capture phase when lightbox open
+window.addEventListener('keydown', handleKeyDown, true);  // capture phase
+// Dispatches: window.dispatchEvent(new CustomEvent('lightbox-navigate', { detail: { direction } }));
+
+// ColumnView.tsx - listens and navigates
+window.addEventListener('lightbox-navigate', handleLightboxNavigate);
+
+// PreviewPanel.tsx - notifies when new image ready
+onImagePreviewReady?: (dataUrl: string) => void;  // New prop
+// Called in useEffect when preview?.type === 'image'
+```
+
+### 4. Favorites Refresh Callback Chain
 
 ```
 App.tsx
@@ -122,23 +157,25 @@ App.tsx
 
 Before considering session complete:
 
-- [ ] Connect to server → keyboard navigation works immediately (no click needed)
-- [ ] Navigate deep (8+ folders) → leftmost columns scroll away
-- [ ] Press left arrow → hidden columns reappear
-- [ ] Click breadcrumb segment → scrolls to show that column
-- [ ] Drag resize handle between any two columns → both resize correctly
-- [ ] Drag resize handle on last column → column resizes
-- [ ] Drag boundary between columns and preview panel → preview resizes
-- [ ] Preview panel can expand to ~800px width
-- [ ] Right-click folder → Add to Favorites → appears in sidebar immediately
-- [ ] Image preview shows correctly (no red X)
-- [ ] Spacebar opens lightbox with actual image
+- [x] Connect to server → keyboard navigation works immediately (no click needed)
+- [x] Navigate deep (8+ folders) → leftmost columns scroll away
+- [x] Press left arrow → hidden columns reappear
+- [x] Click breadcrumb segment → scrolls to show that column
+- [x] Drag resize handle between any two columns → both resize correctly
+- [x] Drag resize handle on last column → column resizes
+- [x] Drag boundary between columns and preview panel → preview resizes
+- [x] Preview panel can expand to nearly full width (leaving room for one column)
+- [x] Right-click folder → Add to Favorites → appears in sidebar immediately
+- [x] Image preview shows correctly (no red X)
+- [x] Spacebar opens lightbox with actual image
+- [x] Arrow up/down in lightbox navigates between images
 
 ---
 
-## Git Log (This Session)
+## Git Log (Sessions 2 & 3)
 
 ```
+b15eb7e feat(lightbox): add arrow key navigation and expand preview panel max width
 8c6c638 fix(preview): increase max preview panel width to 800px
 33f0fb2 feat(resize): add resize handle for last column and preview panel
 fb51270 refactor(columns): replace react-resizable-panels with custom resize
@@ -188,13 +225,15 @@ const [previewWidth, setPreviewWidth] = useState(() => {
 
 | Feature | Primary File | Line Range |
 |---------|--------------|------------|
-| Column resize | `ColumnView.tsx` | 213-250 (state), 380-410 (render) |
-| Preview resize | `App.tsx` | 37-72 (state), 225-245 (render) |
+| Column resize | `ColumnView.tsx` | 230-286 (state & handler) |
+| Preview resize | `App.tsx` | 38-70 (state & handler) |
+| Lightbox navigation | `App.tsx` | 194-235 (key intercept), `ColumnView.tsx` 459-490 (navigate) |
+| Image preview ready | `PreviewPanel.tsx` | 135-141 (callback) |
 | Favorites refresh | `ServerSidebar.tsx` | 46-55, `FileItem.tsx` 282-300 |
-| Auto-scroll | `ColumnView.tsx` | 308-335 |
+| Auto-scroll | `ColumnView.tsx` | 369-391 |
 | Focus on load | `Column.tsx` | 87-98 |
 
 ---
 
-*Handoff created at ~70% context usage*
-*All bugs from this session have been fixed and committed*
+*Session 3 updates: Lightbox navigation, dynamic preview width*
+*All features working and tested*

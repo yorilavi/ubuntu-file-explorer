@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Phase 6 - Favorites & Polish (IN PROGRESS)
+**Current focus:** Post-v1 polish and bug fixes
 
 ## Current Position
 
-Phase: 6 of 6 (Favorites & Polish)
-Plan: 5 of 5
-Status: Phase complete
-Last activity: 2026-01-28 - Completed 06-05-PLAN.md
+Phase: Post-v1 (all 6 phases complete)
+Plan: N/A (ad-hoc bug fixes and enhancements)
+Status: MVP complete, ongoing polish
+Last activity: 2026-01-28 - Session 3 (lightbox navigation, dynamic preview width)
 
-Progress: [████████████████████] 100%
+Progress: [████████████████████] 100% + polish
 
 ## Performance Metrics
 
@@ -106,6 +106,11 @@ Recent decisions affecting current work:
 | AbortController per operation ID | Stream cancellation with unique ID stored in Map | 06-05 |
 | Partial file cleanup on cancel | Unlink local partial file; sftp.unlink remote partial | 06-05 |
 | Escape key only when active | Handler only registered when activeOperationId is set | 06-05 |
+| Custom column resize over react-resizable-panels | Library uses percentage sizing incompatible with fixed min widths | Post-v1 |
+| Dynamic preview panel max width | containerWidth - 150px allows near-full expansion | Post-v1 |
+| Capture phase key intercept for lightbox nav | Intercept arrow keys before lightbox captures them | Post-v1 |
+| Custom event for lightbox navigation | 'lightbox-navigate' event bridges App and ColumnView | Post-v1 |
+| onImagePreviewReady callback | Notifies App when new image loads for live lightbox update | Post-v1 |
 
 ### Pending Todos
 
@@ -118,17 +123,22 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 17:45 UTC
-Stopped at: Completed 06-05-PLAN.md (file operation cancellation support)
-Resume file: None
+Last session: 2026-01-28 (Session 3)
+Stopped at: Lightbox navigation and dynamic preview width complete
+Resume file: .planning/gsd_handoff.md
 
-**Recent Activity:**
-1. Added AbortController cancellation for file downloads/uploads
-2. Added Cancel button to progress toasts
-3. Added Escape key handler for cancelling active operations
-4. Partial file cleanup on cancellation
+**Recent Activity (Session 3):**
+1. Preview panel can now resize to full width (dynamic max based on container)
+2. Arrow up/down keys navigate between images while lightbox is open
+3. Added onImagePreviewReady callback for live lightbox updates
 
-**Project Status:** All 6 phases complete. Ubuntu-File-Explorer MVP is feature-complete.
+**Recent Activity (Session 2):**
+1. Fixed 10 bugs from user testing (CSP, duplicates, resize, keyboard nav)
+2. Rewrote column resize system (replaced react-resizable-panels with custom)
+3. Added preview panel resize
+4. Wired favorites refresh callback chain
+
+**Project Status:** MVP feature-complete. Post-v1 polish ongoing.
 
 ---
 *Last updated: 2026-01-28*

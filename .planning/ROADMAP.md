@@ -139,6 +139,25 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 5. File Operations | 3/3 | ✓ Complete | 2026-01-28 |
 | 6. Favorites & Polish | 5/5 | ✓ Complete | 2026-01-28 |
 
+## Post-v1 Polish (2026-01-28)
+
+Bug fixes and enhancements from user testing:
+
+**Session 2 - Bug Fixes:**
+- Fixed CSP blocking image previews (added data:/blob: to img-src)
+- Fixed duplicate servers in sidebar
+- Fixed favorites not updating sidebar immediately
+- Fixed keyboard navigation requiring initial click
+- Rewrote column resize system (custom pixel-based instead of react-resizable-panels)
+- Added preview panel resize handle
+- Increased preview panel max width
+
+**Session 3 - Enhancements:**
+- Dynamic preview panel max width (can expand to nearly full width)
+- Arrow key navigation in lightbox (browse images while enlarged)
+
+See `.planning/gsd_handoff.md` for full details and code locations.
+
 ---
 *Created: 2026-01-26*
 *Depth: standard (5-8 phases)*
