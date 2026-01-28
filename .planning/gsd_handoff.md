@@ -150,6 +150,8 @@ App.tsx
 2. **Persist preview panel width** - resets to 300px on refresh
 3. **FILE-05 Move UI** - backend ready, needs custom remote folder picker modal
 4. **Double-click resize handle to reset to default width** - nice-to-have
+5. **Markdown lightbox viewer** - spacebar on .md file opens rendered markdown in lightbox
+6. **Lazy loading for large files** - files >500 lines load incrementally on scroll (500 lines at a time)
 
 ---
 

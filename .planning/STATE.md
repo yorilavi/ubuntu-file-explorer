@@ -116,6 +116,9 @@ Recent decisions affecting current work:
 
 - Move to feature: Requires custom remote folder picker modal (not native dialog)
 - Folder upload with subfolders: tar/gzip locally -> upload -> extract on server (requires server-side extraction check)
+- Markdown lightbox viewer: Spacebar on .md file opens rendered markdown in lightbox
+- Lazy loading for large files: Files >500 lines load incrementally on scroll (500 lines at a time)
+- Persist column/preview widths to localStorage
 
 ### Blockers/Concerns
 
