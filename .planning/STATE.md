@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 6 of 6 (Favorites & Polish)
-Plan: 3 of 5
+Plan: 4 of 5
 Status: In progress
-Last activity: 2026-01-28 - Completed 06-03-PLAN.md
+Last activity: 2026-01-28 - Completed 06-04-PLAN.md
 
-Progress: [███████████████████░] 95%
+Progress: [████████████████████] 96%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
+- Total plans completed: 21
 - Average duration: 4 min
-- Total execution time: 1 hour 18 min
+- Total execution time: 1 hour 20 min
 
 **By Phase:**
 
@@ -32,10 +32,10 @@ Progress: [███████████████████░] 95%
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
 | 04-preview-panel | 4 | 12 min | 3 min |
 | 05-file-operations | 3 | 15 min | 5 min |
-| 06-favorites-polish | 3 | ~6 min | ~2 min |
+| 06-favorites-polish | 4 | ~8 min | ~2 min |
 
 **Recent Trend:**
-- Last 5 plans: 3m, 12m, ~2m, ~2m, ~2m
+- Last 5 plans: 12m, ~2m, ~2m, ~2m, ~2m
 - Trend: Fast execution on straightforward plans
 
 *Updated after each plan completion*
@@ -100,6 +100,9 @@ Recent decisions affecting current work:
 | Favorites under selected server | Show favorites only under selected and connected server | 06-03 |
 | Separate drag handle | Prevents accidental navigation while dragging | 06-03 |
 | Optimistic UI updates | Update local state immediately, persist in background | 06-03 |
+| Progress toast via onFileOperationProgress | Subscribe to IPC progress events for real-time updates | 06-04 |
+| Ref-based toast ID tracking | Avoids stale closure issues in async callbacks | 06-04 |
+| Pending navigation ref for auto-connect | Track pending nav in ref, complete when connection ready | 06-04 |
 
 ### Pending Todos
 
@@ -112,18 +115,18 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 17:33 UTC
-Stopped at: Completed 06-03-PLAN.md (collapsible sidebar with favorites)
+Last session: 2026-01-28 17:38 UTC
+Stopped at: Completed 06-04-PLAN.md (context menu favorites + toast notifications)
 Resume file: None
 
 **Recent Activity:**
-1. Created useFavorites hook for CRUD operations
-2. Created FavoriteItem draggable component
-3. Refactored ServerSidebar with collapsible sections
-4. Added CSS styles for favorites and server sections
-5. Wired onFavoriteNavigate callback in App.tsx
+1. Added "Add to Favorites" context menu option for folders
+2. Added toast notifications for all file operations
+3. Added progress toasts with percentage for downloads/uploads
+4. Enhanced favorite navigation with auto-connect for disconnected servers
+5. Added pending navigation tracking for connection completion
 
-**Next Action:** Continue Phase 6 with 06-04 (add to favorites context menu) or 06-05 (drag reorder verification).
+**Next Action:** Continue Phase 6 with 06-05 (final polish and verification).
 
 ---
 *Last updated: 2026-01-28*
