@@ -226,19 +226,34 @@ function ColumnView({
 
   const { columns, activeColumnIndex } = state;
 
-  // Track column widths for resizing
+  // Track column widths for resizing - keep saved widths in ref for reuse
+  const savedWidthsRef = useRef<number[]>([]);
   const [columnWidths, setColumnWidths] = useState<number[]>([]);
+  const [savedWidthsLoaded, setSavedWidthsLoaded] = useState(false);
+
+  // Track pending fetches to prevent duplicate requests
+  const pendingFetchesRef = useRef<Set<string>>(new Set());
 
   // Resize state
   const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
 
-  // Initialize column widths when columns change
+  // Load saved widths from IPC on mount
   useEffect(() => {
+    window.electronAPI.getColumnWidths().then((widths) => {
+      savedWidthsRef.current = widths;
+      setSavedWidthsLoaded(true);
+    });
+  }, []);
+
+  // Initialize column widths when columns change - use saved widths where available
+  useEffect(() => {
+    if (!savedWidthsLoaded) return;
     setColumnWidths(prev => {
       const newWidths = [...prev];
-      // Add default width for any new columns
+      // Add width for any new columns - prefer saved width at that index
       while (newWidths.length < columns.length) {
-        newWidths.push(DEFAULT_COLUMN_WIDTH);
+        const index = newWidths.length;
+        newWidths.push(savedWidthsRef.current[index] || DEFAULT_COLUMN_WIDTH);
       }
       // Trim if columns were removed
       if (newWidths.length > columns.length) {
@@ -246,7 +261,7 @@ function ColumnView({
       }
       return newWidths;
     });
-  }, [columns.length]);
+  }, [columns.length, savedWidthsLoaded]);
 
   // Handle resize drag
   const handleResizeStart = useCallback((e: React.MouseEvent, index: number) => {
@@ -274,6 +289,16 @@ function ColumnView({
 
     const handleMouseUp = () => {
       setResizing(null);
+      // Save via IPC and update ref - merge with saved to preserve widths at each depth
+      setColumnWidths(current => {
+        const merged = [...savedWidthsRef.current];
+        current.forEach((width, index) => {
+          merged[index] = width;
+        });
+        savedWidthsRef.current = merged;
+        window.electronAPI.setColumnWidths(merged);
+        return current;
+      });
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -290,6 +315,12 @@ function ColumnView({
    */
   const fetchDirectory = useCallback(
     async (columnIndex: number, path: string) => {
+      // Skip if already fetching this path
+      if (pendingFetchesRef.current.has(path)) {
+        return;
+      }
+      pendingFetchesRef.current.add(path);
+
       dispatch({ type: 'SET_LOADING', columnIndex, loading: true });
       try {
         const result = await window.electronAPI.listDirectory(serverId, path);
@@ -319,6 +350,8 @@ function ColumnView({
           columnIndex,
           error: err instanceof Error ? err.message : 'Failed to load directory',
         });
+      } finally {
+        pendingFetchesRef.current.delete(path);
       }
     },
     [serverId, showHidden]
@@ -346,6 +379,8 @@ function ColumnView({
   // Handle external navigation (e.g., from PathBar)
   useEffect(() => {
     if (navigateTo) {
+      // Clear pending fetches since we're navigating to a new path
+      pendingFetchesRef.current.clear();
       dispatch({ type: 'NAVIGATE_TO', path: navigateTo });
       onNavigationComplete?.();
     }

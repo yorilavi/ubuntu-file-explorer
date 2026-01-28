@@ -323,6 +323,33 @@ const electronAPI = {
    */
   reorderFavorites: (serverId: string, paths: string[]): Promise<void> =>
     ipcRenderer.invoke('favorites:reorder', serverId, paths),
+
+  // UI Preferences
+  // ==============
+
+  /**
+   * Get saved column widths.
+   */
+  getColumnWidths: (): Promise<number[]> =>
+    ipcRenderer.invoke('ui:getColumnWidths'),
+
+  /**
+   * Save column widths.
+   */
+  setColumnWidths: (widths: number[]): Promise<void> =>
+    ipcRenderer.invoke('ui:setColumnWidths', widths),
+
+  /**
+   * Get saved preview panel width.
+   */
+  getPreviewPanelWidth: (): Promise<number> =>
+    ipcRenderer.invoke('ui:getPreviewPanelWidth'),
+
+  /**
+   * Save preview panel width.
+   */
+  setPreviewPanelWidth: (width: number): Promise<void> =>
+    ipcRenderer.invoke('ui:setPreviewPanelWidth', width),
 };
 
 // Expose the API to the renderer as window.electronAPI

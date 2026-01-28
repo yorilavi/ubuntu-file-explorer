@@ -5,6 +5,7 @@ import { registerSSHHandlers } from './ipc/ssh-handlers';
 import { registerPreviewHandlers } from './ipc/preview-handlers';
 import { registerFileOperationsHandlers } from './ipc/file-operations-handlers';
 import { registerFavoritesHandlers } from './ipc/favorites-handlers';
+import { registerUIPreferencesHandlers } from './ipc/ui-preferences-handlers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -56,6 +57,9 @@ const createWindow = () => {
 
 // Register favorites handlers (no mainWindow needed)
 registerFavoritesHandlers();
+
+// Register UI preferences handlers (no mainWindow needed)
+registerUIPreferencesHandlers();
 
 /**
  * Ping handler - echoes back with "pong: " prefix.

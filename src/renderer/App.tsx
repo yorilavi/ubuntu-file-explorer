@@ -35,10 +35,15 @@ function App(): React.JSX.Element {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  // Preview panel resize state
+  // Preview panel resize state - persist via IPC
   const [previewWidth, setPreviewWidth] = useState(300);
   const [previewResizing, setPreviewResizing] = useState<{ startX: number; startWidth: number } | null>(null);
   const browserMainRef = useRef<HTMLDivElement>(null);
+
+  // Load saved preview width on mount
+  useEffect(() => {
+    window.electronAPI.getPreviewPanelWidth().then(setPreviewWidth);
+  }, []);
 
   // Handle preview panel resize
   useEffect(() => {
@@ -57,6 +62,8 @@ function App(): React.JSX.Element {
 
     const handleMouseUp = () => {
       setPreviewResizing(null);
+      // Save via IPC
+      window.electronAPI.setPreviewPanelWidth(previewWidth);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
