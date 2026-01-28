@@ -9,6 +9,7 @@ import './ColumnView.css';
 interface ColumnViewProps {
   serverId: string;
   initialPath?: string;
+  navigateTo?: string;  // External navigation trigger (e.g., from PathBar)
   showHidden?: boolean;
   onFileSelect?: (file: FileEntry, columnIndex: number) => void;
   onPathChange?: (path: string) => void;
@@ -47,6 +48,24 @@ function columnReducer(state: ColumnViewState, action: ColumnAction): ColumnView
       return {
         ...state,
         activeColumnIndex: action.toColumnIndex,
+      };
+    }
+
+    case 'NAVIGATE_TO': {
+      // External navigation - build columns for the target path
+      const segments = action.path.split('/').filter(Boolean);
+      const newColumns: typeof state.columns = [createColumnState('/')];
+
+      // Add a column for each path segment
+      let currentPath = '';
+      for (const segment of segments) {
+        currentPath = `${currentPath}/${segment}`;
+        newColumns.push(createColumnState(currentPath));
+      }
+
+      return {
+        columns: newColumns,
+        activeColumnIndex: newColumns.length - 1,
       };
     }
 
@@ -165,11 +184,13 @@ function columnReducer(state: ColumnViewState, action: ColumnAction): ColumnView
 function ColumnView({
   serverId,
   initialPath = '/',
+  navigateTo,
   showHidden = false,
   onFileSelect,
   onPathChange,
 }: ColumnViewProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastNavigateToRef = useRef<string | undefined>(navigateTo);
 
   // Initialize state with root column
   const [state, dispatch] = useReducer(columnReducer, {
@@ -222,6 +243,18 @@ function ColumnView({
   useEffect(() => {
     fetchDirectory(0, initialPath);
   }, [fetchDirectory, initialPath]);
+
+  // Handle external navigation (e.g., from PathBar)
+  useEffect(() => {
+    if (navigateTo && navigateTo !== lastNavigateToRef.current) {
+      const currentActivePath = columns[activeColumnIndex]?.path || '/';
+      // Only navigate if the target is different from current
+      if (navigateTo !== currentActivePath) {
+        dispatch({ type: 'NAVIGATE_TO', path: navigateTo });
+      }
+      lastNavigateToRef.current = navigateTo;
+    }
+  }, [navigateTo, columns, activeColumnIndex]);
 
   // Fetch directory when a new column is added
   useEffect(() => {

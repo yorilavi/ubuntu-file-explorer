@@ -28,6 +28,7 @@ export interface ColumnViewState {
 export type ColumnAction =
   | { type: 'NAVIGATE_INTO'; path: string; fromIndex: number }
   | { type: 'NAVIGATE_BACK'; toColumnIndex: number }
+  | { type: 'NAVIGATE_TO'; path: string }
   | { type: 'SET_ENTRIES'; columnIndex: number; entries: FileEntry[] }
   | { type: 'SET_LOADING'; columnIndex: number; loading: boolean }
   | { type: 'SET_ERROR'; columnIndex: number; error: string | null }

@@ -97,6 +97,7 @@ function App(): React.JSX.Element {
                 key={selectedServer}
                 serverId={selectedServer}
                 initialPath="/"
+                navigateTo={currentPath}
                 showHidden={showHidden}
                 onFileSelect={handleFileSelect}
                 onPathChange={handlePathChange}
