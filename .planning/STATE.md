@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Phase 4 - Preview Panel ✓ COMPLETE
+**Current focus:** Phase 5 - File Operations
 
 ## Current Position
 
-Phase: 4 of 6 (Preview Panel) ✓ COMPLETE
-Plan: All plans complete
-Status: Phase verified and complete
-Last activity: 2026-01-28 - Phase 4 complete with image/code previews and lightbox
+Phase: 5 of 6 (File Operations)
+Plan: 1 of 3
+Status: In progress
+Last activity: 2026-01-28 - Completed 05-01-PLAN.md (file operations service)
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: 4 min
-- Total execution time: 0.93 hours
+- Total execution time: 0.96 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [████████░░] 80%
 | 02-ssh-sftp-core | 4 | 20 min 11 sec | 5 min 3 sec |
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
 | 04-preview-panel | 4 | 12 min | 3 min |
+| 05-file-operations | 1 | 1 min 22 sec | 1 min 22 sec |
 
 **Recent Trend:**
-- Last 5 plans: ~2m, 4m, 3m, 3m
-- Trend: Stable
+- Last 5 plans: ~4m, 3m, 3m, 1m
+- Trend: Stable/Fast
 
 *Updated after each plan completion*
 
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 | Custom event for cross-component communication | 'open-lightbox' event bridges App and PreviewPanel | 04-04 |
 | useRef for async state in event handlers | Captures current preview state for spacebar handler | 04-04 |
 | Single image mode in lightbox | Simple first approach, no prev/next navigation | 04-04 |
+| path.posix for remote paths | POSIX format required for SFTP operations | 05-01 |
+| Stream-based file transfers | Progress callbacks via data event tracking | 05-01 |
+| Empty folder delete only | MVP limitation per RESEARCH.md recommendation | 05-01 |
 
 ### Pending Todos
 
@@ -93,19 +97,17 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 02:45 UTC
-Stopped at: Phase 4 complete, fixed post-verification bugs (SFTP session sharing, filename tooltips)
-Resume file: `.planning/gsd_handoff.md`
+Last session: 2026-01-28 03:10 UTC
+Stopped at: Completed 05-01-PLAN.md (file operations service)
+Resume file: None
 
 **Recent Activity:**
-1. Executed all 4 plans in Phase 4 (Preview Panel)
-2. Verified phase goal (5/5 must-haves)
-3. Fixed user-reported bugs:
-   - Folder info not showing (SFTP channel conflict) - FIXED
-   - Long filenames not visible (no tooltip) - FIXED
-4. Pending: User to restart app and verify fixes
+1. Created file-operations-service.ts with 6 SFTP operations
+2. Implemented download/upload with stream-based progress tracking
+3. Added delete (file/folder), rename, and move operations
+4. All operations use cached SFTP session via getSFTPWrapper
 
-**Next Action:** Test fixes, then `/gsd:plan-phase 5`
+**Next Action:** Execute 05-02-PLAN.md (IPC handlers)
 
 ---
 *Last updated: 2026-01-28*
