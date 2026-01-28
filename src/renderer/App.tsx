@@ -4,6 +4,8 @@ import type { ConnectionState, FileEntry } from '../shared/types';
 import ServerSidebar from './components/ServerSidebar';
 import ColumnView from './components/ColumnView';
 import PathBar from './components/PathBar';
+import PreviewPanel from './components/PreviewPanel';
+import LightboxView from './components/PreviewPanel/Lightbox';
 
 /**
  * Render connection status message for display during connection process.
@@ -27,6 +29,9 @@ function App(): React.JSX.Element {
   const [currentPath, setCurrentPath] = useState('/');
   const [navigateToPath, setNavigateToPath] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // Subscribe to connection state changes
   useEffect(() => {
@@ -44,14 +49,16 @@ function App(): React.JSX.Element {
     };
   }, []);
 
-  // Reset path when server changes
+  // Reset path and selection when server changes
   useEffect(() => {
     setCurrentPath('/');
     setNavigateToPath(null);
+    setSelectedFile(null);
   }, [selectedServer]);
 
   const handleFileSelect = useCallback((file: FileEntry, columnIndex: number) => {
     console.log('Selected file:', file.name, 'in column', columnIndex);
+    setSelectedFile(file);
   }, []);
 
   const handlePathChange = useCallback((path: string) => {
@@ -67,6 +74,36 @@ function App(): React.JSX.Element {
   const handleNavigationComplete = useCallback(() => {
     setNavigateToPath(null);
   }, []);
+
+  // Lightbox handlers
+  const handleImageClick = useCallback((dataUrl: string) => {
+    setLightboxSrc(dataUrl);
+    setLightboxOpen(true);
+  }, []);
+
+  const handleLightboxClose = useCallback(() => {
+    setLightboxOpen(false);
+    setLightboxSrc(null);
+  }, []);
+
+  // Handle spacebar for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Spacebar opens lightbox if image selected and lightbox not already open
+      if (e.code === 'Space' && !e.repeat && !lightboxOpen && selectedFile && !selectedFile.isDirectory) {
+        const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
+        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
+        if (imageExts.includes(ext)) {
+          e.preventDefault();
+          // Dispatch custom event for PreviewPanel to provide the image data URL
+          window.dispatchEvent(new CustomEvent('open-lightbox'));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedFile, lightboxOpen]);
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
 
@@ -98,17 +135,28 @@ function App(): React.JSX.Element {
                 </div>
               </div>
 
-              {/* Column view */}
-              <ColumnView
-                key={selectedServer}
-                serverId={selectedServer}
-                initialPath="/"
-                navigateTo={navigateToPath}
-                showHidden={showHidden}
-                onFileSelect={handleFileSelect}
-                onPathChange={handlePathChange}
-                onNavigationComplete={handleNavigationComplete}
-              />
+              {/* Column view + Preview panel */}
+              <div className="browser-main">
+                <div className="browser-columns">
+                  <ColumnView
+                    key={selectedServer}
+                    serverId={selectedServer}
+                    initialPath="/"
+                    navigateTo={navigateToPath}
+                    showHidden={showHidden}
+                    onFileSelect={handleFileSelect}
+                    onPathChange={handlePathChange}
+                    onNavigationComplete={handleNavigationComplete}
+                  />
+                </div>
+                <div className="browser-preview">
+                  <PreviewPanel
+                    serverId={selectedServer}
+                    selectedFile={selectedFile}
+                    onImageClick={handleImageClick}
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             <div className="connection-status">
@@ -121,6 +169,15 @@ function App(): React.JSX.Element {
           <div className="placeholder">Select a server to browse</div>
         )}
       </main>
+
+      {/* Lightbox overlay */}
+      {lightboxSrc && (
+        <LightboxView
+          src={lightboxSrc}
+          open={lightboxOpen}
+          onClose={handleLightboxClose}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // Main preview panel container
 // Renders appropriate preview based on file type
 
-import React from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import type { FileEntry, PreviewData } from '../../../shared/types';
 import { usePreview } from '../../hooks/usePreview';
 import ImagePreview from './ImagePreview';
@@ -128,6 +128,23 @@ function PreviewPanel({
   onImageClick,
 }: PreviewPanelProps): React.JSX.Element {
   const { preview, loading, progress } = usePreview(serverId, selectedFile);
+
+  // Store preview ref for spacebar handler
+  const previewRef = useRef(preview);
+  previewRef.current = preview;
+
+  // Handle spacebar event to open lightbox
+  const handleOpenLightbox = useCallback(() => {
+    const currentPreview = previewRef.current;
+    if (currentPreview?.type === 'image' && onImageClick) {
+      onImageClick(currentPreview.dataUrl);
+    }
+  }, [onImageClick]);
+
+  useEffect(() => {
+    window.addEventListener('open-lightbox', handleOpenLightbox);
+    return () => window.removeEventListener('open-lightbox', handleOpenLightbox);
+  }, [handleOpenLightbox]);
 
   // Empty state
   if (!selectedFile) {
