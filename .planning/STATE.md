@@ -2,23 +2,34 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-26)
+See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Post-v1 polish and bug fixes
+**Current focus:** Planning next milestone (v1.1)
 
 ## Current Position
 
-Phase: Post-v1 (all 6 phases complete)
-Plan: N/A (ad-hoc bug fixes and enhancements)
-Status: MVP complete, ongoing polish
-Last activity: 2026-01-28 - Session 4 (width persistence, fetch deduplication)
+Phase: Ready for v1.1 planning
+Plan: Not started
+Status: v1.0 shipped, ready for next milestone
+Last activity: 2026-01-28 — v1.0 milestone complete
 
-Progress: [████████████████████] 100% + polish
+Progress: [████████████████████] v1.0 SHIPPED
+
+## Recent Milestone
+
+**v1.0 MVP — Shipped 2026-01-28**
+
+- 6 phases, 22 plans completed
+- 8,227 lines TypeScript/TSX/CSS
+- All core features working: SSH connect, Miller columns, previews, file ops, favorites
+- Git tag: v1.0
+
+See `.planning/MILESTONES.md` for full details.
 
 ## Performance Metrics
 
-**Velocity:**
+**Velocity (v1.0):**
 - Total plans completed: 22
 - Average duration: 4 min
 - Total execution time: 1 hour 23 min
@@ -34,96 +45,20 @@ Progress: [████████████████████] 100% + 
 | 05-file-operations | 3 | 15 min | 5 min |
 | 06-favorites-polish | 5 | ~11 min | ~2 min |
 
-**Recent Trend:**
-- Last 5 plans: 12m, ~2m, ~2m, ~2m, ~2m
-- Trend: Fast execution on straightforward plans
-
-*Updated after each plan completion*
-
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+All v1.0 decisions have been reviewed and outcomes recorded.
 
-| Decision | Rationale | Plan |
-|----------|-----------|------|
-| @vitejs/plugin-react@4.7.0 | Version 5.x ESM-only, incompatible with Electron Forge Vite plugin | 01-01 |
-| TypeScript 5.5.0 | Template 4.5.4 incompatible with modern @types/node | 01-01 |
-| Explicit security options | Documents security posture, prevents accidental disable | 01-01 |
-| Import shared/types.ts for Window augmentation | Ensures TypeScript sees extended Window interface | 01-02 |
-| electron-conf over electron-store | CommonJS/ESM compatibility with Electron Forge Vite | 02-01 |
-| Separate credentials config file | Isolates sensitive data from general connection metadata | 02-01 |
-| Mark ssh2/ssh-config/electron-conf as Vite externals | Native modules cannot be bundled by Vite | 02-02 |
-| Cache SFTP wrappers per connection | SFTP session creation is expensive, reuse for performance | 02-02 |
-| Duplicate types in preload and shared | Vite bundler isolation prevents importing from main | 02-02 |
-| BEM CSS naming for component styles | Consistent naming convention for all UI components | 02-03 |
-| Status text for transient states, dots for persistent | Clear visual distinction between connecting and connected/error | 02-03 |
-| Folders always sorted first in directory listing | Expected UX behavior, regardless of sort column | 02-04 |
-| Explicit Date conversion for IPC serialization | IPC serializes Date objects as strings, must convert | 02-04 |
-| Custom keyboard navigation over react-roving-tabindex | Better control for virtual scrolling integration | 03-01 |
-| Set-based selectedIndices for multi-select | O(1) lookup for efficient Cmd-click, Shift-click | 03-01 |
-| CSS-only icons using pseudo-elements | Lightweight folder/file icons without SVG overhead | 03-02 |
-| Fixed 28px row height for virtualization | Required for @tanstack/react-virtual scroll calculations | 03-02 |
-| Group/Panel/Separator (react-resizable-panels v4) | Correct API for v4, not older PanelGroup/PanelResizeHandle | 03-03 |
-| Key prop excludes path | Prevents ColumnView remount on every navigation | 03-04 |
-| Focus on loading complete | Ensures keyboard nav works without manual click | 03-04 |
-| 500MB cache limit for preview files | Reasonable default balancing disk usage with performance | 04-01 |
-| MD5 hash for cache keys | Fast, deterministic, collision-resistant for file paths | 04-01 |
-| Separate metadata files for staleness | Quick staleness checks without reading full cached data | 04-01 |
-| Async LRU eviction | Cache operations don't block on cleanup | 04-01 |
-| File type detection by extension only | Content sniffing requires reading file, extension is instant | 04-02 |
-| Base64 data URLs for images | Electron IPC handles base64 safely, blob transfer more complex | 04-02 |
-| 50MB file size limit for previews | Balance between capability and memory safety | 04-02 |
-| 500 line truncation for code previews | Keep preview fast and responsive | 04-02 |
-| 150ms debounce for preview loading | Per CONTEXT.md specification for file preview | 04-03 |
-| Request ID tracking for stale responses | Prevents race conditions when rapidly changing selection | 04-03 |
-| Line numbers off by default for code | Per CONTEXT.md, users can toggle on if desired | 04-03 |
-| System theme preference for code highlighting | Uses prefers-color-scheme for dark/light mode | 04-03 |
-| Custom event for cross-component communication | 'open-lightbox' event bridges App and PreviewPanel | 04-04 |
-| useRef for async state in event handlers | Captures current preview state for spacebar handler | 04-04 |
-| Single image mode in lightbox | Simple first approach, no prev/next navigation | 04-04 |
-| path.posix for remote paths | POSIX format required for SFTP operations | 05-01 |
-| Stream-based file transfers | Progress callbacks via data event tracking | 05-01 |
-| Empty folder delete only | MVP limitation per RESEARCH.md recommendation | 05-01 |
-| showSaveDialog for download destination | Native overwrite confirmation handling | 05-02 |
-| showMessageBox with warning for delete | Clear confirmation before destructive action | 05-02 |
-| React Portal for context menu | Escapes overflow:hidden in Column container | 05-03 |
-| stopPropagation on rename input | Prevents column typeahead during rename | 05-03 |
-| Remove Move to feature | Native dialogs can't browse remote folders, needs custom UI | 05-03 |
-| Separate favorites config file | Isolates favorites data from connection metadata | 06-01 |
-| Sync functions async handlers | Store functions sync, IPC handlers async for consistency | 06-01 |
-| bottom-right toast position | Avoids UI overlap with sidebar and preview panel | 06-02 |
-| 4s default toast duration | Standard timing; errors can override to longer | 06-02 |
-| z-index 10000 for toasts | Above lightbox (9999) and modals (1000) | 06-02 |
-| Favorites under selected server | Show favorites only under selected and connected server | 06-03 |
-| Separate drag handle | Prevents accidental navigation while dragging | 06-03 |
-| Optimistic UI updates | Update local state immediately, persist in background | 06-03 |
-| Progress toast via onFileOperationProgress | Subscribe to IPC progress events for real-time updates | 06-04 |
-| Ref-based toast ID tracking | Avoids stale closure issues in async callbacks | 06-04 |
-| Pending navigation ref for auto-connect | Track pending nav in ref, complete when connection ready | 06-04 |
-| AbortController per operation ID | Stream cancellation with unique ID stored in Map | 06-05 |
-| Partial file cleanup on cancel | Unlink local partial file; sftp.unlink remote partial | 06-05 |
-| Escape key only when active | Handler only registered when activeOperationId is set | 06-05 |
-| Custom column resize over react-resizable-panels | Library uses percentage sizing incompatible with fixed min widths | Post-v1 |
-| Dynamic preview panel max width | containerWidth - 150px allows near-full expansion | Post-v1 |
-| Capture phase key intercept for lightbox nav | Intercept arrow keys before lightbox captures them | Post-v1 |
-| Custom event for lightbox navigation | 'lightbox-navigate' event bridges App and ColumnView | Post-v1 |
-| onImagePreviewReady callback | Notifies App when new image loads for live lightbox update | Post-v1 |
-| electron-conf for UI preferences | localStorage unreliable across Electron restarts; electron-conf persists properly | Post-v1 |
-| pendingFetchesRef for fetch deduplication | Prevents duplicate directory fetches when state updates trigger re-renders | Post-v1 |
+### Pending Todos (from v1.0)
 
-### Pending Todos
-
-- Move to feature: Requires custom remote folder picker modal (not native dialog)
-- Folder upload with subfolders: tar/gzip locally -> upload -> extract on server (requires server-side extraction check)
-- Markdown lightbox viewer: Spacebar on .md file opens rendered markdown in lightbox
-- Lazy loading for large files: Files >500 lines load incrementally on scroll (500 lines at a time)
-- Double-click resize handle to reset to default width
-
-### Completed Todos (Post-v1)
-- ~~Persist column/preview widths~~ - Done via electron-conf (Session 4)
+- Move file UI: Requires custom remote folder picker modal
+- Folder upload: Needs tar/gzip + server-side extraction check
+- Markdown lightbox: Spacebar on .md opens rendered viewer
+- Lazy code loading: Files >500 lines load incrementally
+- Double-click resize handle: Reset to default width
 
 ### Blockers/Concerns
 
@@ -131,27 +66,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 (Session 4)
-Stopped at: Width persistence and fetch deduplication complete
-Resume file: .planning/gsd_handoff.md
-
-**Recent Activity (Session 4):**
-1. Added ui-preferences-store using electron-conf for persistent storage
-2. Column widths and preview panel width persist across app restarts
-3. Fixed duplicate fetch issue with pendingFetchesRef tracking
-
-**Recent Activity (Session 3):**
-1. Preview panel can now resize to full width (dynamic max based on container)
-2. Arrow up/down keys navigate between images while lightbox is open
-3. Added onImagePreviewReady callback for live lightbox updates
-
-**Recent Activity (Session 2):**
-1. Fixed 10 bugs from user testing (CSP, duplicates, resize, keyboard nav)
-2. Rewrote column resize system (replaced react-resizable-panels with custom)
-3. Added preview panel resize
-4. Wired favorites refresh callback chain
-
-**Project Status:** MVP feature-complete. Post-v1 polish ongoing.
+Last session: 2026-01-28 — Milestone completion
+Stopped at: v1.0 archived, ready for next milestone
+Resume with: `/gsd:new-milestone`
 
 ---
 *Last updated: 2026-01-28*

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A desktop file explorer for browsing remote Ubuntu servers via SSH. It provides a macOS Finder-like experience with column-based navigation, a favorites sidebar for bookmarked folders, and an integrated preview panel for viewing images and code files. Built for personal use to make browsing remote servers as pleasant as browsing local files.
+A desktop file explorer for browsing remote Ubuntu servers via SSH. It provides a macOS Finder-like experience with Miller column navigation, instant image and code previews with syntax highlighting, and per-server favorites for quick access to bookmarked folders. Built for personal use to make browsing remote servers as pleasant as browsing local files.
 
 ## Core Value
 
@@ -12,52 +12,92 @@ Browse remote servers visually with instant image and code previews — no more 
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Parse ~/.ssh/config to list available servers — v1.0
+- ✓ Add and save custom SSH connections — v1.0
+- ✓ Connect to servers with SSH key authentication — v1.0
+- ✓ Column-based file/folder navigation — v1.0
+- ✓ Keyboard navigation (arrow keys to move through files/folders) — v1.0
+- ✓ Mouse click navigation — v1.0
+- ✓ Per-server favorites sidebar (bookmarked folders, persisted) — v1.0
+- ✓ Right-panel preview for images (JPG, PNG, GIF, etc.) — v1.0
+- ✓ Right-panel preview for text/code files with syntax highlighting — v1.0
+- ✓ Spacebar opens enlarged viewer/lightbox for images — v1.0
+- ✓ Arrow key navigation updates preview in real-time — v1.0
+- ✓ Arrow key navigation in lightbox (browse images while enlarged) — v1.0
+- ✓ Download files from server to local Mac — v1.0
+- ✓ Upload files from local Mac to server — v1.0
+- ✓ Rename files on remote server — v1.0
+- ✓ Delete files on remote server — v1.0
+- ✓ Smart column scrolling (leftmost columns scroll away, reappear on back nav) — v1.0
+- ✓ Column and preview panel widths persist across app restarts — v1.0
+- ✓ File transfer progress toasts with cancel option — v1.0
 
 ### Active
 
-- [ ] Parse ~/.ssh/config to list available servers
-- [ ] Add and save custom SSH connections
-- [ ] Connect to servers with key-based or password authentication
-- [ ] Column-based file/folder navigation
-- [ ] Keyboard navigation (arrow keys to move through files/folders)
-- [ ] Mouse click navigation
-- [ ] Per-server favorites sidebar (bookmarked folders, persisted)
-- [ ] Right-panel preview for images (JPG, PNG, GIF, etc.)
-- [ ] Right-panel preview for text/code files with syntax highlighting
-- [ ] Spacebar opens enlarged viewer/lightbox for images
-- [ ] Arrow key navigation updates preview in real-time
-- [ ] Download files from server to local Mac
-- [ ] Upload files from local Mac to server
-- [ ] Move/rename files on remote server
-- [ ] Delete files on remote server
+- [ ] Move files to different folder on server (backend ready, needs RemoteFolderPicker UI)
+- [ ] Markdown lightbox viewer (spacebar on .md opens rendered view)
+- [ ] Lazy loading for large code files (>500 lines load incrementally)
+- [ ] Double-click resize handle to reset to default width
+- [ ] Password authentication support
+- [ ] Hidden files toggle (show/hide dotfiles)
 
 ### Out of Scope
 
-- Video playback — complexity not worth it for v1
+- Video playback — complexity not worth it, streaming over SSH is hard
 - PDF preview — can add later if needed
 - Mobile app — desktop only
 - Windows/Linux builds — macOS focus for now
 - File editing in-app — this is a browser, not an editor
 - Terminal/shell access — use dedicated terminal for that
+- Folder synchronization — two-way sync is complex
+- Cloud storage (S3, GCS) — different auth models, scope creep
 
 ## Context
 
-The user frequently works with remote Ubuntu servers and wants a visual way to browse files and preview images without constantly using terminal commands. The macOS Finder column view is the preferred navigation paradigm. SSH config integration is important to avoid re-entering connection details.
+Shipped v1.0 with 8,227 lines TypeScript/TSX/CSS in 48 source files.
+
+**Tech stack:**
+- Electron 40 (nodeIntegration: false, contextIsolation: true, sandbox: true)
+- React 19 with Vite HMR
+- TypeScript 5.5
+- ssh2 for SFTP
+- electron-conf for persistence
+- safeStorage for credential encryption
+- @tanstack/react-virtual for virtualized lists
+- Shiki for syntax highlighting
+- Sonner for toast notifications
+
+**User feedback themes from v1 testing:**
+- Column resize needed to be pixel-based (percentage sizing didn't work)
+- Preview panel expansion is useful for large images
+- Lightbox navigation is essential for browsing image directories
+- Width persistence eliminates repetitive resizing
+
+**Known issues:**
+- Move file feature needs custom RemoteFolderPicker (native dialogs can't browse remote)
+- Folder upload needs tar/gzip approach with server-side extraction check
 
 ## Constraints
 
 - **Platform**: Electron (cross-platform potential, familiar web stack)
 - **SSH**: Must work with existing ~/.ssh/config and SSH keys
 - **Storage**: Favorites and custom connections stored locally per-server
+- **Security**: safeStorage for credentials (macOS Keychain), no credentials in config files
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Electron over Tauri/native | Familiar web tech, faster to build, good enough performance for file browsing | — Pending |
-| Column view over list/icon view | Matches Finder mental model, good for deep directory structures | — Pending |
-| Per-server favorites | Servers have different use cases, favorites should be contextual | — Pending |
+| Electron over Tauri/native | Familiar web tech, faster to build | ✓ Good — shipped in 3 days |
+| Column view over list/icon view | Matches Finder mental model | ✓ Good — feels native |
+| Per-server favorites | Servers have different use cases | ✓ Good — contextual bookmarks |
+| electron-conf over electron-store | CommonJS/ESM compatibility with Electron Forge Vite | ✓ Good — no module issues |
+| @vitejs/plugin-react@4.x | v5.x ESM-only, incompatible with Forge | ✓ Good — HMR works perfectly |
+| Custom column resize | react-resizable-panels used percentages, needed pixels | ✓ Good — min widths work correctly |
+| Base64 data URLs for images | IPC-safe, no blob transfer complexity | ✓ Good — works reliably |
+| safeStorage for credentials | macOS Keychain integration | ✓ Good — secure by default |
+| Stream-based transfers | Progress callbacks via data event | ✓ Good — real-time progress |
+| AbortController for cancellation | Per-operation ID for clean cleanup | ✓ Good — ESC key works |
 
 ---
-*Last updated: 2026-01-26 after initialization*
+*Last updated: 2026-01-28 after v1.0 milestone*
