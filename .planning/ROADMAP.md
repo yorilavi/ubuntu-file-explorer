@@ -116,10 +116,13 @@ Plans:
   3. Favorites persist between app sessions
   4. Error messages are user-friendly with suggested actions
   5. User can cancel long-running operations
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 06-01: TBD
+- [ ] 06-01-PLAN.md — Install dependencies and create favorites storage with IPC bridge
+- [ ] 06-02-PLAN.md — Set up toast notification infrastructure using sonner
+- [ ] 06-03-PLAN.md — Create collapsible server sections with draggable favorites in sidebar
+- [ ] 06-04-PLAN.md — Add "Add to Favorites" context menu and wire up navigation
 
 ## Progress
 
@@ -133,7 +136,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Column View Navigator | 4/4 | ✓ Complete | 2026-01-27 |
 | 4. Preview Panel | 4/4 | ✓ Complete | 2026-01-28 |
 | 5. File Operations | 3/3 | ✓ Complete | 2026-01-28 |
-| 6. Favorites & Polish | 0/TBD | Not started | - |
+| 6. Favorites & Polish | 0/4 | In Progress | - |
 
 ---
 *Created: 2026-01-26*
