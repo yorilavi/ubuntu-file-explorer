@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { FileEntry } from '../../shared/types';
 import './FileItem.css';
 
@@ -35,11 +36,21 @@ function FileItem({
 
   // Close context menu when clicking elsewhere
   useEffect(() => {
-    const handleClickAway = () => setContextMenu(null);
-    if (contextMenu) {
-      document.addEventListener('click', handleClickAway);
-      return () => document.removeEventListener('click', handleClickAway);
-    }
+    if (!contextMenu) return;
+
+    const handleClickAway = () => {
+      setContextMenu(null);
+    };
+
+    // Use setTimeout to avoid closing immediately on the same event loop
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickAway);
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickAway);
+    };
   }, [contextMenu]);
 
   // Context menu handler
@@ -167,12 +178,13 @@ function FileItem({
         </span>
       )}
 
-      {/* Context menu */}
-      {contextMenu && (
+      {/* Context menu - rendered via portal to escape overflow:hidden containers */}
+      {contextMenu && createPortal(
         <div
           className="file-item__context-menu"
           style={{ top: contextMenu.y, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {file.isDirectory ? (
             <>
@@ -189,7 +201,8 @@ function FileItem({
               <button onClick={handleDelete}>Delete</button>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
