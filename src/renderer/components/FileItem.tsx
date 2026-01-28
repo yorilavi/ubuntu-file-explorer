@@ -24,7 +24,7 @@ function FileItem({
   isSelected,
   isFocused,
   serverId,
-  columnIndex,
+  columnIndex: _columnIndex,
   onRefresh,
   onClick,
   onDoubleClick,

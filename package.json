@@ -43,6 +43,9 @@
     "vite": "^5.4.21"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@tanstack/react-virtual": "^3.13.18",
     "electron-conf": "^1.3.0",
     "electron-squirrel-startup": "^1.0.1",
@@ -51,6 +54,7 @@
     "react-dom": "^19.2.4",
     "react-resizable-panels": "^4.5.2",
     "react-syntax-highlighter": "^16.1.0",
+    "sonner": "^2.0.7",
     "ssh-config": "^5.0.4",
     "ssh2": "^1.17.0",
     "yet-another-react-lightbox": "^3.28.0"
