@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 Phase: Post-v1 (all 6 phases complete)
 Plan: N/A (ad-hoc bug fixes and enhancements)
 Status: MVP complete, ongoing polish
-Last activity: 2026-01-28 - Session 3 (lightbox navigation, dynamic preview width)
+Last activity: 2026-01-28 - Session 4 (width persistence, fetch deduplication)
 
 Progress: [████████████████████] 100% + polish
 
@@ -111,6 +111,8 @@ Recent decisions affecting current work:
 | Capture phase key intercept for lightbox nav | Intercept arrow keys before lightbox captures them | Post-v1 |
 | Custom event for lightbox navigation | 'lightbox-navigate' event bridges App and ColumnView | Post-v1 |
 | onImagePreviewReady callback | Notifies App when new image loads for live lightbox update | Post-v1 |
+| electron-conf for UI preferences | localStorage unreliable across Electron restarts; electron-conf persists properly | Post-v1 |
+| pendingFetchesRef for fetch deduplication | Prevents duplicate directory fetches when state updates trigger re-renders | Post-v1 |
 
 ### Pending Todos
 
@@ -118,7 +120,10 @@ Recent decisions affecting current work:
 - Folder upload with subfolders: tar/gzip locally -> upload -> extract on server (requires server-side extraction check)
 - Markdown lightbox viewer: Spacebar on .md file opens rendered markdown in lightbox
 - Lazy loading for large files: Files >500 lines load incrementally on scroll (500 lines at a time)
-- Persist column/preview widths to localStorage
+- Double-click resize handle to reset to default width
+
+### Completed Todos (Post-v1)
+- ~~Persist column/preview widths~~ - Done via electron-conf (Session 4)
 
 ### Blockers/Concerns
 
@@ -126,9 +131,14 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 (Session 3)
-Stopped at: Lightbox navigation and dynamic preview width complete
+Last session: 2026-01-28 (Session 4)
+Stopped at: Width persistence and fetch deduplication complete
 Resume file: .planning/gsd_handoff.md
+
+**Recent Activity (Session 4):**
+1. Added ui-preferences-store using electron-conf for persistent storage
+2. Column widths and preview panel width persist across app restarts
+3. Fixed duplicate fetch issue with pendingFetchesRef tracking
 
 **Recent Activity (Session 3):**
 1. Preview panel can now resize to full width (dynamic max based on container)

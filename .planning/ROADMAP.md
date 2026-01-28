@@ -156,6 +156,11 @@ Bug fixes and enhancements from user testing:
 - Dynamic preview panel max width (can expand to nearly full width)
 - Arrow key navigation in lightbox (browse images while enlarged)
 
+**Session 4 - Persistence:**
+- Column widths persist across app restarts (electron-conf)
+- Preview panel width persists across app restarts (electron-conf)
+- Fixed duplicate directory fetch issue
+
 See `.planning/gsd_handoff.md` for full details and code locations.
 
 ---

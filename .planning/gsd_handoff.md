@@ -1,8 +1,8 @@
 # GSD Handoff Document
 
 **Created:** 2026-01-28
-**Updated:** 2026-01-28 (Session 3 - Lightbox navigation & preview resize)
-**Last Commit:** `b15eb7e` - feat(lightbox): add arrow key navigation and expand preview panel max width
+**Updated:** 2026-01-28 (Session 4 - Width persistence & fetch fix)
+**Last Commit:** `7db8ca7` - feat(ui): persist column and preview panel widths across app restarts
 
 ---
 
@@ -24,7 +24,22 @@
 
 ---
 
-## Session 3 Summary (Latest)
+## Session 4 Summary (Latest)
+
+Persistent UI preferences and bug fix:
+
+| Feature | Description | Commit |
+|---------|-------------|--------|
+| Width persistence | Column widths and preview panel width now persist across app restarts using electron-conf | `7db8ca7` |
+| Fetch deduplication | Fixed duplicate directory fetches by tracking pending requests in ref | `7db8ca7` |
+
+### New Files
+- `src/main/storage/ui-preferences-store.ts` - electron-conf store for UI preferences
+- `src/main/ipc/ui-preferences-handlers.ts` - IPC handlers for get/set preferences
+
+---
+
+## Session 3 Summary
 
 Two enhancements based on user feedback:
 
@@ -146,8 +161,8 @@ App.tsx
 
 ## What Was NOT Done (Future Improvements)
 
-1. **Persist column widths to localStorage** - widths reset on navigation
-2. **Persist preview panel width** - resets to 300px on refresh
+1. ~~**Persist column widths**~~ - **DONE** (Session 4, using electron-conf)
+2. ~~**Persist preview panel width**~~ - **DONE** (Session 4, using electron-conf)
 3. **FILE-05 Move UI** - backend ready, needs custom remote folder picker modal
 4. **Double-click resize handle to reset to default width** - nice-to-have
 5. **Markdown lightbox viewer** - spacebar on .md file opens rendered markdown in lightbox
@@ -174,9 +189,10 @@ Before considering session complete:
 
 ---
 
-## Git Log (Sessions 2 & 3)
+## Git Log (Sessions 2, 3 & 4)
 
 ```
+7db8ca7 feat(ui): persist column and preview panel widths across app restarts
 b15eb7e feat(lightbox): add arrow key navigation and expand preview panel max width
 8c6c638 fix(preview): increase max preview panel width to 800px
 33f0fb2 feat(resize): add resize handle for last column and preview panel
@@ -197,29 +213,15 @@ c3a52b8 fix(preview): add data: and blob: to CSP img-src directive
 2. Preview resize logic is in `src/renderer/App.tsx` (lines 37-72)
 3. Both use the same pattern: track `{startX, startWidth}` on mousedown, update width on mousemove
 
-### If Adding Width Persistence
-```typescript
-// Column widths - in ColumnView.tsx:
-useEffect(() => {
-  localStorage.setItem(`columnWidths-${serverId}`, JSON.stringify(columnWidths));
-}, [columnWidths, serverId]);
-
-// Initialize from localStorage:
-const [columnWidths, setColumnWidths] = useState<number[]>(() => {
-  const saved = localStorage.getItem(`columnWidths-${serverId}`);
-  return saved ? JSON.parse(saved) : [];
-});
-
-// Preview width - in App.tsx:
-const [previewWidth, setPreviewWidth] = useState(() => {
-  return parseInt(localStorage.getItem('previewWidth') || '300', 10);
-});
-// Then save in resize handler
-```
+### Width Persistence (IMPLEMENTED)
+Uses electron-conf via IPC:
+- Store: `src/main/storage/ui-preferences-store.ts`
+- Handlers: `src/main/ipc/ui-preferences-handlers.ts`
+- Preload: `getColumnWidths`, `setColumnWidths`, `getPreviewPanelWidth`, `setPreviewPanelWidth`
+- Renderer loads on mount, saves on resize end
 
 ### If User Wants More Polish
-- `/gsd:add-phase` to add a new phase for width persistence
-- Or just implement directly (it's a small change)
+- Remaining items: Move UI, double-click reset, markdown lightbox, lazy loading
 
 ---
 
@@ -237,5 +239,5 @@ const [previewWidth, setPreviewWidth] = useState(() => {
 
 ---
 
-*Session 3 updates: Lightbox navigation, dynamic preview width*
+*Session 4 updates: Width persistence via electron-conf, fetch deduplication fix*
 *All features working and tested*
