@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Column View Navigator** - Miller column UI with keyboard navigation
 - [x] **Phase 4: Preview Panel** - Image and code previews with syntax highlighting
 - [x] **Phase 5: File Operations** - Upload, download, and file management
-- [ ] **Phase 6: Favorites & Polish** - Sidebar bookmarks and UX refinements
+- [x] **Phase 6: Favorites & Polish** - Sidebar bookmarks and UX refinements
 
 ## Phase Details
 
@@ -111,18 +111,19 @@ Plans:
 **Depends on**: Phase 3, Phase 5
 **Requirements**: ORG-01, ORG-02
 **Success Criteria** (what must be TRUE):
-  1. User can add a folder to favorites via context menu or shortcut
+  1. User can add a folder to favorites via context menu
   2. Favorites appear in sidebar organized by server
   3. Favorites persist between app sessions
   4. Error messages are user-friendly with suggested actions
-  5. User can cancel long-running operations
-**Plans**: 4 plans
+  5. User can cancel long-running file operations (download/upload)
+**Plans**: 5 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Install dependencies and create favorites storage with IPC bridge
-- [ ] 06-02-PLAN.md — Set up toast notification infrastructure using sonner
-- [ ] 06-03-PLAN.md — Create collapsible server sections with draggable favorites in sidebar
-- [ ] 06-04-PLAN.md — Add "Add to Favorites" context menu and wire up navigation
+- [x] 06-01-PLAN.md — Install dependencies and create favorites storage with IPC bridge
+- [x] 06-02-PLAN.md — Set up toast notification infrastructure using sonner
+- [x] 06-03-PLAN.md — Create collapsible server sections with draggable favorites in sidebar
+- [x] 06-04-PLAN.md — Add "Add to Favorites" context menu, wire navigation, and show progress toasts
+- [x] 06-05-PLAN.md — Add AbortController cancellation support for file operations
 
 ## Progress
 
@@ -136,7 +137,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Column View Navigator | 4/4 | ✓ Complete | 2026-01-27 |
 | 4. Preview Panel | 4/4 | ✓ Complete | 2026-01-28 |
 | 5. File Operations | 3/3 | ✓ Complete | 2026-01-28 |
-| 6. Favorites & Polish | 0/4 | In Progress | - |
+| 6. Favorites & Polish | 5/5 | ✓ Complete | 2026-01-28 |
 
 ---
 *Created: 2026-01-26*

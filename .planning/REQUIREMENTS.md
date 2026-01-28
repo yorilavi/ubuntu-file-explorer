@@ -36,8 +36,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Organization
 
-- [ ] **ORG-01**: User can add folders to per-server favorites sidebar
-- [ ] **ORG-02**: Favorites persist between app sessions
+- [x] **ORG-01**: User can add folders to per-server favorites sidebar
+- [x] **ORG-02**: Favorites persist between app sessions
 
 ## v2 Requirements
 
@@ -100,8 +100,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PREV-02 | Phase 4 | Complete |
 | PREV-03 | Phase 4 | Complete |
 | PREV-04 | Phase 4 | Complete |
-| ORG-01 | Phase 6 | Pending |
-| ORG-02 | Phase 6 | Pending |
+| ORG-01 | Phase 6 | Complete |
+| ORG-02 | Phase 6 | Complete |
 
 **Coverage:**
 - v1 requirements: 17 total
@@ -110,4 +110,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-28 after Phase 5 completion*
+*Last updated: 2026-01-28 after Phase 6 completion*
