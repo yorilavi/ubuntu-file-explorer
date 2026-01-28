@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ColumnState } from '../../types/columnView';
 import { useColumnNavigation } from '../../hooks/useColumnNavigation';
@@ -41,10 +41,14 @@ function Column({
     overscan: 10, // Render extra items for smooth scrolling
   });
 
-  // Keyboard navigation
+  // Extract item names for type-ahead search
+  const itemNames = useMemo(() => entries.map((e) => e.name), [entries]);
+
+  // Keyboard navigation with type-ahead search
   const { handleKeyDown } = useColumnNavigation({
     itemCount: entries.length,
     focusedIndex,
+    itemNames,
     virtualizer,
     onFocusChange: (index) => onItemFocus(columnIndex, index),
     onNavigateRight: (index) => onNavigateInto(columnIndex, index),
@@ -77,7 +81,10 @@ function Column({
   // Focus column container when it becomes active or when loading completes
   useEffect(() => {
     if (isActive && !loading && parentRef.current) {
-      parentRef.current.focus();
+      // Use requestAnimationFrame to ensure DOM is settled after any click events
+      requestAnimationFrame(() => {
+        parentRef.current?.focus();
+      });
     }
   }, [isActive, loading]);
 
