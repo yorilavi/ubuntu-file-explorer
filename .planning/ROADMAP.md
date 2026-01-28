@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: SSH/SFTP Core** - Connect to servers and browse directories
 - [x] **Phase 3: Column View Navigator** - Miller column UI with keyboard navigation
 - [x] **Phase 4: Preview Panel** - Image and code previews with syntax highlighting
-- [ ] **Phase 5: File Operations** - Upload, download, and file management
+- [x] **Phase 5: File Operations** - Upload, download, and file management
 - [ ] **Phase 6: Favorites & Polish** - Sidebar bookmarks and UX refinements
 
 ## Phase Details
@@ -102,9 +102,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Create file operations service with download/upload/delete/rename/move
-- [ ] 05-02-PLAN.md — Create IPC handlers and extend preload with file operations API
-- [ ] 05-03-PLAN.md — Add context menu to FileItem and integrate with directory refresh
+- [x] 05-01-PLAN.md — Create file operations service with download/upload/delete/rename/move
+- [x] 05-02-PLAN.md — Create IPC handlers and extend preload with file operations API
+- [x] 05-03-PLAN.md — Add context menu to FileItem and integrate with directory refresh
 
 ### Phase 6: Favorites & Polish
 **Goal**: User can bookmark folders for quick access and experiences polished error handling
@@ -132,7 +132,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. SSH/SFTP Core | 4/4 | ✓ Complete | 2026-01-27 |
 | 3. Column View Navigator | 4/4 | ✓ Complete | 2026-01-27 |
 | 4. Preview Panel | 4/4 | ✓ Complete | 2026-01-28 |
-| 5. File Operations | 0/3 | Not started | - |
+| 5. File Operations | 3/3 | ✓ Complete | 2026-01-28 |
 | 6. Favorites & Polish | 0/TBD | Not started | - |
 
 ---

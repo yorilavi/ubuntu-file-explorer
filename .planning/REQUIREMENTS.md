@@ -21,11 +21,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### File Operations
 
-- [ ] **FILE-01**: User can download files from server to local Mac
-- [ ] **FILE-02**: User can upload files from local Mac to server
-- [ ] **FILE-03**: User can delete files/folders on remote server
-- [ ] **FILE-04**: User can rename files on remote server
-- [ ] **FILE-05**: User can move files to different folder on server
+- [x] **FILE-01**: User can download files from server to local Mac
+- [x] **FILE-02**: User can upload files from local Mac to server
+- [x] **FILE-03**: User can delete files/folders on remote server
+- [x] **FILE-04**: User can rename files on remote server
+- [ ] **FILE-05**: User can move files to different folder on server (backend ready, UI deferred - needs remote folder picker)
 
 ### Preview
 
@@ -91,11 +91,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NAV-01 | Phase 3 | Complete |
 | NAV-02 | Phase 3 | Complete |
 | NAV-03 | Phase 3 | Complete |
-| FILE-01 | Phase 5 | Pending |
-| FILE-02 | Phase 5 | Pending |
-| FILE-03 | Phase 5 | Pending |
-| FILE-04 | Phase 5 | Pending |
-| FILE-05 | Phase 5 | Pending |
+| FILE-01 | Phase 5 | Complete |
+| FILE-02 | Phase 5 | Complete |
+| FILE-03 | Phase 5 | Complete |
+| FILE-04 | Phase 5 | Complete |
+| FILE-05 | Phase 5 | Partial (backend ready, UI deferred) |
 | PREV-01 | Phase 4 | Complete |
 | PREV-02 | Phase 4 | Complete |
 | PREV-03 | Phase 4 | Complete |
@@ -110,4 +110,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-26 after roadmap creation*
+*Last updated: 2026-01-28 after Phase 5 completion*
