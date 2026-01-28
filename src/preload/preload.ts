@@ -85,6 +85,8 @@ interface FileOperationResult {
   success: boolean;
   path?: string;
   error?: string;
+  operationId?: string;
+  cancelled?: boolean;
 }
 
 const electronAPI = {
@@ -288,6 +290,12 @@ const electronAPI = {
       ipcRenderer.removeListener('file-ops:progress', handler);
     };
   },
+
+  /**
+   * Cancel an active file operation.
+   */
+  cancelOperation: (operationId: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('file-ops:cancel', operationId),
 
   // Favorites Operations
   // ====================

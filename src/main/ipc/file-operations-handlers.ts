@@ -9,6 +9,8 @@ import {
   deleteRemoteFolder,
   renameRemoteFile,
   moveRemoteFile,
+  cancelOperation,
+  generateOperationId,
 } from '../ssh/file-operations-service';
 
 /**
@@ -49,9 +51,10 @@ export function registerFileOperationsHandlers(mainWindow: BrowserWindow): void 
       }
 
       const localPath = result.filePath;
+      const operationId = generateOperationId();
 
       try {
-        await downloadFile(serverId, remotePath, localPath, (percent) => {
+        const downloadResult = await downloadFile(serverId, remotePath, localPath, operationId, (percent) => {
           // Get file stats for bytes calculation (approximation)
           const totalBytes = 0; // Will be tracked by file-operations-service
           const bytesTransferred = 0;
@@ -60,11 +63,17 @@ export function registerFileOperationsHandlers(mainWindow: BrowserWindow): void 
 
         // Clear progress bar on completion
         mainWindow.setProgressBar(-1);
-        return { success: true, path: localPath };
+        return { success: true, path: localPath, operationId: downloadResult.operationId };
       } catch (err) {
         mainWindow.setProgressBar(-1);
+        const errorMsg = err instanceof Error ? err.message : 'Download failed';
+        // Check if cancelled
+        if (errorMsg === 'Operation cancelled') {
+          console.log(`[file-operations-handlers] Download cancelled: ${remotePath}`);
+          return { success: false, cancelled: true };
+        }
         console.error(`[file-operations-handlers] Download error:`, err);
-        return { success: false, error: err instanceof Error ? err.message : 'Download failed' };
+        return { success: false, error: errorMsg };
       }
     }
   );
@@ -83,19 +92,26 @@ export function registerFileOperationsHandlers(mainWindow: BrowserWindow): void 
       }
 
       const localPath = result.filePaths[0];
+      const operationId = generateOperationId();
 
       try {
-        const newRemotePath = await uploadFile(serverId, localPath, remoteDir, (percent) => {
+        const uploadResult = await uploadFile(serverId, localPath, remoteDir, operationId, (percent) => {
           sendProgress(mainWindow, localPath, percent, 0, 0);
         });
 
         // Clear progress bar on completion
         mainWindow.setProgressBar(-1);
-        return { success: true, path: newRemotePath };
+        return { success: true, path: uploadResult.remotePath, operationId: uploadResult.operationId };
       } catch (err) {
         mainWindow.setProgressBar(-1);
+        const errorMsg = err instanceof Error ? err.message : 'Upload failed';
+        // Check if cancelled
+        if (errorMsg === 'Operation cancelled') {
+          console.log(`[file-operations-handlers] Upload cancelled: ${localPath}`);
+          return { success: false, cancelled: true };
+        }
         console.error(`[file-operations-handlers] Upload error:`, err);
-        return { success: false, error: err instanceof Error ? err.message : 'Upload failed' };
+        return { success: false, error: errorMsg };
       }
     }
   );
@@ -184,6 +200,17 @@ export function registerFileOperationsHandlers(mainWindow: BrowserWindow): void 
         console.error(`[file-operations-handlers] Move with picker error:`, err);
         return { success: false, error: err instanceof Error ? err.message : 'Move failed' };
       }
+    }
+  );
+
+  // Cancel handler - cancels an active file operation
+  ipcMain.handle(
+    'file-ops:cancel',
+    (_event, operationId: string) => {
+      const cancelled = cancelOperation(operationId);
+      // Clear progress bar when cancelling
+      mainWindow.setProgressBar(-1);
+      return { success: cancelled };
     }
   );
 }

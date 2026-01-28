@@ -1,77 +1,151 @@
 // File operations service for SFTP transfers and management
 // Provides download, upload, delete, rename, move operations
+// Supports AbortController for cancellation
 
-import { createReadStream, createWriteStream, statSync } from 'fs';
+import { createReadStream, createWriteStream, statSync, unlinkSync } from 'fs';
 import path from 'path';
 import type { Stats } from 'ssh2';
 import { getSFTPWrapper } from './sftp-service';
 
+// Track active operations by unique ID for cancellation
+const activeOperations = new Map<string, AbortController>();
+
+/**
+ * Generate a unique operation ID for tracking.
+ */
+export function generateOperationId(): string {
+  return `op-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * Cancel an active operation by ID.
+ *
+ * @param operationId - The operation ID to cancel
+ * @returns true if operation was found and cancelled, false otherwise
+ */
+export function cancelOperation(operationId: string): boolean {
+  const controller = activeOperations.get(operationId);
+  if (controller) {
+    controller.abort();
+    activeOperations.delete(operationId);
+    console.log(`[file-operations] Cancelled operation: ${operationId}`);
+    return true;
+  }
+  return false;
+}
+
 /**
  * Download a file from remote server to local path.
+ * Supports cancellation via operationId.
  *
  * @param serverId - The server ID
  * @param remotePath - Full path to remote file
  * @param localPath - Full path to local destination
+ * @param operationId - Optional operation ID for cancellation tracking
  * @param onProgress - Progress callback (0-100)
+ * @returns Operation ID for cancellation
  */
 export async function downloadFile(
   serverId: string,
   remotePath: string,
   localPath: string,
+  operationId: string | undefined,
   onProgress: (percent: number) => void
-): Promise<void> {
+): Promise<{ operationId: string }> {
   const sftp = await getSFTPWrapper(serverId);
   if (!sftp) {
     throw new Error('Not connected to server');
   }
+
+  const opId = operationId || generateOperationId();
+  const controller = new AbortController();
+  activeOperations.set(opId, controller);
 
   // Get remote file stats for progress calculation
   const stats = await new Promise<Stats>((resolve, reject) => {
     sftp.stat(remotePath, (err, s) => (err ? reject(err) : resolve(s)));
   });
 
-  return new Promise((resolve, reject) => {
-    const readStream = sftp.createReadStream(remotePath);
-    const writeStream = createWriteStream(localPath);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const readStream = sftp.createReadStream(remotePath);
+      const writeStream = createWriteStream(localPath);
 
-    let bytesTransferred = 0;
+      let bytesTransferred = 0;
 
-    readStream.on('data', (chunk: Buffer) => {
-      bytesTransferred += chunk.length;
-      const percent = Math.round((bytesTransferred / stats.size) * 100);
-      onProgress(percent);
+      // Handle abort signal
+      const onAbort = () => {
+        readStream.destroy();
+        writeStream.destroy();
+        // Clean up partial file
+        try {
+          unlinkSync(localPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+        reject(new Error('Operation cancelled'));
+      };
+
+      controller.signal.addEventListener('abort', onAbort);
+
+      readStream.on('data', (chunk: Buffer) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        bytesTransferred += chunk.length;
+        const percent = Math.round((bytesTransferred / stats.size) * 100);
+        onProgress(percent);
+      });
+
+      readStream.on('error', (err: Error) => {
+        controller.signal.removeEventListener('abort', onAbort);
+        reject(err);
+      });
+      writeStream.on('error', (err: Error) => {
+        controller.signal.removeEventListener('abort', onAbort);
+        reject(err);
+      });
+      writeStream.on('finish', () => {
+        controller.signal.removeEventListener('abort', onAbort);
+        console.log(`[file-operations] Downloaded: ${remotePath} -> ${localPath}`);
+        resolve();
+      });
+
+      readStream.pipe(writeStream);
     });
 
-    readStream.on('error', reject);
-    writeStream.on('error', reject);
-    writeStream.on('finish', () => {
-      console.log(`[file-operations] Downloaded: ${remotePath} -> ${localPath}`);
-      resolve();
-    });
-
-    readStream.pipe(writeStream);
-  });
+    return { operationId: opId };
+  } finally {
+    activeOperations.delete(opId);
+  }
 }
 
 /**
  * Upload a file from local path to remote directory.
+ * Supports cancellation via operationId.
  *
  * @param serverId - The server ID
  * @param localPath - Full path to local file
  * @param remoteDir - Remote directory to upload into
+ * @param operationId - Optional operation ID for cancellation tracking
  * @param onProgress - Progress callback (0-100)
- * @returns Full remote path of uploaded file
+ * @returns Full remote path of uploaded file and operation ID
  */
 export async function uploadFile(
   serverId: string,
   localPath: string,
   remoteDir: string,
+  operationId: string | undefined,
   onProgress: (percent: number) => void
-): Promise<string> {
+): Promise<{ remotePath: string; operationId: string }> {
   const sftp = await getSFTPWrapper(serverId);
   if (!sftp) {
     throw new Error('Not connected to server');
   }
+
+  const opId = operationId || generateOperationId();
+  const controller = new AbortController();
+  activeOperations.set(opId, controller);
 
   // Get local file size for progress calculation
   const fileStats = statSync(localPath);
@@ -79,27 +153,56 @@ export async function uploadFile(
   // Use POSIX paths for remote (always forward slashes)
   const remotePath = path.posix.join(remoteDir, fileName);
 
-  return new Promise((resolve, reject) => {
-    const readStream = createReadStream(localPath);
-    const writeStream = sftp.createWriteStream(remotePath);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const readStream = createReadStream(localPath);
+      const writeStream = sftp.createWriteStream(remotePath);
 
-    let bytesTransferred = 0;
+      let bytesTransferred = 0;
 
-    readStream.on('data', (chunk: Buffer) => {
-      bytesTransferred += chunk.length;
-      const percent = Math.round((bytesTransferred / fileStats.size) * 100);
-      onProgress(percent);
+      // Handle abort signal
+      const onAbort = () => {
+        readStream.destroy();
+        writeStream.destroy();
+        // Try to clean up partial upload
+        sftp.unlink(remotePath, () => {
+          // Ignore cleanup errors
+        });
+        reject(new Error('Operation cancelled'));
+      };
+
+      controller.signal.addEventListener('abort', onAbort);
+
+      readStream.on('data', (chunk: Buffer) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        bytesTransferred += chunk.length;
+        const percent = Math.round((bytesTransferred / fileStats.size) * 100);
+        onProgress(percent);
+      });
+
+      readStream.on('error', (err: Error) => {
+        controller.signal.removeEventListener('abort', onAbort);
+        reject(err);
+      });
+      writeStream.on('error', (err: Error) => {
+        controller.signal.removeEventListener('abort', onAbort);
+        reject(err);
+      });
+      writeStream.on('finish', () => {
+        controller.signal.removeEventListener('abort', onAbort);
+        console.log(`[file-operations] Uploaded: ${localPath} -> ${remotePath}`);
+        resolve();
+      });
+
+      readStream.pipe(writeStream);
     });
 
-    readStream.on('error', reject);
-    writeStream.on('error', reject);
-    writeStream.on('finish', () => {
-      console.log(`[file-operations] Uploaded: ${localPath} -> ${remotePath}`);
-      resolve(remotePath);
-    });
-
-    readStream.pipe(writeStream);
-  });
+    return { remotePath, operationId: opId };
+  } finally {
+    activeOperations.delete(opId);
+  }
 }
 
 /**
