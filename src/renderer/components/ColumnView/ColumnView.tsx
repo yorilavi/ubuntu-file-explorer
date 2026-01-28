@@ -15,6 +15,7 @@ interface ColumnViewProps {
   onPathChange?: (path: string) => void;
   onNavigationComplete?: () => void;  // Called after external navigation is processed
   onRefreshColumn?: (columnIndex: number) => void;  // Exposed for external refresh triggers
+  onFavoritesChanged?: () => void;  // Called when favorites are modified
 }
 
 /**
@@ -211,6 +212,7 @@ function ColumnView({
   onFileSelect,
   onPathChange,
   onNavigationComplete,
+  onFavoritesChanged,
 }: ColumnViewProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -402,6 +404,7 @@ function ColumnView({
                 onNavigateInto={handleNavigateInto}
                 onNavigateBack={handleNavigateBack}
                 onColumnFocus={handleColumnFocus}
+                onFavoritesChanged={onFavoritesChanged}
               />
             </Panel>
             {index < columns.length - 1 && (

@@ -807,38 +807,30 @@ body {
   border-bottom: 1px solid #333;
 }
 
-.sidebar-server__header {
+.sidebar-server__item-row {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  cursor: pointer;
-  user-select: none;
-  gap: 8px;
-}
-
-.sidebar-server__header:hover {
-  background: rgba(255, 255, 255, 0.05);
+  padding-left: 4px;
 }
 
 .sidebar-server__chevron {
-  width: 16px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  width: 20px;
   font-size: 10px;
   color: #666;
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
 
-.sidebar-server__chevron--open {
-  transform: rotate(90deg);
+.sidebar-server__chevron:hover {
+  color: #999;
 }
 
-.sidebar-server__name {
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #ccc;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.sidebar-server__chevron--open {
+  transform: rotate(90deg);
 }
 
 .sidebar-server__content {

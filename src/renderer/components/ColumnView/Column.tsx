@@ -16,6 +16,7 @@ interface ColumnProps {
   onNavigateInto: (columnIndex: number, itemIndex: number) => void;
   onNavigateBack: (columnIndex: number) => void;
   onColumnFocus: (columnIndex: number) => void;
+  onFavoritesChanged?: () => void;
 }
 
 /**
@@ -33,6 +34,7 @@ function Column({
   onNavigateInto,
   onNavigateBack,
   onColumnFocus,
+  onFavoritesChanged,
 }: ColumnProps): React.JSX.Element {
   const parentRef = useRef<HTMLDivElement>(null);
   const { path, entries, selectedIndices, focusedIndex, loading, error } = columnState;
@@ -182,6 +184,7 @@ function Column({
                 onRefresh={onRefresh}
                 onClick={(e) => handleItemClick(e, virtualRow.index)}
                 onDoubleClick={() => handleItemDoubleClick(virtualRow.index)}
+                onFavoritesChanged={onFavoritesChanged}
               />
             </div>
           );

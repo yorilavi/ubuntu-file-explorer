@@ -75,6 +75,19 @@ function App(): React.JSX.Element {
   // Track pending navigation after connection
   const pendingNavigationRef = useRef<{ serverId: string; path: string } | null>(null);
 
+  // Store favorites refresh function from ServerSidebar for FileItem to call
+  const refreshFavoritesRef = useRef<(() => Promise<void>) | null>(null);
+
+  const handleRefreshFavoritesCallback = useCallback((refreshFn: () => Promise<void>) => {
+    refreshFavoritesRef.current = refreshFn;
+  }, []);
+
+  const handleFavoritesChanged = useCallback(async () => {
+    if (refreshFavoritesRef.current) {
+      await refreshFavoritesRef.current();
+    }
+  }, []);
+
   const handleFavoriteNavigate = useCallback((serverId: string, path: string) => {
     // Check if server is connected
     const state = connectionStates[serverId];
@@ -171,6 +184,7 @@ function App(): React.JSX.Element {
           selectedServerId={selectedServer}
           onServerSelect={setSelectedServer}
           onFavoriteNavigate={handleFavoriteNavigate}
+          onRefreshFavorites={handleRefreshFavoritesCallback}
         />
         <main className="main-content">
           {selectedServer ? (
@@ -206,6 +220,7 @@ function App(): React.JSX.Element {
                       onFileSelect={handleFileSelect}
                       onPathChange={handlePathChange}
                       onNavigationComplete={handleNavigationComplete}
+                      onFavoritesChanged={handleFavoritesChanged}
                     />
                   </div>
                   <div className="browser-preview">

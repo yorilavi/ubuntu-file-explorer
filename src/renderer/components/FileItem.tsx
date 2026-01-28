@@ -13,6 +13,7 @@ interface FileItemProps {
   onRefresh: () => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
+  onFavoritesChanged?: () => void;
 }
 
 /**
@@ -29,6 +30,7 @@ function FileItem({
   onRefresh,
   onClick,
   onDoubleClick,
+  onFavoritesChanged,
 }: FileItemProps): React.JSX.Element {
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -284,12 +286,16 @@ function FileItem({
     try {
       await window.electronAPI.addFavorite(serverId, file.path);
       toast.success(`Added "${file.name}" to favorites`);
+      // Notify sidebar to refresh favorites
+      if (onFavoritesChanged) {
+        onFavoritesChanged();
+      }
     } catch (error) {
       toast.error('Failed to add favorite', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  }, [serverId, file.path, file.name]);
+  }, [serverId, file.path, file.name, onFavoritesChanged]);
 
   const itemClasses = [
     'file-item',

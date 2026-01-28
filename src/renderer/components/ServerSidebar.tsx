@@ -24,6 +24,7 @@ interface ServerSidebarProps {
   selectedServerId: string | null;
   onServerSelect: (serverId: string) => void;
   onFavoriteNavigate: (serverId: string, path: string) => void;
+  onRefreshFavorites?: (refreshFn: () => Promise<void>) => void;
 }
 
 /**
@@ -35,6 +36,7 @@ function ServerSidebar({
   selectedServerId,
   onServerSelect,
   onFavoriteNavigate,
+  onRefreshFavorites,
 }: ServerSidebarProps): React.JSX.Element {
   const [servers, setServers] = useState<Server[]>([]);
   const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionState>>({});
@@ -43,7 +45,14 @@ function ServerSidebar({
   const [collapsedServers, setCollapsedServers] = useState<Set<string>>(new Set());
 
   // Load favorites for selected server
-  const { favorites, reorderFavorites, removeFavorite } = useFavorites(selectedServerId);
+  const { favorites, reorderFavorites, removeFavorite, refresh: refreshFavorites } = useFavorites(selectedServerId);
+
+  // Expose refresh function to parent for external favorite adds
+  useEffect(() => {
+    if (onRefreshFavorites) {
+      onRefreshFavorites(refreshFavorites);
+    }
+  }, [onRefreshFavorites, refreshFavorites]);
 
   // DnD sensors with activation constraint to allow clicks
   const sensors = useSensors(
@@ -169,17 +178,14 @@ function ServerSidebar({
 
     return (
       <div key={server.id} className="sidebar-server">
-        <div
-          className="sidebar-server__header"
-          onClick={() => toggleCollapse(server.id)}
-        >
-          <span className={`sidebar-server__chevron ${!isCollapsed ? 'sidebar-server__chevron--open' : ''}`}>
+        <div className="sidebar-server__item-row">
+          <button
+            className={`sidebar-server__chevron ${!isCollapsed ? 'sidebar-server__chevron--open' : ''}`}
+            onClick={(e) => { e.stopPropagation(); toggleCollapse(server.id); }}
+            title={isCollapsed ? 'Expand' : 'Collapse'}
+          >
             ▶
-          </span>
-          <span className="sidebar-server__name">{server.name}</span>
-        </div>
-
-        <div className={`sidebar-server__content ${isCollapsed ? 'sidebar-server__content--collapsed' : ''}`}>
+          </button>
           <ServerListItem
             server={server}
             state={state}
@@ -189,8 +195,10 @@ function ServerSidebar({
             onSelect={() => onServerSelect(server.id)}
             onDelete={showDelete ? () => handleDelete(server.id) : undefined}
           />
+        </div>
 
-          {showFavorites && (
+        {showFavorites && (
+          <div className={`sidebar-server__content ${isCollapsed ? 'sidebar-server__content--collapsed' : ''}`}>
             <div className="favorites-list">
               {favorites.length === 0 ? (
                 <div className="favorites-list__empty">No favorites</div>
@@ -217,8 +225,8 @@ function ServerSidebar({
                 </DndContext>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   };
