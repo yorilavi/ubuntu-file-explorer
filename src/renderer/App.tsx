@@ -6,6 +6,7 @@ import ColumnView from './components/ColumnView';
 import PathBar from './components/PathBar';
 import PreviewPanel from './components/PreviewPanel';
 import LightboxView from './components/PreviewPanel/Lightbox';
+import { ToastProvider } from './components/ToastProvider';
 
 /**
  * Render connection status message for display during connection process.
@@ -108,67 +109,71 @@ function App(): React.JSX.Element {
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
 
   return (
-    <div className="app-layout">
-      <ServerSidebar
-        selectedServerId={selectedServer}
-        onServerSelect={setSelectedServer}
-      />
-      <main className="main-content">
-        {selectedServer ? (
-          currentState?.status === 'ready' ? (
-            <div className="browser-container">
-              {/* Toolbar with path bar and controls */}
-              <div className="browser-toolbar">
-                <PathBar
-                  path={currentPath}
-                  onNavigate={handlePathNavigate}
-                />
-                <div className="browser-toolbar__controls">
-                  <label className="browser-toolbar__toggle">
-                    <input
-                      type="checkbox"
-                      checked={showHidden}
-                      onChange={(e) => setShowHidden(e.target.checked)}
-                    />
-                    Show hidden
-                  </label>
+    <>
+      <div className="app-layout">
+        <ServerSidebar
+          selectedServerId={selectedServer}
+          onServerSelect={setSelectedServer}
+        />
+        <main className="main-content">
+          {selectedServer ? (
+            currentState?.status === 'ready' ? (
+              <div className="browser-container">
+                {/* Toolbar with path bar and controls */}
+                <div className="browser-toolbar">
+                  <PathBar
+                    path={currentPath}
+                    onNavigate={handlePathNavigate}
+                  />
+                  <div className="browser-toolbar__controls">
+                    <label className="browser-toolbar__toggle">
+                      <input
+                        type="checkbox"
+                        checked={showHidden}
+                        onChange={(e) => setShowHidden(e.target.checked)}
+                      />
+                      Show hidden
+                    </label>
+                  </div>
                 </div>
-              </div>
 
-              {/* Column view + Preview panel */}
-              <div className="browser-main">
-                <div className="browser-columns">
-                  <ColumnView
-                    key={selectedServer}
-                    serverId={selectedServer}
-                    initialPath="/"
-                    navigateTo={navigateToPath}
-                    showHidden={showHidden}
-                    onFileSelect={handleFileSelect}
-                    onPathChange={handlePathChange}
-                    onNavigationComplete={handleNavigationComplete}
-                  />
-                </div>
-                <div className="browser-preview">
-                  <PreviewPanel
-                    serverId={selectedServer}
-                    selectedFile={selectedFile}
-                    onImageClick={handleImageClick}
-                  />
+                {/* Column view + Preview panel */}
+                <div className="browser-main">
+                  <div className="browser-columns">
+                    <ColumnView
+                      key={selectedServer}
+                      serverId={selectedServer}
+                      initialPath="/"
+                      navigateTo={navigateToPath}
+                      showHidden={showHidden}
+                      onFileSelect={handleFileSelect}
+                      onPathChange={handlePathChange}
+                      onNavigationComplete={handleNavigationComplete}
+                    />
+                  </div>
+                  <div className="browser-preview">
+                    <PreviewPanel
+                      serverId={selectedServer}
+                      selectedFile={selectedFile}
+                      onImageClick={handleImageClick}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="connection-status">
+                <div className="connection-status__message">
+                  {renderConnectionStatus(currentState)}
+                </div>
+              </div>
+            )
           ) : (
-            <div className="connection-status">
-              <div className="connection-status__message">
-                {renderConnectionStatus(currentState)}
-              </div>
-            </div>
-          )
-        ) : (
-          <div className="placeholder">Select a server to browse</div>
-        )}
-      </main>
+            <div className="placeholder">Select a server to browse</div>
+          )}
+        </main>
+      </div>
+
+      <ToastProvider />
 
       {/* Lightbox overlay */}
       {lightboxSrc && (
@@ -178,7 +183,7 @@ function App(): React.JSX.Element {
           onClose={handleLightboxClose}
         />
       )}
-    </div>
+    </>
   );
 }
 

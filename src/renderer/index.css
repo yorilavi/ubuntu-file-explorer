@@ -781,3 +781,23 @@ body {
 .browser-toolbar__toggle input {
   cursor: pointer;
 }
+
+/* Toast styles */
+.app-toast {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+
+/* Ensure toasts appear above other overlays */
+[data-sonner-toaster] {
+  z-index: 10000;
+}
+
+/* Progress bar within toast */
+.toast-progress {
+  height: 4px;
+  background: var(--selection-color, #0078d4);
+  border-radius: 2px;
+  margin-top: 8px;
+  transition: width 0.3s ease;
+}
