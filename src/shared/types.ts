@@ -88,3 +88,43 @@ export type ConnectionState =
   | { status: 'loading-directory' }
   | { status: 'ready' }
   | { status: 'error'; message: string };
+
+// Preview Types
+// =============
+
+/**
+ * Supported preview types.
+ */
+export type PreviewType = 'image' | 'code' | 'folder' | 'binary' | 'too-large' | 'error' | 'loading';
+
+/**
+ * Image metadata from EXIF.
+ */
+export interface ImageMetadata {
+  width?: number;
+  height?: number;
+  camera?: string;
+  dateTaken?: Date;
+  gps?: { latitude: number; longitude: number };
+}
+
+/**
+ * Preview data returned from IPC.
+ */
+export type PreviewData =
+  | { type: 'image'; dataUrl: string; metadata: ImageMetadata; fileSize: number; mimeType: string }
+  | { type: 'code'; content: string; language: string; lineCount: number; truncated: boolean }
+  | { type: 'folder'; name: string; itemCount: number; totalSize: number }
+  | { type: 'binary'; name: string; fileSize: number; mimeType: string }
+  | { type: 'too-large'; name: string; fileSize: number }
+  | { type: 'error'; message: string }
+  | { type: 'loading'; progress: number };
+
+/**
+ * File type detection result.
+ */
+export interface FileTypeInfo {
+  category: 'image' | 'code' | 'text' | 'binary';
+  language?: string;  // For code files
+  mimeType: string;
+}
