@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Phase 3 - Column View Navigator
+**Current focus:** Phase 4 - Preview Panel
 
 ## Current Position
 
-Phase: 3 of 6 (Column View Navigator) ✓ COMPLETE
-Plan: All plans complete
-Status: Phase verified and complete
-Last activity: 2026-01-27 - Phase 3 complete with type-ahead search bonus feature
+Phase: 4 of 6 (Preview Panel)
+Plan: 1 of 4 complete
+Status: In progress
+Last activity: 2026-01-28 - Completed 04-01-PLAN.md (Foundation and Infrastructure)
 
-Progress: [██████░░░░] 60%
+Progress: [██████░░░░] 65%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: 4 min 30 sec
-- Total execution time: 0.75 hours
+- Total plans completed: 11
+- Average duration: 4 min 15 sec
+- Total execution time: 0.78 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [██████░░░░] 60%
 | 01-foundation-security | 2 | 10 min 8 sec | 5 min 4 sec |
 | 02-ssh-sftp-core | 4 | 20 min 11 sec | 5 min 3 sec |
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
+| 04-preview-panel | 1 | 2 min | 2 min |
 
 **Recent Trend:**
-- Last 5 plans: 3m, 1m40s, 6m42s, ~8m
+- Last 5 plans: 1m40s, 6m42s, ~8m, 2m
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -66,6 +67,10 @@ Recent decisions affecting current work:
 | Group/Panel/Separator (react-resizable-panels v4) | Correct API for v4, not older PanelGroup/PanelResizeHandle | 03-03 |
 | Key prop excludes path | Prevents ColumnView remount on every navigation | 03-04 |
 | Focus on loading complete | Ensures keyboard nav works without manual click | 03-04 |
+| 500MB cache limit for preview files | Reasonable default balancing disk usage with performance | 04-01 |
+| MD5 hash for cache keys | Fast, deterministic, collision-resistant for file paths | 04-01 |
+| Separate metadata files for staleness | Quick staleness checks without reading full cached data | 04-01 |
+| Async LRU eviction | Cache operations don't block on cleanup | 04-01 |
 
 ### Pending Todos
 
@@ -77,9 +82,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-27 22:20 UTC
-Stopped at: Completed 03-04-PLAN.md (PathBar and App Integration) - All Phase 3 plans complete
+Last session: 2026-01-28 01:56 UTC
+Stopped at: Completed 04-01-PLAN.md (Foundation and Infrastructure)
 Resume file: None
 
 ---
-*Last updated: 2026-01-27*
+*Last updated: 2026-01-28*
