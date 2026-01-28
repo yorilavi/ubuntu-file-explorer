@@ -44,8 +44,8 @@ function FileItem({
         {file.isSymlink && <span className="file-item__symlink-badge" />}
       </span>
 
-      {/* Name */}
-      <span className="file-item__name">{file.name}</span>
+      {/* Name - title attribute shows full name on hover */}
+      <span className="file-item__name" title={file.name}>{file.name}</span>
 
       {/* Chevron for folders */}
       {file.isDirectory && (

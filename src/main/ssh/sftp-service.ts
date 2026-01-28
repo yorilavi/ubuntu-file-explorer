@@ -46,6 +46,21 @@ export function clearSFTPCache(serverId: string): void {
 }
 
 /**
+ * Get an SFTP wrapper for a server.
+ * Exposes the internal getSFTP function for other modules (e.g., preview-handlers).
+ *
+ * @param serverId - The server ID
+ * @returns Promise resolving to SFTP wrapper, or null if not connected
+ */
+export async function getSFTPWrapper(serverId: string): Promise<SFTPWrapper | null> {
+  const client = getConnection(serverId);
+  if (!client) {
+    return null;
+  }
+  return getSFTP(serverId, client);
+}
+
+/**
  * Read the target of a symbolic link.
  *
  * @param sftp - The SFTP wrapper

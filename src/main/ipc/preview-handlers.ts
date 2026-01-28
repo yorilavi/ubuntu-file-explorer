@@ -2,8 +2,8 @@
 // Reads files from SFTP with caching and progress updates
 
 import { ipcMain, BrowserWindow } from 'electron';
-import type { Client, SFTPWrapper, Stats } from 'ssh2';
-import { getConnection } from '../ssh/ssh-service';
+import type { Stats } from 'ssh2';
+import { getSFTPWrapper } from '../ssh/sftp-service';
 import { getCachedFile, cacheFile, isCacheStale } from '../cache/preview-cache';
 import type { PreviewData, FileTypeInfo } from '../../shared/types';
 import exifr from 'exifr';
@@ -13,35 +13,6 @@ const MAX_PREVIEW_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Max lines for code preview per CONTEXT.md
 const MAX_CODE_LINES = 500;
-
-// Track SFTP wrappers (reuse from sftp-service pattern)
-const sftpWrappers = new Map<string, SFTPWrapper>();
-
-/**
- * Get or create SFTP wrapper for a connection.
- */
-async function getSFTP(serverId: string, client: Client): Promise<SFTPWrapper> {
-  const cached = sftpWrappers.get(serverId);
-  if (cached) return cached;
-
-  return new Promise((resolve, reject) => {
-    client.sftp((err, sftp) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      sftpWrappers.set(serverId, sftp);
-      resolve(sftp);
-    });
-  });
-}
-
-/**
- * Clear SFTP cache for a server.
- */
-export function clearPreviewSFTPCache(serverId: string): void {
-  sftpWrappers.delete(serverId);
-}
 
 /**
  * Detect file type from extension.
@@ -195,11 +166,6 @@ export function registerPreviewHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(
     'preview:read-file',
     async (_event, serverId: string, filePath: string, fileName: string, fileSize: number) => {
-      const client = getConnection(serverId);
-      if (!client) {
-        return { type: 'error', message: 'Not connected to server' } as PreviewData;
-      }
-
       // Check file size limit
       if (fileSize > MAX_PREVIEW_SIZE) {
         return {
@@ -222,8 +188,13 @@ export function registerPreviewHandlers(mainWindow: BrowserWindow): void {
         } as PreviewData;
       }
 
+      // Get shared SFTP wrapper (reuses existing connection)
+      const sftp = await getSFTPWrapper(serverId);
+      if (!sftp) {
+        return { type: 'error', message: 'Not connected to server' } as PreviewData;
+      }
+
       try {
-        const sftp = await getSFTP(serverId, client);
 
         // Check cache first
         const cached = await getCachedFile(serverId, filePath);
@@ -291,13 +262,13 @@ export function registerPreviewHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle(
     'preview:folder-info',
     async (_event, serverId: string, folderPath: string, folderName: string) => {
-      const client = getConnection(serverId);
-      if (!client) {
+      // Get shared SFTP wrapper (reuses existing connection)
+      const sftp = await getSFTPWrapper(serverId);
+      if (!sftp) {
         return { type: 'error', message: 'Not connected to server' } as PreviewData;
       }
 
       try {
-        const sftp = await getSFTP(serverId, client);
 
         // List directory to count items and calculate size
         const entries = await new Promise<Array<{ attrs: { size?: number } }>>((resolve, reject) => {
