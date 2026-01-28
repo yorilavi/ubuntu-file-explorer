@@ -305,12 +305,31 @@ function ColumnView({
     onPathChange?.(currentPath);
   }, [activeColumnIndex, columns, onPathChange]);
 
-  // Auto-scroll to show new column when it appears
+  // Auto-scroll to keep active column visible
+  // Triggers when: new column added, navigating back, or clicking breadcrumb
   useEffect(() => {
-    if (containerRef.current && columns.length > 1) {
-      containerRef.current.scrollLeft = containerRef.current.scrollWidth;
+    if (!containerRef.current) return;
+
+    const container = containerRef.current;
+    const panelWidth = 200; // Match CSS min-width
+    const separatorWidth = 6;
+
+    // Calculate approximate position of active column
+    const activeColumnLeft = activeColumnIndex * (panelWidth + separatorWidth);
+    const activeColumnRight = activeColumnLeft + panelWidth;
+
+    // Check if active column is fully visible
+    const containerLeft = container.scrollLeft;
+    const containerRight = containerLeft + container.clientWidth;
+
+    if (activeColumnLeft < containerLeft) {
+      // Active column is off-screen to the left - scroll to show it
+      container.scrollLeft = activeColumnLeft;
+    } else if (activeColumnRight > containerRight) {
+      // Active column is off-screen to the right - scroll to show it
+      container.scrollLeft = activeColumnRight - container.clientWidth;
     }
-  }, [columns.length]);
+  }, [activeColumnIndex, columns.length]);
 
   /**
    * Handle navigation into a folder.
@@ -389,8 +408,7 @@ function ColumnView({
           <React.Fragment key={`${column.path}-${index}`}>
             <Panel
               id={`column-${index}`}
-              minSize="15%"
-              defaultSize={`${Math.max(20, 100 / Math.max(columns.length, 3))}%`}
+              minSize={10}
               className="column-view__panel"
             >
               <Column

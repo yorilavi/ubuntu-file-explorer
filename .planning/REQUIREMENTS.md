@@ -18,6 +18,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **NAV-01**: User can browse directories in Miller column view (Finder-style)
 - [x] **NAV-02**: User can navigate files/folders using arrow keys
 - [x] **NAV-03**: User can see and navigate via path bar
+- [x] **NAV-05**: Columns have minimum width; leftmost columns scroll away when space is limited, reappear on back navigation
 
 ### File Operations
 
@@ -91,6 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NAV-01 | Phase 3 | Complete |
 | NAV-02 | Phase 3 | Complete |
 | NAV-03 | Phase 3 | Complete |
+| NAV-05 | Post-v1 | Complete |
 | FILE-01 | Phase 5 | Complete |
 | FILE-02 | Phase 5 | Complete |
 | FILE-03 | Phase 5 | Complete |
@@ -104,10 +106,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ORG-02 | Phase 6 | Complete |
 
 **Coverage:**
-- v1 requirements: 17 total
-- Mapped to phases: 17
+- v1 requirements: 18 total
+- Mapped to phases: 18
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-28 after Phase 6 completion*
+*Last updated: 2026-01-28 after NAV-05 (smart column scrolling) addition*

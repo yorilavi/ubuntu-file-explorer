@@ -8,17 +8,21 @@
   overflow-x: auto;
   overflow-y: hidden;
   background: #1a1a1a;
+  scroll-behavior: smooth;
 }
 
 .column-view__panel-group {
   display: flex;
-  flex: 1;
+  flex: 0 0 auto;
   min-width: max-content;
   height: 100%;
 }
 
+/* Each panel has a fixed minimum width - columns won't shrink below this */
+/* !important needed to override react-resizable-panels inline styles */
 .column-view__panel {
-  min-width: 120px;
+  min-width: 200px !important;
+  flex-shrink: 0;
 }
 
 /* Resize handle */
