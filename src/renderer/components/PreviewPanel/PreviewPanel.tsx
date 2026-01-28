@@ -12,6 +12,7 @@ interface PreviewPanelProps {
   serverId: string | null;
   selectedFile: FileEntry | null;
   onImageClick?: (dataUrl: string) => void;  // For lightbox
+  onImagePreviewReady?: (dataUrl: string) => void;  // Called when new image preview loads
 }
 
 /**
@@ -126,12 +127,20 @@ function PreviewPanel({
   serverId,
   selectedFile,
   onImageClick,
+  onImagePreviewReady,
 }: PreviewPanelProps): React.JSX.Element {
   const { preview, loading, progress } = usePreview(serverId, selectedFile);
 
   // Store preview ref for spacebar handler
   const previewRef = useRef(preview);
   previewRef.current = preview;
+
+  // Notify parent when a new image preview is ready
+  useEffect(() => {
+    if (preview?.type === 'image' && onImagePreviewReady) {
+      onImagePreviewReady(preview.dataUrl);
+    }
+  }, [preview, onImagePreviewReady]);
 
   // Handle spacebar event to open lightbox
   const handleOpenLightbox = useCallback(() => {

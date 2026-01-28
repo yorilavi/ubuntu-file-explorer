@@ -456,6 +456,39 @@ function ColumnView({
     []
   );
 
+  // Handle lightbox navigation (arrow keys while lightbox is open)
+  useEffect(() => {
+    const handleLightboxNavigate = (e: Event) => {
+      const direction = (e as CustomEvent).detail?.direction;
+      const column = columns[activeColumnIndex];
+      if (!column || column.entries.length === 0) return;
+
+      const currentIndex = column.focusedIndex;
+      let newIndex: number;
+
+      if (direction === 'up') {
+        newIndex = Math.max(0, currentIndex - 1);
+      } else {
+        newIndex = Math.min(column.entries.length - 1, currentIndex + 1);
+      }
+
+      if (newIndex !== currentIndex) {
+        // Update focus and selection
+        dispatch({ type: 'FOCUS_ITEM', columnIndex: activeColumnIndex, itemIndex: newIndex });
+        dispatch({ type: 'SELECT_ITEM', columnIndex: activeColumnIndex, itemIndex: newIndex });
+
+        // Notify parent of selection change
+        const entry = column.entries[newIndex];
+        if (entry) {
+          onFileSelect?.(entry, activeColumnIndex);
+        }
+      }
+    };
+
+    window.addEventListener('lightbox-navigate', handleLightboxNavigate);
+    return () => window.removeEventListener('lightbox-navigate', handleLightboxNavigate);
+  }, [columns, activeColumnIndex, onFileSelect]);
+
   return (
     <div ref={containerRef} className={`column-view ${resizing ? 'column-view--resizing' : ''}`}>
       <div className="column-view__columns">

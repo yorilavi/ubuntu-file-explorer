@@ -38,15 +38,20 @@ function App(): React.JSX.Element {
   // Preview panel resize state
   const [previewWidth, setPreviewWidth] = useState(300);
   const [previewResizing, setPreviewResizing] = useState<{ startX: number; startWidth: number } | null>(null);
+  const browserMainRef = useRef<HTMLDivElement>(null);
 
   // Handle preview panel resize
   useEffect(() => {
     if (!previewResizing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
+      // Calculate max width dynamically - leave at least 150px for one column
+      const containerWidth = browserMainRef.current?.clientWidth || 1200;
+      const maxWidth = containerWidth - 150;
+
       // Moving left increases preview width, moving right decreases it
       const delta = previewResizing.startX - e.clientX;
-      const newWidth = Math.max(200, Math.min(800, previewResizing.startWidth + delta));
+      const newWidth = Math.max(200, Math.min(maxWidth, previewResizing.startWidth + delta));
       setPreviewWidth(newWidth);
     };
 
@@ -189,7 +194,14 @@ function App(): React.JSX.Element {
     setLightboxSrc(null);
   }, []);
 
-  // Handle spacebar for lightbox
+  // Update lightbox when navigating to a new image while lightbox is open
+  const handleImagePreviewReady = useCallback((dataUrl: string) => {
+    if (lightboxOpen) {
+      setLightboxSrc(dataUrl);
+    }
+  }, [lightboxOpen]);
+
+  // Handle spacebar for lightbox and arrow keys when lightbox is open
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Spacebar opens lightbox if image selected and lightbox not already open
@@ -202,10 +214,21 @@ function App(): React.JSX.Element {
           window.dispatchEvent(new CustomEvent('open-lightbox'));
         }
       }
+
+      // When lightbox is open, intercept arrow keys for file navigation
+      if (lightboxOpen && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
+        e.preventDefault();
+        e.stopPropagation();
+        // Dispatch custom event for ColumnView to navigate
+        window.dispatchEvent(new CustomEvent('lightbox-navigate', {
+          detail: { direction: e.code === 'ArrowUp' ? 'up' : 'down' }
+        }));
+      }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // Use capture phase to intercept before lightbox
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [selectedFile, lightboxOpen]);
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
@@ -242,7 +265,7 @@ function App(): React.JSX.Element {
                 </div>
 
                 {/* Column view + Preview panel */}
-                <div className={`browser-main ${previewResizing ? 'browser-main--resizing' : ''}`}>
+                <div ref={browserMainRef} className={`browser-main ${previewResizing ? 'browser-main--resizing' : ''}`}>
                   <div className="browser-columns">
                     <ColumnView
                       key={selectedServer}
@@ -265,6 +288,7 @@ function App(): React.JSX.Element {
                       serverId={selectedServer}
                       selectedFile={selectedFile}
                       onImageClick={handleImageClick}
+                      onImagePreviewReady={handleImagePreviewReady}
                     />
                   </div>
                 </div>
