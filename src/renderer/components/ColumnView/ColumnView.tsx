@@ -9,10 +9,11 @@ import './ColumnView.css';
 interface ColumnViewProps {
   serverId: string;
   initialPath?: string;
-  navigateTo?: string;  // External navigation trigger (e.g., from PathBar)
+  navigateTo?: string | null;  // External navigation trigger (e.g., from PathBar)
   showHidden?: boolean;
   onFileSelect?: (file: FileEntry, columnIndex: number) => void;
   onPathChange?: (path: string) => void;
+  onNavigationComplete?: () => void;  // Called after external navigation is processed
 }
 
 /**
@@ -72,11 +73,31 @@ function columnReducer(state: ColumnViewState, action: ColumnAction): ColumnView
     case 'SET_ENTRIES': {
       const columns = [...state.columns];
       if (columns[action.columnIndex]) {
+        const column = columns[action.columnIndex];
+        let focusedIndex = column.focusedIndex;
+        let selectedIndices = column.selectedIndices;
+
+        // If there's a next column, find and select the entry that leads to it
+        const nextColumn = columns[action.columnIndex + 1];
+        if (nextColumn) {
+          // Find the entry whose name matches the next path segment
+          const nextSegment = nextColumn.path.split('/').pop();
+          const matchIndex = action.entries.findIndex(
+            (e) => e.name === nextSegment && e.isDirectory
+          );
+          if (matchIndex >= 0) {
+            focusedIndex = matchIndex;
+            selectedIndices = new Set([matchIndex]);
+          }
+        }
+
         columns[action.columnIndex] = {
-          ...columns[action.columnIndex],
+          ...column,
           entries: action.entries,
           loading: false,
           error: null,
+          focusedIndex,
+          selectedIndices,
         };
       }
       return { ...state, columns };
@@ -188,9 +209,9 @@ function ColumnView({
   showHidden = false,
   onFileSelect,
   onPathChange,
+  onNavigationComplete,
 }: ColumnViewProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastNavigateToRef = useRef<string | undefined>(navigateTo);
 
   // Initialize state with root column
   const [state, dispatch] = useReducer(columnReducer, {
@@ -246,22 +267,19 @@ function ColumnView({
 
   // Handle external navigation (e.g., from PathBar)
   useEffect(() => {
-    if (navigateTo && navigateTo !== lastNavigateToRef.current) {
-      const currentActivePath = columns[activeColumnIndex]?.path || '/';
-      // Only navigate if the target is different from current
-      if (navigateTo !== currentActivePath) {
-        dispatch({ type: 'NAVIGATE_TO', path: navigateTo });
-      }
-      lastNavigateToRef.current = navigateTo;
+    if (navigateTo) {
+      dispatch({ type: 'NAVIGATE_TO', path: navigateTo });
+      onNavigationComplete?.();
     }
-  }, [navigateTo, columns, activeColumnIndex]);
+  }, [navigateTo, onNavigationComplete]);
 
-  // Fetch directory when a new column is added
+  // Fetch directory for any column that needs loading
   useEffect(() => {
-    const lastColumn = columns[columns.length - 1];
-    if (lastColumn && lastColumn.loading && lastColumn.entries.length === 0 && !lastColumn.error) {
-      fetchDirectory(columns.length - 1, lastColumn.path);
-    }
+    columns.forEach((column, index) => {
+      if (column.loading && column.entries.length === 0 && !column.error) {
+        fetchDirectory(index, column.path);
+      }
+    });
   }, [columns, fetchDirectory]);
 
   // Notify path changes

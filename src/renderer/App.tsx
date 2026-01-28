@@ -25,6 +25,7 @@ function App(): React.JSX.Element {
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionState>>({});
   const [currentPath, setCurrentPath] = useState('/');
+  const [navigateToPath, setNavigateToPath] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
 
   // Subscribe to connection state changes
@@ -46,6 +47,7 @@ function App(): React.JSX.Element {
   // Reset path when server changes
   useEffect(() => {
     setCurrentPath('/');
+    setNavigateToPath(null);
   }, [selectedServer]);
 
   const handleFileSelect = useCallback((file: FileEntry, columnIndex: number) => {
@@ -57,9 +59,13 @@ function App(): React.JSX.Element {
   }, []);
 
   const handlePathNavigate = useCallback((path: string) => {
-    // This will be handled by ColumnView through a ref or state update
-    // For now, just update the displayed path
-    setCurrentPath(path);
+    // Trigger external navigation to ColumnView
+    setNavigateToPath(path);
+  }, []);
+
+  // Clear navigateToPath after it's been processed
+  const handleNavigationComplete = useCallback(() => {
+    setNavigateToPath(null);
   }, []);
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
@@ -97,10 +103,11 @@ function App(): React.JSX.Element {
                 key={selectedServer}
                 serverId={selectedServer}
                 initialPath="/"
-                navigateTo={currentPath}
+                navigateTo={navigateToPath}
                 showHidden={showHidden}
                 onFileSelect={handleFileSelect}
                 onPathChange={handlePathChange}
+                onNavigationComplete={handleNavigationComplete}
               />
             </div>
           ) : (
