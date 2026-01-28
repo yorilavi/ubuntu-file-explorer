@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 6 of 6 (Favorites & Polish)
-Plan: 4 of 5
-Status: In progress
-Last activity: 2026-01-28 - Completed 06-04-PLAN.md
+Plan: 5 of 5
+Status: Phase complete
+Last activity: 2026-01-28 - Completed 06-05-PLAN.md
 
-Progress: [████████████████████] 96%
+Progress: [████████████████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 22
 - Average duration: 4 min
-- Total execution time: 1 hour 20 min
+- Total execution time: 1 hour 23 min
 
 **By Phase:**
 
@@ -32,7 +32,7 @@ Progress: [████████████████████] 96%
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
 | 04-preview-panel | 4 | 12 min | 3 min |
 | 05-file-operations | 3 | 15 min | 5 min |
-| 06-favorites-polish | 4 | ~8 min | ~2 min |
+| 06-favorites-polish | 5 | ~11 min | ~2 min |
 
 **Recent Trend:**
 - Last 5 plans: 12m, ~2m, ~2m, ~2m, ~2m
@@ -103,6 +103,9 @@ Recent decisions affecting current work:
 | Progress toast via onFileOperationProgress | Subscribe to IPC progress events for real-time updates | 06-04 |
 | Ref-based toast ID tracking | Avoids stale closure issues in async callbacks | 06-04 |
 | Pending navigation ref for auto-connect | Track pending nav in ref, complete when connection ready | 06-04 |
+| AbortController per operation ID | Stream cancellation with unique ID stored in Map | 06-05 |
+| Partial file cleanup on cancel | Unlink local partial file; sftp.unlink remote partial | 06-05 |
+| Escape key only when active | Handler only registered when activeOperationId is set | 06-05 |
 
 ### Pending Todos
 
@@ -115,18 +118,17 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 17:38 UTC
-Stopped at: Completed 06-04-PLAN.md (context menu favorites + toast notifications)
+Last session: 2026-01-28 17:45 UTC
+Stopped at: Completed 06-05-PLAN.md (file operation cancellation support)
 Resume file: None
 
 **Recent Activity:**
-1. Added "Add to Favorites" context menu option for folders
-2. Added toast notifications for all file operations
-3. Added progress toasts with percentage for downloads/uploads
-4. Enhanced favorite navigation with auto-connect for disconnected servers
-5. Added pending navigation tracking for connection completion
+1. Added AbortController cancellation for file downloads/uploads
+2. Added Cancel button to progress toasts
+3. Added Escape key handler for cancelling active operations
+4. Partial file cleanup on cancellation
 
-**Next Action:** Continue Phase 6 with 06-05 (final polish and verification).
+**Project Status:** All 6 phases complete. Ubuntu-File-Explorer MVP is feature-complete.
 
 ---
 *Last updated: 2026-01-28*
