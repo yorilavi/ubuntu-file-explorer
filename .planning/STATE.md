@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 4 of 6 (Preview Panel)
-Plan: 1 of 4 complete
+Plan: 2 of 4 complete
 Status: In progress
-Last activity: 2026-01-28 - Completed 04-01-PLAN.md (Foundation and Infrastructure)
+Last activity: 2026-01-28 - Completed 04-02-PLAN.md (IPC Handlers and Preload)
 
-Progress: [██████░░░░] 65%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 4 min 15 sec
-- Total execution time: 0.78 hours
+- Total plans completed: 12
+- Average duration: 4 min 10 sec
+- Total execution time: 0.83 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [██████░░░░] 65%
 | 01-foundation-security | 2 | 10 min 8 sec | 5 min 4 sec |
 | 02-ssh-sftp-core | 4 | 20 min 11 sec | 5 min 3 sec |
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
-| 04-preview-panel | 1 | 2 min | 2 min |
+| 04-preview-panel | 2 | 6 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 1m40s, 6m42s, ~8m, 2m
+- Last 5 plans: 6m42s, ~8m, 2m, 4m
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -71,6 +71,10 @@ Recent decisions affecting current work:
 | MD5 hash for cache keys | Fast, deterministic, collision-resistant for file paths | 04-01 |
 | Separate metadata files for staleness | Quick staleness checks without reading full cached data | 04-01 |
 | Async LRU eviction | Cache operations don't block on cleanup | 04-01 |
+| File type detection by extension only | Content sniffing requires reading file, extension is instant | 04-02 |
+| Base64 data URLs for images | Electron IPC handles base64 safely, blob transfer more complex | 04-02 |
+| 50MB file size limit for previews | Balance between capability and memory safety | 04-02 |
+| 500 line truncation for code previews | Keep preview fast and responsive | 04-02 |
 
 ### Pending Todos
 
@@ -82,8 +86,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 01:56 UTC
-Stopped at: Completed 04-01-PLAN.md (Foundation and Infrastructure)
+Last session: 2026-01-28 02:02 UTC
+Stopped at: Completed 04-02-PLAN.md (IPC Handlers and Preload)
 Resume file: None
 
 ---
