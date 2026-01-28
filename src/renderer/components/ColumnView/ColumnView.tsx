@@ -479,12 +479,11 @@ function ColumnView({
                 onFavoritesChanged={onFavoritesChanged}
               />
             </div>
-            {index < columns.length - 1 && (
-              <div
-                className={`column-view__resize-handle ${resizing?.index === index ? 'column-view__resize-handle--active' : ''}`}
-                onMouseDown={(e) => handleResizeStart(e, index)}
-              />
-            )}
+            {/* Resize handle after each column (including the last one) */}
+            <div
+              className={`column-view__resize-handle ${resizing?.index === index ? 'column-view__resize-handle--active' : ''}`}
+              onMouseDown={(e) => handleResizeStart(e, index)}
+            />
           </React.Fragment>
         ))}
       </div>

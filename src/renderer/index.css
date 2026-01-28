@@ -735,16 +735,41 @@ body {
   overflow: hidden;
 }
 
+.browser-main--resizing * {
+  user-select: none;
+}
+
 .browser-columns {
   flex: 1;
   min-width: 0;
   overflow: hidden;
 }
 
+/* Resize handle between columns and preview */
+.browser-main__resize-handle {
+  width: 6px;
+  background: #333;
+  cursor: col-resize;
+  transition: background 0.15s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.browser-main__resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+}
+
+.browser-main__resize-handle:hover,
+.browser-main__resize-handle--active {
+  background: #3b82f6;
+}
+
 .browser-preview {
-  width: 280px;
-  min-width: 200px;
-  max-width: 400px;
   flex-shrink: 0;
   overflow: hidden;
 }

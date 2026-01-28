@@ -35,6 +35,39 @@ function App(): React.JSX.Element {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
+  // Preview panel resize state
+  const [previewWidth, setPreviewWidth] = useState(300);
+  const [previewResizing, setPreviewResizing] = useState<{ startX: number; startWidth: number } | null>(null);
+
+  // Handle preview panel resize
+  useEffect(() => {
+    if (!previewResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Moving left increases preview width, moving right decreases it
+      const delta = previewResizing.startX - e.clientX;
+      const newWidth = Math.max(200, Math.min(600, previewResizing.startWidth + delta));
+      setPreviewWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setPreviewResizing(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [previewResizing]);
+
+  const handlePreviewResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setPreviewResizing({ startX: e.clientX, startWidth: previewWidth });
+  }, [previewWidth]);
+
   // Subscribe to connection state changes
   useEffect(() => {
     const unsubscribe = window.electronAPI.onConnectionStateChange(
@@ -209,7 +242,7 @@ function App(): React.JSX.Element {
                 </div>
 
                 {/* Column view + Preview panel */}
-                <div className="browser-main">
+                <div className={`browser-main ${previewResizing ? 'browser-main--resizing' : ''}`}>
                   <div className="browser-columns">
                     <ColumnView
                       key={selectedServer}
@@ -223,7 +256,11 @@ function App(): React.JSX.Element {
                       onFavoritesChanged={handleFavoritesChanged}
                     />
                   </div>
-                  <div className="browser-preview">
+                  <div
+                    className={`browser-main__resize-handle ${previewResizing ? 'browser-main__resize-handle--active' : ''}`}
+                    onMouseDown={handlePreviewResizeStart}
+                  />
+                  <div className="browser-preview" style={{ width: previewWidth }}>
                     <PreviewPanel
                       serverId={selectedServer}
                       selectedFile={selectedFile}
