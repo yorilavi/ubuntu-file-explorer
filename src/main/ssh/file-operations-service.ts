@@ -101,3 +101,127 @@ export async function uploadFile(
     readStream.pipe(writeStream);
   });
 }
+
+/**
+ * Delete a file on the remote server.
+ *
+ * @param serverId - The server ID
+ * @param remotePath - Full path to remote file
+ */
+export async function deleteRemoteFile(
+  serverId: string,
+  remotePath: string
+): Promise<void> {
+  const sftp = await getSFTPWrapper(serverId);
+  if (!sftp) {
+    throw new Error('Not connected to server');
+  }
+
+  return new Promise((resolve, reject) => {
+    sftp.unlink(remotePath, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        console.log(`[file-operations] Deleted file: ${remotePath}`);
+        resolve();
+      }
+    });
+  });
+}
+
+/**
+ * Delete an empty folder on the remote server.
+ * Note: Only works on empty directories (MVP limitation).
+ *
+ * @param serverId - The server ID
+ * @param remotePath - Full path to remote folder
+ */
+export async function deleteRemoteFolder(
+  serverId: string,
+  remotePath: string
+): Promise<void> {
+  const sftp = await getSFTPWrapper(serverId);
+  if (!sftp) {
+    throw new Error('Not connected to server');
+  }
+
+  return new Promise((resolve, reject) => {
+    sftp.rmdir(remotePath, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        console.log(`[file-operations] Deleted folder: ${remotePath}`);
+        resolve();
+      }
+    });
+  });
+}
+
+/**
+ * Rename a file on the remote server.
+ *
+ * @param serverId - The server ID
+ * @param oldPath - Current full path to file
+ * @param newName - New filename (not full path)
+ * @returns New full path after rename
+ */
+export async function renameRemoteFile(
+  serverId: string,
+  oldPath: string,
+  newName: string
+): Promise<string> {
+  const sftp = await getSFTPWrapper(serverId);
+  if (!sftp) {
+    throw new Error('Not connected to server');
+  }
+
+  // Calculate new path by replacing filename
+  const dir = path.posix.dirname(oldPath);
+  const newPath = path.posix.join(dir, newName);
+
+  return new Promise((resolve, reject) => {
+    sftp.rename(oldPath, newPath, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        console.log(`[file-operations] Renamed: ${oldPath} -> ${newPath}`);
+        resolve(newPath);
+      }
+    });
+  });
+}
+
+/**
+ * Move a file to a different directory on the remote server.
+ *
+ * @param serverId - The server ID
+ * @param sourcePath - Current full path to file
+ * @param destDir - Destination directory
+ * @returns New full path after move
+ */
+export async function moveRemoteFile(
+  serverId: string,
+  sourcePath: string,
+  destDir: string
+): Promise<string> {
+  const sftp = await getSFTPWrapper(serverId);
+  if (!sftp) {
+    throw new Error('Not connected to server');
+  }
+
+  // Extract filename and construct destination path
+  const fileName = path.posix.basename(sourcePath);
+  const destPath = path.posix.join(destDir, fileName);
+
+  return new Promise((resolve, reject) => {
+    // SFTP rename works for moving files
+    sftp.rename(sourcePath, destPath, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        console.log(`[file-operations] Moved: ${sourcePath} -> ${destPath}`);
+        resolve(destPath);
+      }
+    });
+  });
+}
