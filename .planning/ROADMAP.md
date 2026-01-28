@@ -99,10 +99,12 @@ Plans:
   3. User can delete a file or folder on remote server (with confirmation)
   4. User can rename a file on remote server
   5. User can move a file to a different folder on remote server
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md — Create file operations service with download/upload/delete/rename/move
+- [ ] 05-02-PLAN.md — Create IPC handlers and extend preload with file operations API
+- [ ] 05-03-PLAN.md — Add context menu to FileItem and integrate with directory refresh
 
 ### Phase 6: Favorites & Polish
 **Goal**: User can bookmark folders for quick access and experiences polished error handling
@@ -130,7 +132,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. SSH/SFTP Core | 4/4 | ✓ Complete | 2026-01-27 |
 | 3. Column View Navigator | 4/4 | ✓ Complete | 2026-01-27 |
 | 4. Preview Panel | 4/4 | ✓ Complete | 2026-01-28 |
-| 5. File Operations | 0/TBD | Not started | - |
+| 5. File Operations | 0/3 | Not started | - |
 | 6. Favorites & Polish | 0/TBD | Not started | - |
 
 ---
