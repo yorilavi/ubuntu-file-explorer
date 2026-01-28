@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 5 of 6 (File Operations)
-Plan: 1 of 3
+Plan: 2 of 3
 Status: In progress
-Last activity: 2026-01-28 - Completed 05-01-PLAN.md (file operations service)
+Last activity: 2026-01-28 - Completed 05-02-PLAN.md (IPC handlers)
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
+- Total plans completed: 16
 - Average duration: 4 min
-- Total execution time: 0.96 hours
+- Total execution time: 1 hour
 
 **By Phase:**
 
@@ -31,7 +31,7 @@ Progress: [████████░░] 83%
 | 02-ssh-sftp-core | 4 | 20 min 11 sec | 5 min 3 sec |
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
 | 04-preview-panel | 4 | 12 min | 3 min |
-| 05-file-operations | 1 | 1 min 22 sec | 1 min 22 sec |
+| 05-file-operations | 2 | 2 min 52 sec | 1 min 26 sec |
 
 **Recent Trend:**
 - Last 5 plans: ~4m, 3m, 3m, 1m
@@ -86,6 +86,9 @@ Recent decisions affecting current work:
 | path.posix for remote paths | POSIX format required for SFTP operations | 05-01 |
 | Stream-based file transfers | Progress callbacks via data event tracking | 05-01 |
 | Empty folder delete only | MVP limitation per RESEARCH.md recommendation | 05-01 |
+| showSaveDialog for download destination | Native overwrite confirmation handling | 05-02 |
+| showMessageBox with warning for delete | Clear confirmation before destructive action | 05-02 |
+| showOpenDialog with openDirectory for move-with-picker | Native folder picker for destination selection | 05-02 |
 
 ### Pending Todos
 
@@ -97,17 +100,17 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 03:10 UTC
-Stopped at: Completed 05-01-PLAN.md (file operations service)
+Last session: 2026-01-28 03:15 UTC
+Stopped at: Completed 05-02-PLAN.md (IPC handlers)
 Resume file: None
 
 **Recent Activity:**
-1. Created file-operations-service.ts with 6 SFTP operations
-2. Implemented download/upload with stream-based progress tracking
-3. Added delete (file/folder), rename, and move operations
-4. All operations use cached SFTP session via getSFTPWrapper
+1. Added TransferProgress and FileOperationResult types to shared/types.ts
+2. Created file-operations-handlers.ts with 6 IPC handlers
+3. Integrated native Electron dialogs (save, open, confirm, folder picker)
+4. Extended preload.ts with 7 file operation methods
 
-**Next Action:** Execute 05-02-PLAN.md (IPC handlers)
+**Next Action:** Execute 05-03-PLAN.md (context menu and toolbar)
 
 ---
 *Last updated: 2026-01-28*
