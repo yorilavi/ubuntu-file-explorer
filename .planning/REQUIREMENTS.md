@@ -15,9 +15,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Navigation
 
-- [ ] **NAV-01**: User can browse directories in Miller column view (Finder-style)
-- [ ] **NAV-02**: User can navigate files/folders using arrow keys
-- [ ] **NAV-03**: User can see and navigate via path bar
+- [x] **NAV-01**: User can browse directories in Miller column view (Finder-style)
+- [x] **NAV-02**: User can navigate files/folders using arrow keys
+- [x] **NAV-03**: User can see and navigate via path bar
 
 ### File Operations
 
@@ -88,9 +88,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONN-01 | Phase 2 | Complete |
 | CONN-02 | Phase 2 | Complete |
 | CONN-03 | Phase 2 | Complete |
-| NAV-01 | Phase 3 | Pending |
-| NAV-02 | Phase 3 | Pending |
-| NAV-03 | Phase 3 | Pending |
+| NAV-01 | Phase 3 | Complete |
+| NAV-02 | Phase 3 | Complete |
+| NAV-03 | Phase 3 | Complete |
 | FILE-01 | Phase 5 | Pending |
 | FILE-02 | Phase 5 | Pending |
 | FILE-03 | Phase 5 | Pending |

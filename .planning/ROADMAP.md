@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation & Security** - Electron scaffolding with secure IPC bridge
 - [x] **Phase 2: SSH/SFTP Core** - Connect to servers and browse directories
-- [ ] **Phase 3: Column View Navigator** - Miller column UI with keyboard navigation
+- [x] **Phase 3: Column View Navigator** - Miller column UI with keyboard navigation
 - [ ] **Phase 4: Preview Panel** - Image and code previews with syntax highlighting
 - [ ] **Phase 5: File Operations** - Upload, download, and file management
 - [ ] **Phase 6: Favorites & Polish** - Sidebar bookmarks and UX refinements
@@ -63,10 +63,13 @@ Plans:
   2. Arrow keys navigate between files (up/down) and columns (left/right)
   3. Path bar displays current location and allows click-to-navigate
   4. Large directories (1000+ files) render without UI freezing (virtual scrolling)
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [x] 03-01-PLAN.md — Install dependencies and create types/navigation hook
+- [x] 03-02-PLAN.md — Create FileItem and Column components with virtualization
+- [x] 03-03-PLAN.md — Create ColumnView container with resizable panels
+- [x] 03-04-PLAN.md — Create PathBar and integrate into App
 
 ### Phase 4: Preview Panel
 **Goal**: User sees instant previews of images and code files in a right-side panel
@@ -122,7 +125,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Foundation & Security | 2/2 | ✓ Complete | 2026-01-27 |
 | 2. SSH/SFTP Core | 4/4 | ✓ Complete | 2026-01-27 |
-| 3. Column View Navigator | 0/TBD | Not started | - |
+| 3. Column View Navigator | 4/4 | ✓ Complete | 2026-01-27 |
 | 4. Preview Panel | 0/TBD | Not started | - |
 | 5. File Operations | 0/TBD | Not started | - |
 | 6. Favorites & Polish | 0/TBD | Not started | - |
