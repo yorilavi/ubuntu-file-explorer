@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 Phase: 6 of 6 (Favorites & Polish)
 Plan: 2 of 5
 Status: In progress
-Last activity: 2026-01-28 - Completed 06-02-PLAN.md (toast infrastructure)
+Last activity: 2026-01-28 - Completed 06-01-PLAN.md and 06-02-PLAN.md
 
 Progress: [██████████████████░░] 90%
 
@@ -92,6 +92,8 @@ Recent decisions affecting current work:
 | React Portal for context menu | Escapes overflow:hidden in Column container | 05-03 |
 | stopPropagation on rename input | Prevents column typeahead during rename | 05-03 |
 | Remove Move to feature | Native dialogs can't browse remote folders, needs custom UI | 05-03 |
+| Separate favorites config file | Isolates favorites data from connection metadata | 06-01 |
+| Sync functions async handlers | Store functions sync, IPC handlers async for consistency | 06-01 |
 | bottom-right toast position | Avoids UI overlap with sidebar and preview panel | 06-02 |
 | 4s default toast duration | Standard timing; errors can override to longer | 06-02 |
 | z-index 10000 for toasts | Above lightbox (9999) and modals (1000) | 06-02 |
