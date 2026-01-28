@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerSSHHandlers } from './ipc/ssh-handlers';
+import { registerPreviewHandlers } from './ipc/preview-handlers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -40,6 +41,9 @@ const createWindow = () => {
 
   // Register SSH IPC handlers
   registerSSHHandlers(mainWindow);
+
+  // Register Preview IPC handlers
+  registerPreviewHandlers(mainWindow);
 };
 
 // IPC Handlers
