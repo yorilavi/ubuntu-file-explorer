@@ -11,8 +11,10 @@
 }
 
 .column-view__panel-group {
+  display: flex;
   flex: 1;
   min-width: max-content;
+  height: 100%;
 }
 
 .column-view__panel {
@@ -29,7 +31,7 @@
 }
 
 .column-view__resize-handle:hover,
-.column-view__resize-handle[data-resize-handle-active] {
+.column-view__resize-handle[data-active="true"] {
   background: #3b82f6;
 }
 

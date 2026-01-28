@@ -1,5 +1,5 @@
 import React, { useReducer, useCallback, useEffect, useRef } from 'react';
-import { Group, Panel, Separator, useDefaultLayout } from 'react-resizable-panels';
+import { Group, Panel, Separator } from 'react-resizable-panels';
 import type { FileEntry } from '../../../shared/types';
 import type { ColumnViewState, ColumnAction } from '../../types/columnView';
 import { createColumnState } from '../../types/columnView';
@@ -310,30 +310,18 @@ function ColumnView({
     []
   );
 
-  // Generate panel IDs for layout persistence
-  const panelIds = columns.map((_, i) => `column-${i}`);
-
-  // Get layout persistence configuration
-  const layoutPersistence = useDefaultLayout({
-    id: 'miller-columns',
-    panelIds,
-    storage: localStorage,
-  });
-
   return (
     <div ref={containerRef} className="column-view">
       <Group
         id="miller-columns"
         orientation="horizontal"
-        defaultLayout={layoutPersistence.defaultLayout}
-        onLayoutChanged={layoutPersistence.onLayoutChanged}
         className="column-view__panel-group"
       >
         {columns.map((column, index) => (
           <React.Fragment key={`${column.path}-${index}`}>
             <Panel
               id={`column-${index}`}
-              minSize="120px"
+              minSize="15%"
               defaultSize={`${Math.max(20, 100 / Math.max(columns.length, 3))}%`}
               className="column-view__panel"
             >

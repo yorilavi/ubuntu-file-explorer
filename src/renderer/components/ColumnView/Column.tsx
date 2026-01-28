@@ -74,12 +74,12 @@ function Column({
     [columnIndex, entries, onNavigateInto]
   );
 
-  // Focus column container when it becomes active
+  // Focus column container when it becomes active or when loading completes
   useEffect(() => {
-    if (isActive && parentRef.current) {
+    if (isActive && !loading && parentRef.current) {
       parentRef.current.focus();
     }
-  }, [isActive]);
+  }, [isActive, loading]);
 
   // Scroll to focused item when focus changes
   useEffect(() => {

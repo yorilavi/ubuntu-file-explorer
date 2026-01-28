@@ -94,9 +94,9 @@ function App(): React.JSX.Element {
 
               {/* Column view */}
               <ColumnView
-                key={`${selectedServer}-${currentPath}`}
+                key={selectedServer}
                 serverId={selectedServer}
-                initialPath={currentPath}
+                initialPath="/"
                 showHidden={showHidden}
                 onFileSelect={handleFileSelect}
                 onPathChange={handlePathChange}
