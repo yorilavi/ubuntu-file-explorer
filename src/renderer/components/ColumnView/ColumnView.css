@@ -23,15 +23,16 @@
 
 /* Resize handle */
 .column-view__resize-handle {
-  width: 4px;
-  background: transparent;
+  width: 6px;
+  background: #333;
   cursor: col-resize;
   transition: background 0.15s;
   flex-shrink: 0;
 }
 
 .column-view__resize-handle:hover,
-.column-view__resize-handle[data-active="true"] {
+.column-view__resize-handle[data-active="true"],
+.column-view__resize-handle[data-resize-handle-active] {
   background: #3b82f6;
 }
 

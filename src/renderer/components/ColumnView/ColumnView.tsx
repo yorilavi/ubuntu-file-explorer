@@ -408,7 +408,7 @@ function ColumnView({
               />
             </Panel>
             {index < columns.length - 1 && (
-              <Separator className="column-view__resize-handle" />
+              <Separator id={`separator-${index}`} className="column-view__resize-handle" />
             )}
           </React.Fragment>
         ))}
