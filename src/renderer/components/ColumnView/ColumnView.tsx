@@ -14,6 +14,7 @@ interface ColumnViewProps {
   onFileSelect?: (file: FileEntry, columnIndex: number) => void;
   onPathChange?: (path: string) => void;
   onNavigationComplete?: () => void;  // Called after external navigation is processed
+  onRefreshColumn?: (columnIndex: number) => void;  // Exposed for external refresh triggers
 }
 
 /**
@@ -260,6 +261,20 @@ function ColumnView({
     [serverId, showHidden]
   );
 
+  /**
+   * Refresh a column's directory listing.
+   * Called after file operations to update the display.
+   */
+  const refreshColumn = useCallback(
+    (columnIndex: number) => {
+      const column = columns[columnIndex];
+      if (column) {
+        fetchDirectory(columnIndex, column.path);
+      }
+    },
+    [columns, fetchDirectory]
+  );
+
   // Fetch initial directory
   useEffect(() => {
     fetchDirectory(0, initialPath);
@@ -380,6 +395,8 @@ function ColumnView({
                 columnState={column}
                 columnIndex={index}
                 isActive={index === activeColumnIndex}
+                serverId={serverId}
+                onRefresh={() => refreshColumn(index)}
                 onItemSelect={handleItemSelect}
                 onItemFocus={handleItemFocus}
                 onNavigateInto={handleNavigateInto}

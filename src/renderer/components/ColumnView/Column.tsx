@@ -9,6 +9,8 @@ interface ColumnProps {
   columnState: ColumnState;
   columnIndex: number;
   isActive: boolean;
+  serverId: string;
+  onRefresh: () => void;
   onItemSelect: (columnIndex: number, itemIndex: number, multi?: boolean, range?: boolean) => void;
   onItemFocus: (columnIndex: number, itemIndex: number) => void;
   onNavigateInto: (columnIndex: number, itemIndex: number) => void;
@@ -24,6 +26,8 @@ function Column({
   columnState,
   columnIndex,
   isActive,
+  serverId,
+  onRefresh,
   onItemSelect,
   onItemFocus,
   onNavigateInto,
@@ -173,6 +177,9 @@ function Column({
                 file={entry}
                 isSelected={isSelected}
                 isFocused={isActive && isFocused}
+                serverId={serverId}
+                columnIndex={columnIndex}
+                onRefresh={onRefresh}
                 onClick={(e) => handleItemClick(e, virtualRow.index)}
                 onDoubleClick={() => handleItemDoubleClick(virtualRow.index)}
               />
