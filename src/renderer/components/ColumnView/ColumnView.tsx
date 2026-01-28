@@ -1,5 +1,4 @@
-import React, { useReducer, useCallback, useEffect, useRef } from 'react';
-import { Group, Panel, Separator } from 'react-resizable-panels';
+import React, { useReducer, useCallback, useEffect, useRef, useState } from 'react';
 import type { FileEntry } from '../../../shared/types';
 import type { ColumnViewState, ColumnAction } from '../../types/columnView';
 import { createColumnState } from '../../types/columnView';
@@ -17,6 +16,9 @@ interface ColumnViewProps {
   onRefreshColumn?: (columnIndex: number) => void;  // Exposed for external refresh triggers
   onFavoritesChanged?: () => void;  // Called when favorites are modified
 }
+
+const DEFAULT_COLUMN_WIDTH = 220;
+const MIN_COLUMN_WIDTH = 150;
 
 /**
  * Reducer for column view state management.
@@ -224,6 +226,65 @@ function ColumnView({
 
   const { columns, activeColumnIndex } = state;
 
+  // Track column widths for resizing
+  const [columnWidths, setColumnWidths] = useState<number[]>([]);
+
+  // Resize state
+  const [resizing, setResizing] = useState<{ index: number; startX: number; startWidth: number } | null>(null);
+
+  // Initialize column widths when columns change
+  useEffect(() => {
+    setColumnWidths(prev => {
+      const newWidths = [...prev];
+      // Add default width for any new columns
+      while (newWidths.length < columns.length) {
+        newWidths.push(DEFAULT_COLUMN_WIDTH);
+      }
+      // Trim if columns were removed
+      if (newWidths.length > columns.length) {
+        return newWidths.slice(0, columns.length);
+      }
+      return newWidths;
+    });
+  }, [columns.length]);
+
+  // Handle resize drag
+  const handleResizeStart = useCallback((e: React.MouseEvent, index: number) => {
+    e.preventDefault();
+    setResizing({
+      index,
+      startX: e.clientX,
+      startWidth: columnWidths[index] || DEFAULT_COLUMN_WIDTH,
+    });
+  }, [columnWidths]);
+
+  useEffect(() => {
+    if (!resizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - resizing.startX;
+      const newWidth = Math.max(MIN_COLUMN_WIDTH, resizing.startWidth + delta);
+
+      setColumnWidths(prev => {
+        const updated = [...prev];
+        updated[resizing.index] = newWidth;
+        return updated;
+      });
+    };
+
+    const handleMouseUp = () => {
+      setResizing(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizing]);
+
   /**
    * Fetch directory contents for a column.
    */
@@ -306,30 +367,28 @@ function ColumnView({
   }, [activeColumnIndex, columns, onPathChange]);
 
   // Auto-scroll to keep active column visible
-  // Triggers when: new column added, navigating back, or clicking breadcrumb
   useEffect(() => {
     if (!containerRef.current) return;
 
     const container = containerRef.current;
-    const panelWidth = 200; // Match CSS min-width
-    const separatorWidth = 6;
 
-    // Calculate approximate position of active column
-    const activeColumnLeft = activeColumnIndex * (panelWidth + separatorWidth);
-    const activeColumnRight = activeColumnLeft + panelWidth;
+    // Find the actual position of the active column
+    const columnElements = container.querySelectorAll('.column-view__column-wrapper');
+    const activeElement = columnElements[activeColumnIndex] as HTMLElement;
 
-    // Check if active column is fully visible
+    if (!activeElement) return;
+
+    const activeLeft = activeElement.offsetLeft;
+    const activeRight = activeLeft + activeElement.offsetWidth;
     const containerLeft = container.scrollLeft;
     const containerRight = containerLeft + container.clientWidth;
 
-    if (activeColumnLeft < containerLeft) {
-      // Active column is off-screen to the left - scroll to show it
-      container.scrollLeft = activeColumnLeft;
-    } else if (activeColumnRight > containerRight) {
-      // Active column is off-screen to the right - scroll to show it
-      container.scrollLeft = activeColumnRight - container.clientWidth;
+    if (activeLeft < containerLeft) {
+      container.scrollLeft = activeLeft;
+    } else if (activeRight > containerRight) {
+      container.scrollLeft = activeRight - container.clientWidth;
     }
-  }, [activeColumnIndex, columns.length]);
+  }, [activeColumnIndex, columns.length, columnWidths]);
 
   /**
    * Handle navigation into a folder.
@@ -398,18 +457,13 @@ function ColumnView({
   );
 
   return (
-    <div ref={containerRef} className="column-view">
-      <Group
-        id="miller-columns"
-        orientation="horizontal"
-        className="column-view__panel-group"
-      >
+    <div ref={containerRef} className={`column-view ${resizing ? 'column-view--resizing' : ''}`}>
+      <div className="column-view__columns">
         {columns.map((column, index) => (
           <React.Fragment key={`${column.path}-${index}`}>
-            <Panel
-              id={`column-${index}`}
-              minSize={10}
-              className="column-view__panel"
+            <div
+              className="column-view__column-wrapper"
+              style={{ width: columnWidths[index] || DEFAULT_COLUMN_WIDTH }}
             >
               <Column
                 columnState={column}
@@ -424,13 +478,16 @@ function ColumnView({
                 onColumnFocus={handleColumnFocus}
                 onFavoritesChanged={onFavoritesChanged}
               />
-            </Panel>
+            </div>
             {index < columns.length - 1 && (
-              <Separator id={`separator-${index}`} className="column-view__resize-handle" />
+              <div
+                className={`column-view__resize-handle ${resizing?.index === index ? 'column-view__resize-handle--active' : ''}`}
+                onMouseDown={(e) => handleResizeStart(e, index)}
+              />
             )}
           </React.Fragment>
         ))}
-      </Group>
+      </div>
     </div>
   );
 }
