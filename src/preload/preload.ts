@@ -56,6 +56,24 @@ type ConnectionState =
   | { status: 'ready' }
   | { status: 'error'; message: string };
 
+// Preview types (duplicated for preload isolation)
+interface ImageMetadata {
+  width?: number;
+  height?: number;
+  camera?: string;
+  dateTaken?: Date;
+  gps?: { latitude: number; longitude: number };
+}
+
+type PreviewData =
+  | { type: 'image'; dataUrl: string; metadata: ImageMetadata; fileSize: number; mimeType: string }
+  | { type: 'code'; content: string; language: string; lineCount: number; truncated: boolean }
+  | { type: 'folder'; name: string; itemCount: number; totalSize: number }
+  | { type: 'binary'; name: string; fileSize: number; mimeType: string }
+  | { type: 'too-large'; name: string; fileSize: number }
+  | { type: 'error'; message: string }
+  | { type: 'loading'; progress: number };
+
 const electronAPI = {
   /**
    * Ping the main process to verify IPC is working.
@@ -132,6 +150,47 @@ const electronAPI = {
     ipcRenderer.on('ssh:state-change', handler);
     return () => {
       ipcRenderer.removeListener('ssh:state-change', handler);
+    };
+  },
+
+  // Preview Operations
+  // ==================
+
+  /**
+   * Read a file for preview.
+   * Returns preview data (image data URL, code content, or error).
+   */
+  readFilePreview: (
+    serverId: string,
+    filePath: string,
+    fileName: string,
+    fileSize: number
+  ): Promise<PreviewData> =>
+    ipcRenderer.invoke('preview:read-file', serverId, filePath, fileName, fileSize),
+
+  /**
+   * Get folder info for preview.
+   */
+  getFolderInfo: (
+    serverId: string,
+    folderPath: string,
+    folderName: string
+  ): Promise<PreviewData> =>
+    ipcRenderer.invoke('preview:folder-info', serverId, folderPath, folderName),
+
+  /**
+   * Subscribe to preview progress updates.
+   * Returns an unsubscribe function.
+   */
+  onPreviewProgress: (
+    callback: (filePath: string, progress: number) => void
+  ): (() => void) => {
+    const handler = (_event: unknown, filePath: string, progress: number) => {
+      callback(filePath, progress);
+    };
+    ipcRenderer.on('preview:progress', handler);
+    return () => {
+      ipcRenderer.removeListener('preview:progress', handler);
     };
   },
 };
