@@ -38,6 +38,7 @@ export function useColumnNavigation({
           if (focusedIndex < itemCount - 1) {
             const nextIndex = focusedIndex + 1;
             onFocusChange(nextIndex);
+            onSelect(nextIndex); // Select item to trigger preview
             virtualizer?.scrollToIndex(nextIndex, { align: 'auto' });
           }
           break;
@@ -47,6 +48,7 @@ export function useColumnNavigation({
           if (focusedIndex > 0) {
             const nextIndex = focusedIndex - 1;
             onFocusChange(nextIndex);
+            onSelect(nextIndex); // Select item to trigger preview
             virtualizer?.scrollToIndex(nextIndex, { align: 'auto' });
           }
           break;
@@ -101,6 +103,7 @@ export function useColumnNavigation({
 
             if (matchIndex >= 0) {
               onFocusChange(matchIndex);
+              onSelect(matchIndex); // Select item to trigger preview
               virtualizer?.scrollToIndex(matchIndex, { align: 'auto' });
             }
 

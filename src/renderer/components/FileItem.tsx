@@ -38,6 +38,7 @@ function FileItem({
       tabIndex={isFocused ? 0 : -1}
       role="option"
       aria-selected={isSelected}
+      title={file.name}
     >
       {/* Icon */}
       <span className={`file-item__icon ${file.isDirectory ? 'file-item__icon--folder' : 'file-item__icon--file'}`}>
