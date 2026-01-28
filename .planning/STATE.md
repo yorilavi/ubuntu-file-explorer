@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Phase: 4 of 6 (Preview Panel)
-Plan: 2 of 4 complete
+Plan: 3 of 4 complete
 Status: In progress
-Last activity: 2026-01-28 - Completed 04-02-PLAN.md (IPC Handlers and Preload)
+Last activity: 2026-01-28 - Completed 04-03-PLAN.md (Preview Components)
 
-Progress: [███████░░░] 70%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 4 min 10 sec
-- Total execution time: 0.83 hours
+- Total plans completed: 13
+- Average duration: 4 min 5 sec
+- Total execution time: 0.88 hours
 
 **By Phase:**
 
@@ -30,10 +30,10 @@ Progress: [███████░░░] 70%
 | 01-foundation-security | 2 | 10 min 8 sec | 5 min 4 sec |
 | 02-ssh-sftp-core | 4 | 20 min 11 sec | 5 min 3 sec |
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
-| 04-preview-panel | 2 | 6 min | 3 min |
+| 04-preview-panel | 3 | 9 min | 3 min |
 
 **Recent Trend:**
-- Last 5 plans: 6m42s, ~8m, 2m, 4m
+- Last 5 plans: ~8m, 2m, 4m, 3m
 - Trend: Stable
 
 *Updated after each plan completion*
@@ -75,6 +75,10 @@ Recent decisions affecting current work:
 | Base64 data URLs for images | Electron IPC handles base64 safely, blob transfer more complex | 04-02 |
 | 50MB file size limit for previews | Balance between capability and memory safety | 04-02 |
 | 500 line truncation for code previews | Keep preview fast and responsive | 04-02 |
+| 150ms debounce for preview loading | Per CONTEXT.md specification for file preview | 04-03 |
+| Request ID tracking for stale responses | Prevents race conditions when rapidly changing selection | 04-03 |
+| Line numbers off by default for code | Per CONTEXT.md, users can toggle on if desired | 04-03 |
+| System theme preference for code highlighting | Uses prefers-color-scheme for dark/light mode | 04-03 |
 
 ### Pending Todos
 
@@ -86,8 +90,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 02:02 UTC
-Stopped at: Completed 04-02-PLAN.md (IPC Handlers and Preload)
+Last session: 2026-01-28 02:08 UTC
+Stopped at: Completed 04-03-PLAN.md (Preview Components)
 Resume file: None
 
 ---
