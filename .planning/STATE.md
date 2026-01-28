@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Phase 5 - File Operations
+**Current focus:** Phase 5 - File Operations (COMPLETE)
 
 ## Current Position
 
-Phase: 5 of 6 (File Operations)
-Plan: 2 of 3
-Status: In progress
-Last activity: 2026-01-28 - Completed 05-02-PLAN.md (IPC handlers)
+Phase: 5 of 6 (File Operations) - COMPLETE
+Plan: 3 of 3
+Status: Phase complete
+Last activity: 2026-01-28 - Completed 05-03-PLAN.md (context menu UI)
 
-Progress: [█████████░] 89%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 4 min
-- Total execution time: 1 hour
+- Total execution time: 1 hour 12 min
 
 **By Phase:**
 
@@ -31,11 +31,11 @@ Progress: [█████████░] 89%
 | 02-ssh-sftp-core | 4 | 20 min 11 sec | 5 min 3 sec |
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
 | 04-preview-panel | 4 | 12 min | 3 min |
-| 05-file-operations | 2 | 2 min 52 sec | 1 min 26 sec |
+| 05-file-operations | 3 | 15 min | 5 min |
 
 **Recent Trend:**
-- Last 5 plans: ~4m, 3m, 3m, 1m
-- Trend: Stable/Fast
+- Last 5 plans: ~3m, 3m, 1m, 3m, 12m (05-03 had 3 bug fixes)
+- Trend: Stable with occasional debugging
 
 *Updated after each plan completion*
 
@@ -88,29 +88,34 @@ Recent decisions affecting current work:
 | Empty folder delete only | MVP limitation per RESEARCH.md recommendation | 05-01 |
 | showSaveDialog for download destination | Native overwrite confirmation handling | 05-02 |
 | showMessageBox with warning for delete | Clear confirmation before destructive action | 05-02 |
-| showOpenDialog with openDirectory for move-with-picker | Native folder picker for destination selection | 05-02 |
+| React Portal for context menu | Escapes overflow:hidden in Column container | 05-03 |
+| stopPropagation on rename input | Prevents column typeahead during rename | 05-03 |
+| Remove Move to feature | Native dialogs can't browse remote folders, needs custom UI | 05-03 |
 
 ### Pending Todos
 
-None yet.
+- Move to feature: Requires custom remote folder picker modal (not native dialog)
+- Folder upload with subfolders: tar/gzip locally -> upload -> extract on server (requires server-side extraction check)
 
 ### Blockers/Concerns
 
-None yet.
+None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 03:15 UTC
-Stopped at: Completed 05-02-PLAN.md (IPC handlers)
+Last session: 2026-01-28 03:30 UTC
+Stopped at: Completed 05-03-PLAN.md (context menu UI)
 Resume file: None
 
 **Recent Activity:**
-1. Added TransferProgress and FileOperationResult types to shared/types.ts
-2. Created file-operations-handlers.ts with 6 IPC handlers
-3. Integrated native Electron dialogs (save, open, confirm, folder picker)
-4. Extended preload.ts with 7 file operation methods
+1. Added refreshColumn function to ColumnView
+2. Wired serverId and onRefresh props through Column to FileItem
+3. Implemented context menu with Download/Upload/Rename/Delete
+4. Fixed context menu visibility with React Portal
+5. Fixed rename input keyboard isolation
+6. Removed Move to (requires remote folder picker)
 
-**Next Action:** Execute 05-03-PLAN.md (context menu and toolbar)
+**Next Action:** Phase 5 complete. Ready for Phase 6 (polish) or project completion review.
 
 ---
 *Last updated: 2026-01-28*
