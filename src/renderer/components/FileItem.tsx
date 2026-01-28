@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import type { FileEntry } from '../../shared/types';
 import './FileItem.css';
 
@@ -60,40 +61,106 @@ function FileItem({
     setContextMenu({ x: e.clientX, y: e.clientY });
   }, []);
 
+  // Track active toasts for progress updates
+  const activeToastRef = useRef<string | number | null>(null);
+
   // File operation handlers
   const handleDownload = useCallback(async () => {
     setContextMenu(null);
-    const result = await window.electronAPI.downloadFile(serverId, file.path, file.name);
-    if (result.success) {
-      console.log(`[FileItem] Downloaded to: ${result.path}`);
-    } else if (result.error) {
-      console.error(`[FileItem] Download failed: ${result.error}`);
+    const toastId = toast.loading(`Downloading "${file.name}"...`);
+    activeToastRef.current = toastId;
+
+    // Subscribe to progress updates
+    const cleanup = window.electronAPI.onFileOperationProgress((progress) => {
+      if (progress.filePath === file.path && activeToastRef.current === toastId) {
+        toast.loading(`Downloading "${file.name}"... ${progress.percent}%`, { id: toastId });
+      }
+    });
+
+    try {
+      const result = await window.electronAPI.downloadFile(serverId, file.path, file.name);
+      if (result.success) {
+        toast.success(`Downloaded "${file.name}"`, { id: toastId });
+      } else if (result.error) {
+        toast.error(`Download failed: ${file.name}`, {
+          id: toastId,
+          description: result.error,
+        });
+      } else {
+        // User cancelled
+        toast.dismiss(toastId);
+      }
+    } catch (error) {
+      toast.error(`Download failed: ${file.name}`, {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      cleanup();
+      activeToastRef.current = null;
     }
   }, [serverId, file.path, file.name]);
 
   const handleUpload = useCallback(async () => {
     setContextMenu(null);
-    // Upload to this folder (entry is directory)
-    const result = await window.electronAPI.uploadFile(serverId, file.path);
-    if (result.success) {
-      onRefresh();
-    } else if (result.error) {
-      console.error(`[FileItem] Upload failed: ${result.error}`);
+    const toastId = toast.loading(`Uploading to "${file.name}"...`);
+    activeToastRef.current = toastId;
+
+    // Subscribe to progress updates
+    const cleanup = window.electronAPI.onFileOperationProgress((progress) => {
+      // For upload, the filePath will be the destination folder
+      if (progress.filePath.startsWith(file.path) && activeToastRef.current === toastId) {
+        toast.loading(`Uploading... ${progress.percent}%`, { id: toastId });
+      }
+    });
+
+    try {
+      const result = await window.electronAPI.uploadFile(serverId, file.path);
+      if (result.success) {
+        toast.success(`Upload complete`, { id: toastId });
+        onRefresh();
+      } else if (result.error) {
+        toast.error(`Upload failed`, {
+          id: toastId,
+          description: result.error,
+        });
+      } else {
+        // User cancelled
+        toast.dismiss(toastId);
+      }
+    } catch (error) {
+      toast.error(`Upload failed`, {
+        id: toastId,
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      cleanup();
+      activeToastRef.current = null;
     }
   }, [serverId, file.path, onRefresh]);
 
   const handleDelete = useCallback(async () => {
     setContextMenu(null);
-    const result = await window.electronAPI.deleteFile(
-      serverId,
-      file.path,
-      file.name,
-      file.isDirectory
-    );
-    if (result.success) {
-      onRefresh();
-    } else if (result.error) {
-      console.error(`[FileItem] Delete failed: ${result.error}`);
+    try {
+      const result = await window.electronAPI.deleteFile(
+        serverId,
+        file.path,
+        file.name,
+        file.isDirectory
+      );
+      if (result.success) {
+        toast.success(`Deleted "${file.name}"`);
+        onRefresh();
+      } else if (result.error) {
+        toast.error(`Delete failed: ${file.name}`, {
+          description: result.error,
+        });
+      }
+      // No toast if user cancelled (result.success is false but no error)
+    } catch (error) {
+      toast.error(`Delete failed: ${file.name}`, {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }, [serverId, file.path, file.name, file.isDirectory, onRefresh]);
 
@@ -108,11 +175,20 @@ function FileItem({
       setIsRenaming(false);
       return;
     }
-    const result = await window.electronAPI.renameFile(serverId, file.path, renameValue.trim());
-    if (result.success) {
-      onRefresh();
-    } else if (result.error) {
-      console.error(`[FileItem] Rename failed: ${result.error}`);
+    try {
+      const result = await window.electronAPI.renameFile(serverId, file.path, renameValue.trim());
+      if (result.success) {
+        toast.success(`Renamed to "${renameValue.trim()}"`);
+        onRefresh();
+      } else if (result.error) {
+        toast.error(`Rename failed`, {
+          description: result.error,
+        });
+      }
+    } catch (error) {
+      toast.error(`Rename failed`, {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
     setIsRenaming(false);
   }, [serverId, file.path, file.name, renameValue, onRefresh]);
@@ -120,6 +196,18 @@ function FileItem({
   // Note: "Move to" is not implemented because it requires a remote folder picker.
   // Native Electron dialogs can only browse local file systems, not remote SSH servers.
   // This would require a custom folder picker modal showing the remote directory structure.
+
+  const handleAddToFavorites = useCallback(async () => {
+    setContextMenu(null);
+    try {
+      await window.electronAPI.addFavorite(serverId, file.path);
+      toast.success(`Added "${file.name}" to favorites`);
+    } catch (error) {
+      toast.error('Failed to add favorite', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }, [serverId, file.path, file.name]);
 
   const itemClasses = [
     'file-item',
@@ -183,6 +271,8 @@ function FileItem({
         >
           {file.isDirectory ? (
             <>
+              <button onClick={handleAddToFavorites}>Add to Favorites</button>
+              <div className="file-item__context-menu-separator" />
               <button onClick={handleUpload}>Upload to folder...</button>
               <button onClick={handleRenameStart}>Rename</button>
               <button onClick={handleDelete}>Delete</button>
