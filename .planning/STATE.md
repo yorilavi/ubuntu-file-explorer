@@ -93,9 +93,19 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-28 02:18 UTC
-Stopped at: Completed 04-04-PLAN.md (Lightbox and App Integration) - Phase 4 complete
-Resume file: None
+Last session: 2026-01-28 02:45 UTC
+Stopped at: Phase 4 complete, fixed post-verification bugs (SFTP session sharing, filename tooltips)
+Resume file: `.planning/gsd_handoff.md`
+
+**Recent Activity:**
+1. Executed all 4 plans in Phase 4 (Preview Panel)
+2. Verified phase goal (5/5 must-haves)
+3. Fixed user-reported bugs:
+   - Folder info not showing (SFTP channel conflict) - FIXED
+   - Long filenames not visible (no tooltip) - FIXED
+4. Pending: User to restart app and verify fixes
+
+**Next Action:** Test fixes, then `/gsd:plan-phase 5`
 
 ---
 *Last updated: 2026-01-28*

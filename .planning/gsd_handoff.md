@@ -1,181 +1,155 @@
 # GSD Handoff Document
 
-**Created:** 2026-01-27 22:45 UTC
-**Context:** Phase 3 execution near completion
+**Created:** 2026-01-28
+**Context:** Phase 4 execution complete + bug fixes applied
+**Last Commit:** `f67fe29` - fix(preview): reuse SFTP session and add filename tooltips
 
 ---
 
-## Current Status
+## Current Project Status
 
-### Phase 3: Column View Navigator
-**Status:** All 4 plans COMPLETE, verification passed with fixes applied
+### Milestone Progress
 
-| Plan | Status | Summary |
-|------|--------|---------|
-| 03-01 | ✓ Complete | Dependencies (@tanstack/react-virtual, react-resizable-panels), types, navigation hook |
-| 03-02 | ✓ Complete | FileItem and Column components with virtualization |
-| 03-03 | ✓ Complete | ColumnView container with resizable panels |
-| 03-04 | ✓ Complete | PathBar and App integration (with post-checkpoint fixes) |
+| Phase | Status | Plans |
+|-------|--------|-------|
+| 1. Foundation & Security | ✓ Complete | 2/2 |
+| 2. SSH/SFTP Core | ✓ Complete | 4/4 |
+| 3. Column View Navigator | ✓ Complete | 4/4 |
+| 4. Preview Panel | ✓ Complete | 4/4 |
+| 5. File Operations | Not started | 0/TBD |
+| 6. Favorites & Polish | Not started | 0/TBD |
 
-### Post-Checkpoint Fixes Applied
-After human verification, these issues were fixed:
-
-1. **react-resizable-panels v4 API** - Used correct `Group/Panel/Separator` instead of old `PanelGroup/PanelResizeHandle`
-2. **Auto-focus on new columns** - Focus column when loading completes, not just when active changes
-3. **PathBar navigation** - Separate `navigateToPath` state to prevent feedback loop with `onPathChange`
-4. **Path highlighting** - Auto-select items along path when entries load after NAVIGATE_TO
-5. **Type-ahead search** - JUST ADDED, needs user testing
+**Overall Progress:** 4/6 phases complete (~67%)
 
 ---
 
-## Where We Left Off
+## What Just Happened
 
-### Last Action
-Added **type-ahead search** feature to columns:
-- File: `src/renderer/hooks/useColumnNavigation.ts`
-- File: `src/renderer/components/ColumnView/Column.tsx`
+### Phase 4 Execution (Complete)
+All 4 plans executed successfully:
+- **04-01**: Dependencies (react-syntax-highlighter, yet-another-react-lightbox, exifr), types, disk cache
+- **04-02**: IPC handlers with SFTP streaming, progress events, EXIF extraction
+- **04-03**: usePreview hook (150ms debounce), ImagePreview, CodePreview components
+- **04-04**: Lightbox with zoom/pan, App integration with 280px preview panel
 
-**User needs to test:**
-1. Click a column to focus it
-2. Start typing (e.g., "ima" for "images")
-3. Cursor should jump to first matching item
-4. After 800ms of no typing, search resets
-5. Backspace removes last character
-6. Escape clears search
+### Post-Execution Bug Fixes (Just Completed)
 
-### Uncommitted Changes
-```bash
-git status --porcelain
+User reported 2 issues after phase 4 verification:
+
+#### Issue 1: Folder info not showing in preview panel
+**Symptom:** "(SSH) Channel open failure: open failed" error when selecting folders
+**Root Cause:** `preview-handlers.ts` was creating its own separate SFTP session map, conflicting with `sftp-service.ts`
+**Fix Applied:**
+- Added `getSFTPWrapper()` export to `src/main/ssh/sftp-service.ts`
+- Updated `src/main/ipc/preview-handlers.ts` to use shared SFTP wrapper instead of managing its own
+- Commit: `f67fe29`
+
+#### Issue 2: Long file names truncated with no way to see full name
+**Symptom:** File names like "verification_aggressive_t..." cut off with ellipsis, no tooltip
+**Fix Applied:**
+- Added `title={file.name}` attribute to `src/renderer/components/FileItem.tsx`
+- Now shows full name on hover
+- Commit: `f67fe29`
+
+---
+
+## Files Modified in Bug Fixes
+
 ```
-Expected:
-- `M src/renderer/hooks/useColumnNavigation.ts` - Type-ahead search
-- `M src/renderer/components/ColumnView/Column.tsx` - Pass itemNames to hook
-- Several .planning files (VERIFICATION.md, PLAN.md files)
-
-### Next Steps After Testing
-
-1. **If type-ahead works:** Commit the feature
-   ```bash
-   git add src/renderer/hooks/useColumnNavigation.ts src/renderer/components/ColumnView/Column.tsx
-   git commit -m "feat(03): add type-ahead search in columns"
-   ```
-
-2. **Update phase completion:**
-   - Update ROADMAP.md to mark Phase 3 complete
-   - Update STATE.md with final metrics
-   - Update REQUIREMENTS.md (mark NAV-01, NAV-02, NAV-03 as Complete)
-   - Commit planning docs
-
-3. **Route to Phase 4:**
-   ```
-   /gsd:plan-phase 4
-   ```
-
----
-
-## Critical Files
-
-### Core Column View Implementation
-- `src/renderer/components/ColumnView/ColumnView.tsx` - Main container with reducer
-- `src/renderer/components/ColumnView/Column.tsx` - Single column with virtualization
-- `src/renderer/components/ColumnView/Column.css` - Column styles
-- `src/renderer/components/ColumnView/index.ts` - Barrel export
-- `src/renderer/components/FileItem.tsx` - Individual file/folder item
-- `src/renderer/components/FileItem.css` - CSS-only icons
-- `src/renderer/hooks/useColumnNavigation.ts` - Keyboard nav + type-ahead
-- `src/renderer/types/columnView.ts` - State types and actions
-
-### PathBar
-- `src/renderer/components/PathBar/PathBar.tsx` - Breadcrumb navigation
-- `src/renderer/components/PathBar/PathBar.css` - Styles
-- `src/renderer/components/PathBar/index.ts` - Barrel export
-
-### App Integration
-- `src/renderer/App.tsx` - Uses ColumnView, PathBar, manages navigation state
-
----
-
-## Key Decisions Made
-
-| Decision | Rationale | Location |
-|----------|-----------|----------|
-| react-resizable-panels v4 API (Group/Panel/Separator) | Library exports these names, not PanelGroup/PanelResizeHandle | ColumnView.tsx |
-| Separate `navigateToPath` from `currentPath` | Prevents feedback loop between onPathChange and navigateTo | App.tsx |
-| NAVIGATE_TO builds all columns at once | External navigation (PathBar) needs to show intermediate folders | ColumnView.tsx reducer |
-| SET_ENTRIES auto-selects path items | After NAVIGATE_TO, highlight the folder leading to next column | ColumnView.tsx reducer |
-| Focus column when `loading` changes to false | New columns are loading initially, focus after content arrives | Column.tsx |
-| Type-ahead with 800ms timeout | Standard UX pattern for type-to-search in file explorers | useColumnNavigation.ts |
-
----
-
-## Phase 3 Success Criteria (All Met)
-
-- [x] Clicking a folder opens its contents in a new column to the right
-- [x] Arrow keys navigate between files (up/down) and columns (left/right)
-- [x] Path bar displays current location and allows click-to-navigate
-- [x] Large directories (1000+ files) render without UI freezing (virtual scrolling)
-- [x] Type-ahead search (bonus feature, pending test)
-
----
-
-## How to Resume
-
-```bash
-cd "/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer"
-
-# 1. Check current state
-git status
-cat .planning/STATE.md
-
-# 2. Start the app
-npm run start
-
-# 3. Test type-ahead search (see "User needs to test" above)
-
-# 4. If working, commit and complete phase:
-git add src/renderer/hooks/useColumnNavigation.ts src/renderer/components/ColumnView/Column.tsx
-git commit -m "feat(03): add type-ahead search in columns"
-
-# 5. Update and commit planning docs
-# Edit ROADMAP.md - mark Phase 3 complete
-# Edit STATE.md - update position and metrics
-# Edit REQUIREMENTS.md - mark NAV-01, NAV-02, NAV-03 as Complete
-git add .planning/
-git commit -m "docs(03): complete Column View Navigator phase"
-
-# 6. Start Phase 4
-/gsd:plan-phase 4
+src/main/ssh/sftp-service.ts         | +15 lines (added getSFTPWrapper export)
+src/main/ipc/preview-handlers.ts     | -40 lines (removed duplicate SFTP management)
+src/renderer/components/FileItem.tsx | +1 line (added title attribute)
 ```
 
 ---
 
-## Project Config
+## Pending Actions
 
-```json
-{
-  "mode": "yolo",
-  "depth": "standard",
-  "parallelization": true,
-  "commit_docs": true,
-  "model_profile": "quality",
-  "workflow": {
-    "research": true,
-    "plan_check": true,
-    "verifier": true
-  }
-}
+### Immediate (User Should Test)
+1. **Restart the app** and verify:
+   - Folder info shows correctly (item count, size) when folder selected
+   - Hovering over truncated file names shows tooltip with full name
+   - No more "Channel open failure" errors
+
+### Next Phase
+If fixes verified, proceed to Phase 5: File Operations
+
+**Command to continue:**
+```
+/clear
+/gsd:discuss-phase 5
+```
+
+Or skip discussion:
+```
+/clear
+/gsd:plan-phase 5
 ```
 
 ---
 
-## Remaining Phases
+## Critical Assumptions
 
-| Phase | Name | Status |
-|-------|------|--------|
-| 4 | Preview Panel | Not started |
-| 5 | File Operations | Not started |
-| 6 | Favorites & Polish | Not started |
+1. **SFTP Session Sharing**: All SFTP operations now share a single session per connection via `sftp-service.ts`. This is more efficient but means operations are serialized.
+
+2. **Preview Cache**: 500MB LRU cache in `app.getPath('userData')/preview-cache/`. Cache key is MD5 of `serverId:remotePath`.
+
+3. **Preview Limits**:
+   - Max file size: 50MB
+   - Max code lines: 500 (truncated with notice)
+   - Debounce: 150ms on selection change
+
+4. **Lightbox**: Single image mode only (no gallery navigation between images in folder)
 
 ---
 
-*End of handoff document*
+## Key Code Locations
+
+### Preview System
+- **IPC Handlers**: `src/main/ipc/preview-handlers.ts`
+- **Cache**: `src/main/cache/preview-cache.ts`
+- **Hook**: `src/renderer/hooks/usePreview.ts`
+- **Components**: `src/renderer/components/PreviewPanel/`
+- **Integration**: `src/renderer/App.tsx` (lines 280-330 approx)
+
+### SFTP System
+- **Service**: `src/main/ssh/sftp-service.ts` (shared SFTP wrapper)
+- **SSH Service**: `src/main/ssh/ssh-service.ts` (connection management)
+
+### Column View
+- **Container**: `src/renderer/components/ColumnView/ColumnView.tsx`
+- **Column**: `src/renderer/components/ColumnView/Column.tsx`
+- **File Item**: `src/renderer/components/FileItem.tsx`
+
+---
+
+## State Files
+
+- **Project State**: `.planning/STATE.md`
+- **Roadmap**: `.planning/ROADMAP.md`
+- **Requirements**: `.planning/REQUIREMENTS.md`
+- **Phase 4 Verification**: `.planning/phases/04-preview-panel/04-VERIFICATION.md`
+
+---
+
+## Git Status
+
+```
+Branch: main
+Last commit: f67fe29 fix(preview): reuse SFTP session and add filename tooltips
+All changes committed: Yes
+```
+
+---
+
+## Resume Instructions
+
+1. User should test the bug fixes first
+2. If issues persist with folder info or tooltips, debug from:
+   - `src/main/ipc/preview-handlers.ts` (folder-info handler at line ~260)
+   - `src/main/ssh/sftp-service.ts` (getSFTPWrapper at line ~44)
+3. If fixes work, proceed to Phase 5 with `/gsd:plan-phase 5`
+
+---
+
+*Handoff created at 70% context usage*
