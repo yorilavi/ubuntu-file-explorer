@@ -117,16 +117,9 @@ function FileItem({
     setIsRenaming(false);
   }, [serverId, file.path, file.name, renameValue, onRefresh]);
 
-  const handleMoveTo = useCallback(async () => {
-    setContextMenu(null);
-    // Use Electron's dialog to pick destination folder
-    const result = await window.electronAPI.moveFileWithPicker(serverId, file.path, file.name);
-    if (result.success) {
-      onRefresh();
-    } else if (result.error) {
-      console.error(`[FileItem] Move failed: ${result.error}`);
-    }
-  }, [serverId, file.path, file.name, onRefresh]);
+  // Note: "Move to" is not implemented because it requires a remote folder picker.
+  // Native Electron dialogs can only browse local file systems, not remote SSH servers.
+  // This would require a custom folder picker modal showing the remote directory structure.
 
   const itemClasses = [
     'file-item',
@@ -192,14 +185,12 @@ function FileItem({
             <>
               <button onClick={handleUpload}>Upload to folder...</button>
               <button onClick={handleRenameStart}>Rename</button>
-              <button onClick={handleMoveTo}>Move to...</button>
               <button onClick={handleDelete}>Delete</button>
             </>
           ) : (
             <>
               <button onClick={handleDownload}>Download...</button>
               <button onClick={handleRenameStart}>Rename</button>
-              <button onClick={handleMoveTo}>Move to...</button>
               <button onClick={handleDelete}>Delete</button>
             </>
           )}
