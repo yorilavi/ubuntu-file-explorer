@@ -801,3 +801,145 @@ body {
   margin-top: 8px;
   transition: width 0.3s ease;
 }
+
+/* Collapsible server section */
+.sidebar-server {
+  border-bottom: 1px solid #333;
+}
+
+.sidebar-server__header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+
+.sidebar-server__header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-server__chevron {
+  width: 16px;
+  font-size: 10px;
+  color: #666;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-server__chevron--open {
+  transform: rotate(90deg);
+}
+
+.sidebar-server__name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-server__content {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.sidebar-server__content--collapsed {
+  max-height: 0;
+}
+
+/* Favorites list */
+.favorites-list {
+  padding-left: 24px;
+  padding-bottom: 8px;
+}
+
+.favorites-list__empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+}
+
+/* Favorite item */
+.favorite-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.favorite-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.favorite-item--dragging {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.favorite-item__handle {
+  cursor: grab;
+  padding: 0 4px;
+  color: #666;
+  font-size: 10px;
+  letter-spacing: -2px;
+  flex-shrink: 0;
+}
+
+.favorite-item__handle:active {
+  cursor: grabbing;
+}
+
+.favorite-item__content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+}
+
+.favorite-item__content:hover {
+  text-decoration: underline;
+}
+
+.favorite-item__icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.favorite-item__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #ccc;
+}
+
+.favorite-item__remove {
+  opacity: 0;
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: #666;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.favorite-item:hover .favorite-item__remove {
+  opacity: 1;
+}
+
+.favorite-item__remove:hover {
+  color: #ef4444;
+}

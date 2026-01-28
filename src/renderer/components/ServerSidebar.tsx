@@ -1,25 +1,55 @@
 import React, { useEffect, useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import type { Server, ConnectionState } from '../../shared/types';
 import ServerListItem from './ServerListItem';
 import AddConnectionModal from './AddConnectionModal';
+import { useFavorites } from '../hooks/useFavorites';
+import { FavoriteItem } from './FavoriteItem';
 
 interface ServerSidebarProps {
   selectedServerId: string | null;
   onServerSelect: (serverId: string) => void;
+  onFavoriteNavigate: (serverId: string, path: string) => void;
 }
 
 /**
- * Server sidebar with grouped server list (SSH Config + Custom).
- * Handles server fetching, connection state tracking, and add connection modal.
+ * Server sidebar with collapsible server sections and favorites.
+ * Handles server fetching, connection state tracking, favorites display,
+ * and drag-to-reorder favorites.
  */
 function ServerSidebar({
   selectedServerId,
   onServerSelect,
+  onFavoriteNavigate,
 }: ServerSidebarProps): React.JSX.Element {
   const [servers, setServers] = useState<Server[]>([]);
   const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionState>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [collapsedServers, setCollapsedServers] = useState<Set<string>>(new Set());
+
+  // Load favorites for selected server
+  const { favorites, reorderFavorites, removeFavorite } = useFavorites(selectedServerId);
+
+  // DnD sensors with activation constraint to allow clicks
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   // Fetch servers on mount
   useEffect(() => {
@@ -98,9 +128,100 @@ function ServerSidebar({
     }
   };
 
+  const toggleCollapse = (serverId: string) => {
+    setCollapsedServers(prev => {
+      const next = new Set(prev);
+      if (next.has(serverId)) {
+        next.delete(serverId);
+      } else {
+        next.add(serverId);
+      }
+      return next;
+    });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = favorites.indexOf(active.id as string);
+      const newIndex = favorites.indexOf(over.id as string);
+      reorderFavorites(arrayMove(favorites, oldIndex, newIndex));
+    }
+  };
+
+  const handleFavoriteNavigate = (path: string) => {
+    if (selectedServerId) {
+      onFavoriteNavigate(selectedServerId, path);
+    }
+  };
+
   // Group servers by source
   const sshConfigServers = servers.filter((s) => s.source === 'ssh-config');
   const customServers = servers.filter((s) => s.source === 'custom');
+
+  // Render a collapsible server section with optional favorites
+  const renderServerSection = (server: Server, showDelete: boolean) => {
+    const state = connectionStates[server.id] || { status: 'idle' };
+    const isConnected = state.status === 'ready';
+    const isCollapsed = collapsedServers.has(server.id);
+    const isSelected = selectedServerId === server.id;
+    const showFavorites = isSelected && isConnected;
+
+    return (
+      <div key={server.id} className="sidebar-server">
+        <div
+          className="sidebar-server__header"
+          onClick={() => toggleCollapse(server.id)}
+        >
+          <span className={`sidebar-server__chevron ${!isCollapsed ? 'sidebar-server__chevron--open' : ''}`}>
+            ▶
+          </span>
+          <span className="sidebar-server__name">{server.name}</span>
+        </div>
+
+        <div className={`sidebar-server__content ${isCollapsed ? 'sidebar-server__content--collapsed' : ''}`}>
+          <ServerListItem
+            server={server}
+            state={state}
+            onConnect={() => handleConnect(server.id)}
+            onDisconnect={() => handleDisconnect(server.id)}
+            isSelected={isSelected}
+            onSelect={() => onServerSelect(server.id)}
+            onDelete={showDelete ? () => handleDelete(server.id) : undefined}
+          />
+
+          {showFavorites && (
+            <div className="favorites-list">
+              {favorites.length === 0 ? (
+                <div className="favorites-list__empty">No favorites</div>
+              ) : (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={favorites}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {favorites.map((path) => (
+                      <FavoriteItem
+                        key={path}
+                        id={path}
+                        path={path}
+                        onNavigate={() => handleFavoriteNavigate(path)}
+                        onRemove={() => removeFavorite(path)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -128,17 +249,7 @@ function ServerSidebar({
           <div className="sidebar-section">
             <div className="sidebar-section__header">From SSH Config</div>
             <div className="sidebar-section__list">
-              {sshConfigServers.map((server) => (
-                <ServerListItem
-                  key={server.id}
-                  server={server}
-                  state={connectionStates[server.id] || { status: 'idle' }}
-                  onConnect={() => handleConnect(server.id)}
-                  onDisconnect={() => handleDisconnect(server.id)}
-                  isSelected={selectedServerId === server.id}
-                  onSelect={() => onServerSelect(server.id)}
-                />
-              ))}
+              {sshConfigServers.map((server) => renderServerSection(server, false))}
             </div>
           </div>
         )}
@@ -147,18 +258,7 @@ function ServerSidebar({
           <div className="sidebar-section">
             <div className="sidebar-section__header">Custom Connections</div>
             <div className="sidebar-section__list">
-              {customServers.map((server) => (
-                <ServerListItem
-                  key={server.id}
-                  server={server}
-                  state={connectionStates[server.id] || { status: 'idle' }}
-                  onConnect={() => handleConnect(server.id)}
-                  onDisconnect={() => handleDisconnect(server.id)}
-                  isSelected={selectedServerId === server.id}
-                  onSelect={() => onServerSelect(server.id)}
-                  onDelete={() => handleDelete(server.id)}
-                />
-              ))}
+              {customServers.map((server) => renderServerSection(server, true))}
             </div>
           </div>
         )}

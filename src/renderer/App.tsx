@@ -71,6 +71,14 @@ function App(): React.JSX.Element {
     setNavigateToPath(path);
   }, []);
 
+  const handleFavoriteNavigate = useCallback((serverId: string, path: string) => {
+    // Select the server if different, then navigate to the path
+    if (selectedServer !== serverId) {
+      setSelectedServer(serverId);
+    }
+    setNavigateToPath(path);
+  }, [selectedServer]);
+
   // Clear navigateToPath after it's been processed
   const handleNavigationComplete = useCallback(() => {
     setNavigateToPath(null);
@@ -114,6 +122,7 @@ function App(): React.JSX.Element {
         <ServerSidebar
           selectedServerId={selectedServer}
           onServerSelect={setSelectedServer}
+          onFavoriteNavigate={handleFavoriteNavigate}
         />
         <main className="main-content">
           {selectedServer ? (
