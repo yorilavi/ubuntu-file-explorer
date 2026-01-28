@@ -46,7 +46,7 @@ function App(): React.JSX.Element {
     const handleMouseMove = (e: MouseEvent) => {
       // Moving left increases preview width, moving right decreases it
       const delta = previewResizing.startX - e.clientX;
-      const newWidth = Math.max(200, Math.min(600, previewResizing.startWidth + delta));
+      const newWidth = Math.max(200, Math.min(800, previewResizing.startWidth + delta));
       setPreviewWidth(newWidth);
     };
 
