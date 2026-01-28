@@ -1,8 +1,8 @@
 # GSD Handoff Document
 
 **Created:** 2026-01-28
-**Context:** Phase 4 execution complete + bug fixes applied
-**Last Commit:** `f67fe29` - fix(preview): reuse SFTP session and add filename tooltips
+**Updated:** 2026-01-28 (Session 2 - Post Phase 6 bug fixes)
+**Last Commit:** `8c6c638` - fix(preview): increase max preview panel width to 800px
 
 ---
 
@@ -16,140 +16,185 @@
 | 2. SSH/SFTP Core | ✓ Complete | 4/4 |
 | 3. Column View Navigator | ✓ Complete | 4/4 |
 | 4. Preview Panel | ✓ Complete | 4/4 |
-| 5. File Operations | Not started | 0/TBD |
-| 6. Favorites & Polish | Not started | 0/TBD |
+| 5. File Operations | ✓ Complete | 3/3 |
+| 6. Favorites & Polish | ✓ Complete | 5/5 |
 
-**Overall Progress:** 4/6 phases complete (~67%)
-
----
-
-## What Just Happened
-
-### Phase 4 Execution (Complete)
-All 4 plans executed successfully:
-- **04-01**: Dependencies (react-syntax-highlighter, yet-another-react-lightbox, exifr), types, disk cache
-- **04-02**: IPC handlers with SFTP streaming, progress events, EXIF extraction
-- **04-03**: usePreview hook (150ms debounce), ImagePreview, CodePreview components
-- **04-04**: Lightbox with zoom/pan, App integration with 280px preview panel
-
-### Post-Execution Bug Fixes (Just Completed)
-
-User reported 2 issues after phase 4 verification:
-
-#### Issue 1: Folder info not showing in preview panel
-**Symptom:** "(SSH) Channel open failure: open failed" error when selecting folders
-**Root Cause:** `preview-handlers.ts` was creating its own separate SFTP session map, conflicting with `sftp-service.ts`
-**Fix Applied:**
-- Added `getSFTPWrapper()` export to `src/main/ssh/sftp-service.ts`
-- Updated `src/main/ipc/preview-handlers.ts` to use shared SFTP wrapper instead of managing its own
-- Commit: `f67fe29`
-
-#### Issue 2: Long file names truncated with no way to see full name
-**Symptom:** File names like "verification_aggressive_t..." cut off with ellipsis, no tooltip
-**Fix Applied:**
-- Added `title={file.name}` attribute to `src/renderer/components/FileItem.tsx`
-- Now shows full name on hover
-- Commit: `f67fe29`
+**Overall Progress:** 6/6 phases complete (100%)
+**Current State:** Post-v1 bug fixing and polish
 
 ---
 
-## Files Modified in Bug Fixes
+## This Session Summary
+
+User tested the app after Phase 6 completion and reported multiple bugs. All have been fixed.
+
+### Bugs Fixed This Session
+
+| Issue | Root Cause | Fix | Commit |
+|-------|-----------|-----|--------|
+| Image preview not showing | CSP blocking `data:` URLs | Added `img-src 'self' data: blob:` to CSP | `c3a52b8` |
+| Lightbox showing red X | Same CSP issue | Same fix | `c3a52b8` |
+| Duplicate servers in sidebar | ServerSidebar rendered server name twice | Removed duplicate header div | `287044d` |
+| "Add to Favorites" not updating sidebar | useFavorites instances not synced | Wired onFavoritesChanged callback through component tree | `287044d` |
+| Keyboard nav not working until click | Column not focused when entries load | Added focus after entries load with double rAF | `5140748` |
+| Columns resize not working | react-resizable-panels incompatible with fixed widths | Replaced with custom drag-to-resize | `fb51270` |
+| Columns too narrow when many open | Percentage-based sizing | NAV-05: Fixed min widths, auto-scroll | `48d9693` |
+| Last column not resizable | No resize handle after last column | Added resize handle after every column | `33f0fb2` |
+| Preview panel not resizable | No resize UI | Added draggable boundary | `33f0fb2` |
+| Preview panel max width too small (600px) | Hardcoded limit | Increased to 800px | `8c6c638` |
+
+---
+
+## Major Architectural Changes
+
+### 1. Column Resize System (REWRITTEN)
+
+**Before:** Used `react-resizable-panels` library with percentage-based sizing
+**After:** Custom implementation with pixel-based widths
+
+```typescript
+// ColumnView.tsx now manages:
+const [columnWidths, setColumnWidths] = useState<number[]>([]);  // Width per column
+const [resizing, setResizing] = useState<{index, startX, startWidth} | null>(null);
+
+// Each column has:
+- Default width: 220px
+- Minimum width: 150px
+- Independent sizing (resizing one doesn't affect others)
+```
+
+**Why changed:** react-resizable-panels uses percentage-based sizing which conflicts with our fixed minimum widths. When you have 10 columns, it tried to fit them all in view by shrinking them below usable widths.
+
+### 2. Preview Panel Resize (NEW)
+
+```typescript
+// App.tsx now manages:
+const [previewWidth, setPreviewWidth] = useState(300);  // Default
+const [previewResizing, setPreviewResizing] = useState<{startX, startWidth} | null>(null);
+
+// Limits: min 200px, max 800px
+```
+
+### 3. Favorites Refresh Callback Chain
 
 ```
-src/main/ssh/sftp-service.ts         | +15 lines (added getSFTPWrapper export)
-src/main/ipc/preview-handlers.ts     | -40 lines (removed duplicate SFTP management)
-src/renderer/components/FileItem.tsx | +1 line (added title attribute)
+App.tsx
+  └─ handleFavoritesChanged() → calls refreshFavoritesRef.current()
+  └─ handleRefreshFavoritesCallback(fn) → stores fn in refreshFavoritesRef
+  │
+  ├─ ServerSidebar
+  │    └─ useFavorites(serverId) → exposes refresh()
+  │    └─ useEffect → calls onRefreshFavorites(refresh)
+  │
+  └─ ColumnView → Column → FileItem
+       └─ onFavoritesChanged prop
+       └─ handleAddToFavorites → calls onFavoritesChanged after adding
 ```
 
 ---
 
-## Pending Actions
+## Files Modified This Session
 
-### Immediate (User Should Test)
-1. **Restart the app** and verify:
-   - Folder info shows correctly (item count, size) when folder selected
-   - Hovering over truncated file names shows tooltip with full name
-   - No more "Channel open failure" errors
+| File | Key Changes |
+|------|-------------|
+| `index.html` | CSP `img-src 'self' data: blob:` |
+| `src/renderer/App.tsx` | Preview resize state, favorites callback wiring |
+| `src/renderer/index.css` | Preview resize handle styles |
+| `src/renderer/components/ServerSidebar.tsx` | Removed duplicate display, exposes refresh |
+| `src/renderer/components/FileItem.tsx` | onFavoritesChanged prop, calls after add |
+| `src/renderer/components/ColumnView/ColumnView.tsx` | **Complete rewrite** - custom resize, auto-scroll |
+| `src/renderer/components/ColumnView/ColumnView.css` | Custom resize handle styles |
+| `src/renderer/components/ColumnView/Column.tsx` | Focus timing fix |
+| `.planning/REQUIREMENTS.md` | Added NAV-05 |
 
-### Next Phase
-If fixes verified, proceed to Phase 5: File Operations
+---
 
-**Command to continue:**
+## What Was NOT Done (Future Improvements)
+
+1. **Persist column widths to localStorage** - widths reset on navigation
+2. **Persist preview panel width** - resets to 300px on refresh
+3. **FILE-05 Move UI** - backend ready, needs custom remote folder picker modal
+4. **Double-click resize handle to reset to default width** - nice-to-have
+
+---
+
+## Testing Checklist
+
+Before considering session complete:
+
+- [ ] Connect to server → keyboard navigation works immediately (no click needed)
+- [ ] Navigate deep (8+ folders) → leftmost columns scroll away
+- [ ] Press left arrow → hidden columns reappear
+- [ ] Click breadcrumb segment → scrolls to show that column
+- [ ] Drag resize handle between any two columns → both resize correctly
+- [ ] Drag resize handle on last column → column resizes
+- [ ] Drag boundary between columns and preview panel → preview resizes
+- [ ] Preview panel can expand to ~800px width
+- [ ] Right-click folder → Add to Favorites → appears in sidebar immediately
+- [ ] Image preview shows correctly (no red X)
+- [ ] Spacebar opens lightbox with actual image
+
+---
+
+## Git Log (This Session)
+
 ```
-/clear
-/gsd:discuss-phase 5
-```
-
-Or skip discussion:
-```
-/clear
-/gsd:plan-phase 5
+8c6c638 fix(preview): increase max preview panel width to 800px
+33f0fb2 feat(resize): add resize handle for last column and preview panel
+fb51270 refactor(columns): replace react-resizable-panels with custom resize
+48d9693 feat(columns): smart column management with auto-scroll
+53f4f28 fix(columns): enable panel resizing
+5140748 fix(column): auto-focus column when entries load
+287044d fix(sidebar): remove duplicate servers and wire favorites refresh
+c3a52b8 fix(preview): add data: and blob: to CSP img-src directive
 ```
 
 ---
 
-## Critical Assumptions
+## How to Continue
 
-1. **SFTP Session Sharing**: All SFTP operations now share a single session per connection via `sftp-service.ts`. This is more efficient but means operations are serialized.
+### If User Reports More Resize Issues
+1. Column resize logic is in `src/renderer/components/ColumnView/ColumnView.tsx` (lines 213-250)
+2. Preview resize logic is in `src/renderer/App.tsx` (lines 37-72)
+3. Both use the same pattern: track `{startX, startWidth}` on mousedown, update width on mousemove
 
-2. **Preview Cache**: 500MB LRU cache in `app.getPath('userData')/preview-cache/`. Cache key is MD5 of `serverId:remotePath`.
+### If Adding Width Persistence
+```typescript
+// Column widths - in ColumnView.tsx:
+useEffect(() => {
+  localStorage.setItem(`columnWidths-${serverId}`, JSON.stringify(columnWidths));
+}, [columnWidths, serverId]);
 
-3. **Preview Limits**:
-   - Max file size: 50MB
-   - Max code lines: 500 (truncated with notice)
-   - Debounce: 150ms on selection change
+// Initialize from localStorage:
+const [columnWidths, setColumnWidths] = useState<number[]>(() => {
+  const saved = localStorage.getItem(`columnWidths-${serverId}`);
+  return saved ? JSON.parse(saved) : [];
+});
 
-4. **Lightbox**: Single image mode only (no gallery navigation between images in folder)
+// Preview width - in App.tsx:
+const [previewWidth, setPreviewWidth] = useState(() => {
+  return parseInt(localStorage.getItem('previewWidth') || '300', 10);
+});
+// Then save in resize handler
+```
+
+### If User Wants More Polish
+- `/gsd:add-phase` to add a new phase for width persistence
+- Or just implement directly (it's a small change)
 
 ---
 
 ## Key Code Locations
 
-### Preview System
-- **IPC Handlers**: `src/main/ipc/preview-handlers.ts`
-- **Cache**: `src/main/cache/preview-cache.ts`
-- **Hook**: `src/renderer/hooks/usePreview.ts`
-- **Components**: `src/renderer/components/PreviewPanel/`
-- **Integration**: `src/renderer/App.tsx` (lines 280-330 approx)
-
-### SFTP System
-- **Service**: `src/main/ssh/sftp-service.ts` (shared SFTP wrapper)
-- **SSH Service**: `src/main/ssh/ssh-service.ts` (connection management)
-
-### Column View
-- **Container**: `src/renderer/components/ColumnView/ColumnView.tsx`
-- **Column**: `src/renderer/components/ColumnView/Column.tsx`
-- **File Item**: `src/renderer/components/FileItem.tsx`
+| Feature | Primary File | Line Range |
+|---------|--------------|------------|
+| Column resize | `ColumnView.tsx` | 213-250 (state), 380-410 (render) |
+| Preview resize | `App.tsx` | 37-72 (state), 225-245 (render) |
+| Favorites refresh | `ServerSidebar.tsx` | 46-55, `FileItem.tsx` 282-300 |
+| Auto-scroll | `ColumnView.tsx` | 308-335 |
+| Focus on load | `Column.tsx` | 87-98 |
 
 ---
 
-## State Files
-
-- **Project State**: `.planning/STATE.md`
-- **Roadmap**: `.planning/ROADMAP.md`
-- **Requirements**: `.planning/REQUIREMENTS.md`
-- **Phase 4 Verification**: `.planning/phases/04-preview-panel/04-VERIFICATION.md`
-
----
-
-## Git Status
-
-```
-Branch: main
-Last commit: f67fe29 fix(preview): reuse SFTP session and add filename tooltips
-All changes committed: Yes
-```
-
----
-
-## Resume Instructions
-
-1. User should test the bug fixes first
-2. If issues persist with folder info or tooltips, debug from:
-   - `src/main/ipc/preview-handlers.ts` (folder-info handler at line ~260)
-   - `src/main/ssh/sftp-service.ts` (getSFTPWrapper at line ~44)
-3. If fixes work, proceed to Phase 5 with `/gsd:plan-phase 5`
-
----
-
-*Handoff created at 70% context usage*
+*Handoff created at ~70% context usage*
+*All bugs from this session have been fixed and committed*
