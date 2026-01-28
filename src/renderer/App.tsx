@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import '../shared/types'; // Import for Window interface extension
 import type { ConnectionState, FileEntry } from '../shared/types';
 import ServerSidebar from './components/ServerSidebar';
@@ -71,18 +72,65 @@ function App(): React.JSX.Element {
     setNavigateToPath(path);
   }, []);
 
+  // Track pending navigation after connection
+  const pendingNavigationRef = useRef<{ serverId: string; path: string } | null>(null);
+
   const handleFavoriteNavigate = useCallback((serverId: string, path: string) => {
-    // Select the server if different, then navigate to the path
-    if (selectedServer !== serverId) {
-      setSelectedServer(serverId);
+    // Check if server is connected
+    const state = connectionStates[serverId];
+
+    if (state?.status === 'ready') {
+      // Server is connected, navigate directly
+      if (selectedServer !== serverId) {
+        setSelectedServer(serverId);
+      }
+      setNavigateToPath(path);
+    } else {
+      // Server not connected - show toast with option to connect
+      const folderName = path.split('/').pop() || path;
+      toast.info('Server not connected', {
+        description: `Connect to navigate to "${folderName}"`,
+        action: {
+          label: 'Connect',
+          onClick: async () => {
+            try {
+              // Store pending navigation for when connection completes
+              pendingNavigationRef.current = { serverId, path };
+              // Select the server to trigger connection
+              setSelectedServer(serverId);
+              await window.electronAPI.connect(serverId);
+            } catch (error) {
+              toast.error('Connection failed', {
+                description: error instanceof Error ? error.message : 'Unknown error',
+              });
+              pendingNavigationRef.current = null;
+            }
+          },
+        },
+      });
     }
-    setNavigateToPath(path);
-  }, [selectedServer]);
+  }, [selectedServer, connectionStates]);
 
   // Clear navigateToPath after it's been processed
   const handleNavigationComplete = useCallback(() => {
     setNavigateToPath(null);
   }, []);
+
+  // Handle pending navigation when connection completes
+  useEffect(() => {
+    const pending = pendingNavigationRef.current;
+    if (pending) {
+      const state = connectionStates[pending.serverId];
+      if (state?.status === 'ready') {
+        // Connection successful, navigate to the pending path
+        setNavigateToPath(pending.path);
+        pendingNavigationRef.current = null;
+      } else if (state?.status === 'error') {
+        // Connection failed, clear pending
+        pendingNavigationRef.current = null;
+      }
+    }
+  }, [connectionStates]);
 
   // Lightbox handlers
   const handleImageClick = useCallback((dataUrl: string) => {
