@@ -288,6 +288,33 @@ const electronAPI = {
       ipcRenderer.removeListener('file-ops:progress', handler);
     };
   },
+
+  // Favorites Operations
+  // ====================
+
+  /**
+   * Get all favorites for a server.
+   */
+  getFavorites: (serverId: string): Promise<string[]> =>
+    ipcRenderer.invoke('favorites:get', serverId),
+
+  /**
+   * Add a folder to favorites for a server.
+   */
+  addFavorite: (serverId: string, path: string): Promise<void> =>
+    ipcRenderer.invoke('favorites:add', serverId, path),
+
+  /**
+   * Remove a folder from favorites for a server.
+   */
+  removeFavorite: (serverId: string, path: string): Promise<void> =>
+    ipcRenderer.invoke('favorites:remove', serverId, path),
+
+  /**
+   * Reorder favorites for a server (for drag-and-drop).
+   */
+  reorderFavorites: (serverId: string, paths: string[]): Promise<void> =>
+    ipcRenderer.invoke('favorites:reorder', serverId, paths),
 };
 
 // Expose the API to the renderer as window.electronAPI

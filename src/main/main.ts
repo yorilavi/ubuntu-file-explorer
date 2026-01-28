@@ -4,6 +4,7 @@ import started from 'electron-squirrel-startup';
 import { registerSSHHandlers } from './ipc/ssh-handlers';
 import { registerPreviewHandlers } from './ipc/preview-handlers';
 import { registerFileOperationsHandlers } from './ipc/file-operations-handlers';
+import { registerFavoritesHandlers } from './ipc/favorites-handlers';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -52,6 +53,9 @@ const createWindow = () => {
 
 // IPC Handlers
 // ============
+
+// Register favorites handlers (no mainWindow needed)
+registerFavoritesHandlers();
 
 /**
  * Ping handler - echoes back with "pong: " prefix.
