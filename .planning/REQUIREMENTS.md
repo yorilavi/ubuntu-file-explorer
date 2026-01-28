@@ -29,10 +29,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Preview
 
-- [ ] **PREV-01**: User sees image preview in right panel when image file is selected
-- [ ] **PREV-02**: User sees code/text preview with syntax highlighting when text file is selected
-- [ ] **PREV-03**: User can press spacebar to open enlarged lightbox view of image
-- [ ] **PREV-04**: Preview updates automatically when navigating with keyboard
+- [x] **PREV-01**: User sees image preview in right panel when image file is selected
+- [x] **PREV-02**: User sees code/text preview with syntax highlighting when text file is selected
+- [x] **PREV-03**: User can press spacebar to open enlarged lightbox view of image
+- [x] **PREV-04**: Preview updates automatically when navigating with keyboard
 
 ### Organization
 
@@ -96,10 +96,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILE-03 | Phase 5 | Pending |
 | FILE-04 | Phase 5 | Pending |
 | FILE-05 | Phase 5 | Pending |
-| PREV-01 | Phase 4 | Pending |
-| PREV-02 | Phase 4 | Pending |
-| PREV-03 | Phase 4 | Pending |
-| PREV-04 | Phase 4 | Pending |
+| PREV-01 | Phase 4 | Complete |
+| PREV-02 | Phase 4 | Complete |
+| PREV-03 | Phase 4 | Complete |
+| PREV-04 | Phase 4 | Complete |
 | ORG-01 | Phase 6 | Pending |
 | ORG-02 | Phase 6 | Pending |
 

@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation & Security** - Electron scaffolding with secure IPC bridge
 - [x] **Phase 2: SSH/SFTP Core** - Connect to servers and browse directories
 - [x] **Phase 3: Column View Navigator** - Miller column UI with keyboard navigation
-- [ ] **Phase 4: Preview Panel** - Image and code previews with syntax highlighting
+- [x] **Phase 4: Preview Panel** - Image and code previews with syntax highlighting
 - [ ] **Phase 5: File Operations** - Upload, download, and file management
 - [ ] **Phase 6: Favorites & Polish** - Sidebar bookmarks and UX refinements
 
@@ -81,10 +81,13 @@ Plans:
   3. Pressing spacebar on an image opens enlarged lightbox view
   4. Navigating with arrow keys updates the preview automatically (debounced to prevent thrashing)
   5. Preview loading does not block navigation (async with loading indicator)
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [x] 04-01-PLAN.md — Install dependencies, define types, and create disk cache
+- [x] 04-02-PLAN.md — Create IPC handlers and extend preload with preview API
+- [x] 04-03-PLAN.md — Create usePreview hook and preview components
+- [x] 04-04-PLAN.md — Create lightbox and integrate preview panel into App
 
 ### Phase 5: File Operations
 **Goal**: User can transfer and manage files between local Mac and remote server
@@ -126,7 +129,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Foundation & Security | 2/2 | ✓ Complete | 2026-01-27 |
 | 2. SSH/SFTP Core | 4/4 | ✓ Complete | 2026-01-27 |
 | 3. Column View Navigator | 4/4 | ✓ Complete | 2026-01-27 |
-| 4. Preview Panel | 0/TBD | Not started | - |
+| 4. Preview Panel | 4/4 | ✓ Complete | 2026-01-28 |
 | 5. File Operations | 0/TBD | Not started | - |
 | 6. Favorites & Polish | 0/TBD | Not started | - |
 
