@@ -725,6 +725,28 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
+}
+
+/* Browser main area - columns + preview */
+.browser-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.browser-columns {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.browser-preview {
+  width: 280px;
+  min-width: 200px;
+  max-width: 400px;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .browser-toolbar {
