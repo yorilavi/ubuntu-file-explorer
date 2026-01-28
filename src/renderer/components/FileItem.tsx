@@ -161,6 +161,8 @@ function FileItem({
           onChange={(e) => setRenameValue(e.target.value)}
           onBlur={handleRenameConfirm}
           onKeyDown={(e) => {
+            // Stop all key events from bubbling to prevent column typeahead/navigation
+            e.stopPropagation();
             if (e.key === 'Enter') handleRenameConfirm();
             if (e.key === 'Escape') setIsRenaming(false);
           }}
