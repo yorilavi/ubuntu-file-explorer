@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Phase 5 - File Operations (COMPLETE)
+**Current focus:** Phase 6 - Favorites & Polish (IN PROGRESS)
 
 ## Current Position
 
-Phase: 5 of 6 (File Operations) - COMPLETE
-Plan: 3 of 3
-Status: Phase complete
-Last activity: 2026-01-28 - Completed 05-03-PLAN.md (context menu UI)
+Phase: 6 of 6 (Favorites & Polish)
+Plan: 2 of 5
+Status: In progress
+Last activity: 2026-01-28 - Completed 06-02-PLAN.md (toast infrastructure)
 
-Progress: [██████████] 100%
+Progress: [██████████████████░░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 19
 - Average duration: 4 min
-- Total execution time: 1 hour 12 min
+- Total execution time: 1 hour 16 min
 
 **By Phase:**
 
@@ -32,10 +32,11 @@ Progress: [██████████] 100%
 | 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
 | 04-preview-panel | 4 | 12 min | 3 min |
 | 05-file-operations | 3 | 15 min | 5 min |
+| 06-favorites-polish | 2 | ~4 min | ~2 min |
 
 **Recent Trend:**
-- Last 5 plans: ~3m, 3m, 1m, 3m, 12m (05-03 had 3 bug fixes)
-- Trend: Stable with occasional debugging
+- Last 5 plans: ~1m, 3m, 12m, ~2m, ~2m
+- Trend: Fast execution on straightforward plans
 
 *Updated after each plan completion*
 
@@ -91,6 +92,9 @@ Recent decisions affecting current work:
 | React Portal for context menu | Escapes overflow:hidden in Column container | 05-03 |
 | stopPropagation on rename input | Prevents column typeahead during rename | 05-03 |
 | Remove Move to feature | Native dialogs can't browse remote folders, needs custom UI | 05-03 |
+| bottom-right toast position | Avoids UI overlap with sidebar and preview panel | 06-02 |
+| 4s default toast duration | Standard timing; errors can override to longer | 06-02 |
+| z-index 10000 for toasts | Above lightbox (9999) and modals (1000) | 06-02 |
 
 ### Pending Todos
 
@@ -103,19 +107,17 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 03:30 UTC
-Stopped at: Completed 05-03-PLAN.md (context menu UI)
+Last session: 2026-01-28 17:28 UTC
+Stopped at: Completed 06-02-PLAN.md (toast infrastructure)
 Resume file: None
 
 **Recent Activity:**
-1. Added refreshColumn function to ColumnView
-2. Wired serverId and onRefresh props through Column to FileItem
-3. Implemented context menu with Download/Upload/Rename/Delete
-4. Fixed context menu visibility with React Portal
-5. Fixed rename input keyboard isolation
-6. Removed Move to (requires remote folder picker)
+1. Created ToastProvider component with sonner configuration
+2. Integrated ToastProvider into App.tsx at root level
+3. Added toast CSS styles to index.css
+4. Verified TypeScript compilation
 
-**Next Action:** Phase 5 complete. Ready for Phase 6 (polish) or project completion review.
+**Next Action:** Continue Phase 6 with 06-03 (collapsible sidebar), 06-04 (add to favorites), or 06-05 (drag reorder).
 
 ---
 *Last updated: 2026-01-28*
