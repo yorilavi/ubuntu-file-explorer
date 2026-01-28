@@ -128,3 +128,24 @@ export interface FileTypeInfo {
   language?: string;  // For code files
   mimeType: string;
 }
+
+// File Operations Types
+// =====================
+
+/**
+ * Progress update during file transfer.
+ */
+export interface TransferProgress {
+  percent: number;
+  bytesTransferred: number;
+  totalBytes: number;
+}
+
+/**
+ * Result of a file operation.
+ */
+export interface FileOperationResult {
+  success: boolean;
+  path?: string;      // New path for rename/move, or local path for download
+  error?: string;
+}
