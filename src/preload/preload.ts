@@ -74,6 +74,19 @@ type PreviewData =
   | { type: 'error'; message: string }
   | { type: 'loading'; progress: number };
 
+// File operations types (duplicated for preload isolation)
+interface TransferProgress {
+  percent: number;
+  bytesTransferred: number;
+  totalBytes: number;
+}
+
+interface FileOperationResult {
+  success: boolean;
+  path?: string;
+  error?: string;
+}
+
 const electronAPI = {
   /**
    * Ping the main process to verify IPC is working.
@@ -191,6 +204,88 @@ const electronAPI = {
     ipcRenderer.on('preview:progress', handler);
     return () => {
       ipcRenderer.removeListener('preview:progress', handler);
+    };
+  },
+
+  // File Operations
+  // ===============
+
+  /**
+   * Download a file from server to local Mac.
+   * Shows save dialog to choose destination.
+   */
+  downloadFile: (
+    serverId: string,
+    remotePath: string,
+    fileName: string
+  ): Promise<FileOperationResult> =>
+    ipcRenderer.invoke('file-ops:download', serverId, remotePath, fileName),
+
+  /**
+   * Upload a file from local Mac to server.
+   * Shows open dialog to choose file.
+   */
+  uploadFile: (
+    serverId: string,
+    remoteDir: string
+  ): Promise<FileOperationResult> =>
+    ipcRenderer.invoke('file-ops:upload', serverId, remoteDir),
+
+  /**
+   * Delete a file or folder on server.
+   * Shows confirmation dialog before deleting.
+   */
+  deleteFile: (
+    serverId: string,
+    remotePath: string,
+    fileName: string,
+    isDirectory: boolean
+  ): Promise<FileOperationResult> =>
+    ipcRenderer.invoke('file-ops:delete', serverId, remotePath, fileName, isDirectory),
+
+  /**
+   * Rename a file on server.
+   */
+  renameFile: (
+    serverId: string,
+    remotePath: string,
+    newName: string
+  ): Promise<FileOperationResult> =>
+    ipcRenderer.invoke('file-ops:rename', serverId, remotePath, newName),
+
+  /**
+   * Move a file to a different folder on server.
+   */
+  moveFile: (
+    serverId: string,
+    sourcePath: string,
+    destDir: string
+  ): Promise<FileOperationResult> =>
+    ipcRenderer.invoke('file-ops:move', serverId, sourcePath, destDir),
+
+  /**
+   * Move a file with folder picker dialog.
+   * Shows native folder picker to select destination, then moves the file.
+   */
+  moveFileWithPicker: (
+    serverId: string,
+    sourcePath: string,
+    fileName: string
+  ): Promise<FileOperationResult> =>
+    ipcRenderer.invoke('file-ops:move-with-picker', serverId, sourcePath, fileName),
+
+  /**
+   * Subscribe to file operation progress updates.
+   */
+  onFileOperationProgress: (
+    callback: (progress: TransferProgress & { filePath: string }) => void
+  ): (() => void) => {
+    const handler = (_event: unknown, progress: TransferProgress & { filePath: string }) => {
+      callback(progress);
+    };
+    ipcRenderer.on('file-ops:progress', handler);
+    return () => {
+      ipcRenderer.removeListener('file-ops:progress', handler);
     };
   },
 };
