@@ -64,80 +64,162 @@ function FileItem({
   // Track active toasts for progress updates
   const activeToastRef = useRef<string | number | null>(null);
 
+  // Track active operation for cancellation
+  const [activeOperationId, setActiveOperationId] = useState<string | null>(null);
+
+  // Escape key handler - cancel active operation
+  useEffect(() => {
+    if (!activeOperationId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activeOperationId) {
+        window.electronAPI.cancelOperation(activeOperationId);
+        setActiveOperationId(null);
+        if (activeToastRef.current) {
+          toast.info('Operation cancelled', { id: activeToastRef.current });
+          activeToastRef.current = null;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeOperationId]);
+
+  // Cancel the current active operation
+  const handleCancelOperation = useCallback(() => {
+    if (activeOperationId) {
+      window.electronAPI.cancelOperation(activeOperationId);
+      setActiveOperationId(null);
+      if (activeToastRef.current) {
+        toast.info('Operation cancelled', { id: activeToastRef.current });
+        activeToastRef.current = null;
+      }
+    }
+  }, [activeOperationId]);
+
   // File operation handlers
   const handleDownload = useCallback(async () => {
     setContextMenu(null);
-    const toastId = toast.loading(`Downloading "${file.name}"...`);
+    const toastId = toast.loading(`Downloading "${file.name}"...`, {
+      action: {
+        label: 'Cancel',
+        onClick: handleCancelOperation,
+      },
+    });
     activeToastRef.current = toastId;
 
     // Subscribe to progress updates
     const cleanup = window.electronAPI.onFileOperationProgress((progress) => {
       if (progress.filePath === file.path && activeToastRef.current === toastId) {
-        toast.loading(`Downloading "${file.name}"... ${progress.percent}%`, { id: toastId });
+        toast.loading(`Downloading "${file.name}"... ${progress.percent}%`, {
+          id: toastId,
+          action: {
+            label: 'Cancel',
+            onClick: handleCancelOperation,
+          },
+        });
       }
     });
 
     try {
       const result = await window.electronAPI.downloadFile(serverId, file.path, file.name);
+      // Track operation ID for cancellation
+      if (result.operationId) {
+        setActiveOperationId(result.operationId);
+      }
       if (result.success) {
         toast.success(`Downloaded "${file.name}"`, { id: toastId });
+      } else if (result.cancelled) {
+        // Already cancelled via Cancel button or Escape
+        toast.info(`Download cancelled: ${file.name}`, { id: toastId });
       } else if (result.error) {
         toast.error(`Download failed: ${file.name}`, {
           id: toastId,
           description: result.error,
         });
       } else {
-        // User cancelled
+        // User cancelled save dialog
         toast.dismiss(toastId);
       }
     } catch (error) {
-      toast.error(`Download failed: ${file.name}`, {
-        id: toastId,
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMsg === 'Operation cancelled') {
+        toast.info(`Download cancelled: ${file.name}`, { id: toastId });
+      } else {
+        toast.error(`Download failed: ${file.name}`, {
+          id: toastId,
+          description: errorMsg,
+        });
+      }
     } finally {
       cleanup();
       activeToastRef.current = null;
+      setActiveOperationId(null);
     }
-  }, [serverId, file.path, file.name]);
+  }, [serverId, file.path, file.name, handleCancelOperation]);
 
   const handleUpload = useCallback(async () => {
     setContextMenu(null);
-    const toastId = toast.loading(`Uploading to "${file.name}"...`);
+    const toastId = toast.loading(`Uploading to "${file.name}"...`, {
+      action: {
+        label: 'Cancel',
+        onClick: handleCancelOperation,
+      },
+    });
     activeToastRef.current = toastId;
 
     // Subscribe to progress updates
     const cleanup = window.electronAPI.onFileOperationProgress((progress) => {
-      // For upload, the filePath will be the destination folder
-      if (progress.filePath.startsWith(file.path) && activeToastRef.current === toastId) {
-        toast.loading(`Uploading... ${progress.percent}%`, { id: toastId });
+      // For upload, the filePath will be the local file being uploaded
+      if (activeToastRef.current === toastId) {
+        toast.loading(`Uploading... ${progress.percent}%`, {
+          id: toastId,
+          action: {
+            label: 'Cancel',
+            onClick: handleCancelOperation,
+          },
+        });
       }
     });
 
     try {
       const result = await window.electronAPI.uploadFile(serverId, file.path);
+      // Track operation ID for cancellation
+      if (result.operationId) {
+        setActiveOperationId(result.operationId);
+      }
       if (result.success) {
         toast.success(`Upload complete`, { id: toastId });
         onRefresh();
+      } else if (result.cancelled) {
+        // Already cancelled via Cancel button or Escape
+        toast.info(`Upload cancelled`, { id: toastId });
       } else if (result.error) {
         toast.error(`Upload failed`, {
           id: toastId,
           description: result.error,
         });
       } else {
-        // User cancelled
+        // User cancelled file picker
         toast.dismiss(toastId);
       }
     } catch (error) {
-      toast.error(`Upload failed`, {
-        id: toastId,
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMsg === 'Operation cancelled') {
+        toast.info(`Upload cancelled`, { id: toastId });
+      } else {
+        toast.error(`Upload failed`, {
+          id: toastId,
+          description: errorMsg,
+        });
+      }
     } finally {
       cleanup();
       activeToastRef.current = null;
+      setActiveOperationId(null);
     }
-  }, [serverId, file.path, onRefresh]);
+  }, [serverId, file.path, onRefresh, handleCancelOperation]);
 
   const handleDelete = useCallback(async () => {
     setContextMenu(null);
