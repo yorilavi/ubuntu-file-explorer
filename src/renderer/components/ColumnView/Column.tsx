@@ -84,15 +84,18 @@ function Column({
     [columnIndex, entries, onNavigateInto]
   );
 
-  // Focus column container when it becomes active or when loading completes
+  // Focus column container when it becomes active and has entries
   useEffect(() => {
-    if (isActive && !loading && parentRef.current) {
-      // Use requestAnimationFrame to ensure DOM is settled after any click events
+    if (isActive && !loading && entries.length > 0 && parentRef.current) {
+      // Use double requestAnimationFrame to ensure DOM is fully settled
+      // (first frame for React render, second frame for browser paint)
       requestAnimationFrame(() => {
-        parentRef.current?.focus();
+        requestAnimationFrame(() => {
+          parentRef.current?.focus();
+        });
       });
     }
-  }, [isActive, loading]);
+  }, [isActive, loading, entries.length]);
 
   // Scroll to focused item when focus changes
   useEffect(() => {
