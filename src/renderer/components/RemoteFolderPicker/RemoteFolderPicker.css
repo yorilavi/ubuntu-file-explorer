@@ -1,0 +1,235 @@
+/* RemoteFolderPicker Modal Styles */
+
+/* Modal sizing overrides */
+.folder-picker {
+  max-width: 500px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Breadcrumb navigation */
+.folder-picker__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  background: #222;
+  border-bottom: 1px solid #333;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.folder-picker__breadcrumb-item {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  color: #888;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.folder-picker__breadcrumb-item:hover {
+  background: #333;
+  color: #fff;
+}
+
+.folder-picker__breadcrumb-item--active {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.folder-picker__breadcrumb-separator {
+  color: #555;
+  font-size: 0.875rem;
+}
+
+/* Tree container */
+.folder-picker__tree-container {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  max-height: 350px;
+  background: #1a1a1a;
+}
+
+/* Folder tree */
+.folder-tree {
+  padding: 0.5rem 0;
+}
+
+.folder-tree__loading,
+.folder-tree__error,
+.folder-tree__empty {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.folder-tree__error {
+  color: #f87171;
+}
+
+/* Folder tree item */
+.folder-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.folder-tree-item:hover {
+  background: #2a2a2a;
+}
+
+.folder-tree-item--selected {
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.folder-tree-item--selected:hover {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+.folder-tree-item--source {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.folder-tree-item--source:hover {
+  background: transparent;
+}
+
+/* Expand/collapse chevron */
+.folder-tree-item__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #666;
+  transition: transform 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.folder-tree-item__chevron:hover {
+  color: #999;
+}
+
+.folder-tree-item__chevron--expanded {
+  transform: rotate(90deg);
+}
+
+/* Folder icon */
+.folder-tree-item__icon {
+  position: relative;
+  width: 18px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.folder-tree-item__icon::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 14px;
+  background: #f59e0b;
+  border-radius: 2px 2px 3px 3px;
+  top: 0;
+}
+
+.folder-tree-item__icon::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 3px;
+  background: #d97706;
+  border-radius: 2px 2px 0 0;
+  top: -2px;
+  left: 0;
+}
+
+/* Folder name */
+.folder-tree-item__name {
+  font-size: 0.875rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Current folder badge */
+.folder-tree-item__badge {
+  font-size: 0.6875rem;
+  color: #888;
+  background: #333;
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* Loading, error, empty states for children */
+.folder-tree-item__loading,
+.folder-tree-item__error,
+.folder-tree-item__empty {
+  font-size: 0.8125rem;
+  color: #666;
+  padding: 0.375rem 0.75rem;
+  font-style: italic;
+}
+
+.folder-tree-item__error {
+  color: #f87171;
+  font-style: normal;
+}
+
+/* Children container */
+.folder-tree-item__children {
+  /* No extra styling needed, indentation handled via inline paddingLeft */
+}
+
+/* Footer */
+.folder-picker__footer {
+  padding: 1rem;
+  border-top: 1px solid #333;
+  background: #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.folder-picker__destination {
+  font-size: 0.8125rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-picker__destination strong {
+  color: #fff;
+}
+
+.folder-picker__destination code {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  color: #3b82f6;
+  background: #1a1a1a;
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+}
+
+.folder-picker__footer .modal__actions {
+  margin-top: 0;
+}
