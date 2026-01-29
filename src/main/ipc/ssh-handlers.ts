@@ -4,7 +4,7 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import { getSSHConfigServers } from '../ssh/config-parser';
 import { getAllConnections, saveConnection, deleteConnection, getConnection as getStoredConnection } from '../storage/connection-store';
-import { saveCredential, getCredential, deleteCredential } from '../storage/credential-store';
+import { saveCredential, getCredential, deleteCredential, hasCredential } from '../storage/credential-store';
 import { connectSSH, disconnectSSH, getConnectionState, setStateCallback } from '../ssh/ssh-service';
 import { listDirectory, clearSFTPCache } from '../ssh/sftp-service';
 import type { Server, CustomConnection, DirectoryListing, ConnectionState } from '../ssh/types';
@@ -118,6 +118,22 @@ export function registerSSHHandlers(mainWindow: BrowserWindow): void {
     // Also disconnect if connected
     disconnectSSH(id);
     clearSFTPCache(id);
+  });
+
+  /**
+   * Check if a stored credential exists for a connection.
+   */
+  ipcMain.handle('ssh:has-credential', async (_event, connectionId: string): Promise<boolean> => {
+    console.log('[ssh-handlers] Checking credential for:', connectionId);
+    return hasCredential(connectionId);
+  });
+
+  /**
+   * Clear (delete) a stored credential without deleting the connection.
+   */
+  ipcMain.handle('ssh:clear-credential', async (_event, connectionId: string): Promise<void> => {
+    console.log('[ssh-handlers] Clearing credential for:', connectionId);
+    deleteCredential(connectionId);
   });
 
   /**
