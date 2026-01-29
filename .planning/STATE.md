@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 7 - Hidden Files Toggle
-Plan: Not started
-Status: Phase ready for planning
-Last activity: 2026-01-29 - Roadmap created for v1.1
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-01-29 - Completed 07-01-PLAN.md
 
-Progress: [##..................] v1.1 Phase 7 of 11
+Progress: [###.................] v1.1 Phase 7 of 11 (Plan 1/2)
 
 ## Milestone Goal
 
 Complete v1.0 deferred features:
-- Hidden files toggle with persistence (Phase 7)
+- Hidden files toggle with persistence (Phase 7) - IN PROGRESS
 - Password authentication support (Phase 8)
 - Move file UI with RemoteFolderPicker modal (Phase 9)
 - Markdown lightbox viewer (Phase 10)
@@ -34,6 +34,10 @@ Complete v1.0 deferred features:
 - NAV-02: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut
 - NAV-03: Hidden files toggle state persists across sessions
 - NAV-04: Current toggle state visible in UI (toolbar or status bar)
+
+**Plan Status:**
+- Plan 01: COMPLETE - Backend preference storage and IPC
+- Plan 02: PENDING - Renderer toggle UI and keyboard shortcut
 
 **Success Criteria:**
 1. User can press Cmd+Shift+. and hidden files appear/disappear in column view
@@ -57,12 +61,17 @@ Complete v1.0 deferred features:
 - Average duration: 4 min
 - Total execution time: 1 hour 23 min
 
+**v1.1 Progress:**
+- Plans completed: 1 (07-01)
+- Duration: 3 min
+
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-All v1.0 decisions have been reviewed and outcomes recorded.
+| Decision | Phase | Rationale |
+|----------|-------|-----------|
+| Default showHiddenFiles to false | 07-01 | Matches macOS Finder default behavior |
 
 ### Technical Notes
 
@@ -78,9 +87,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-29 - Roadmap created
-Stopped at: Roadmap complete, ready for Phase 7 planning
-Resume with: `/gsd:plan-phase 7`
+Last session: 2026-01-29 19:49 UTC
+Stopped at: Completed 07-01-PLAN.md (backend storage)
+Resume with: `/gsd:execute-phase 07-hidden-files-toggle` for plan 02
 
 ---
 *Last updated: 2026-01-29*
