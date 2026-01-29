@@ -350,6 +350,18 @@ const electronAPI = {
    */
   setPreviewPanelWidth: (width: number): Promise<void> =>
     ipcRenderer.invoke('ui:setPreviewPanelWidth', width),
+
+  /**
+   * Get show hidden files preference.
+   */
+  getShowHiddenFiles: (): Promise<boolean> =>
+    ipcRenderer.invoke('ui:getShowHiddenFiles'),
+
+  /**
+   * Save show hidden files preference.
+   */
+  setShowHiddenFiles: (show: boolean): Promise<void> =>
+    ipcRenderer.invoke('ui:setShowHiddenFiles', show),
 };
 
 // Expose the API to the renderer as window.electronAPI
