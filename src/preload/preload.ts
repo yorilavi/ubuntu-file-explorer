@@ -129,6 +129,18 @@ const electronAPI = {
     ipcRenderer.invoke('ssh:remove-connection', id),
 
   /**
+   * Check if a stored credential exists for a connection.
+   */
+  hasCredential: (connectionId: string): Promise<boolean> =>
+    ipcRenderer.invoke('ssh:has-credential', connectionId),
+
+  /**
+   * Clear (delete) a stored credential without deleting the connection.
+   */
+  clearCredential: (connectionId: string): Promise<void> =>
+    ipcRenderer.invoke('ssh:clear-credential', connectionId),
+
+  /**
    * Connect to a server.
    */
   connect: (serverId: string, password?: string): Promise<{ success: boolean; error?: string }> =>
