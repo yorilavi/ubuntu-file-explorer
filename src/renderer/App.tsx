@@ -7,6 +7,7 @@ import ColumnView from './components/ColumnView';
 import PathBar from './components/PathBar';
 import PreviewPanel from './components/PreviewPanel';
 import LightboxView from './components/PreviewPanel/Lightbox';
+import HiddenFilesToggle from './components/HiddenFilesToggle';
 import { ToastProvider } from './components/ToastProvider';
 
 /**
@@ -30,7 +31,7 @@ function App(): React.JSX.Element {
   const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionState>>({});
   const [currentPath, setCurrentPath] = useState('/');
   const [navigateToPath, setNavigateToPath] = useState<string | null>(null);
-  const [showHidden, setShowHidden] = useState(false);
+  const [showHidden, setShowHidden] = useState<boolean | null>(null);
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -43,6 +44,11 @@ function App(): React.JSX.Element {
   // Load saved preview width on mount
   useEffect(() => {
     window.electronAPI.getPreviewPanelWidth().then(setPreviewWidth);
+  }, []);
+
+  // Load saved hidden files preference on mount
+  useEffect(() => {
+    window.electronAPI.getShowHiddenFiles().then(setShowHidden);
   }, []);
 
   // Handle preview panel resize
@@ -208,6 +214,39 @@ function App(): React.JSX.Element {
     }
   }, [lightboxOpen]);
 
+  // Toggle hidden files visibility and persist preference
+  const handleToggleHidden = useCallback(() => {
+    setShowHidden((prev) => {
+      const newValue = !prev;
+      window.electronAPI.setShowHiddenFiles(newValue);
+      return newValue;
+    });
+  }, []);
+
+  // Keyboard shortcut: Cmd+Shift+. to toggle hidden files
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if typing in input/textarea/contenteditable
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Cmd+Shift+. (Period) toggles hidden files
+      if (e.metaKey && e.shiftKey && e.code === 'Period') {
+        e.preventDefault();
+        handleToggleHidden();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleToggleHidden]);
+
   // Handle spacebar for lightbox and arrow keys when lightbox is open
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -260,14 +299,10 @@ function App(): React.JSX.Element {
                     onNavigate={handlePathNavigate}
                   />
                   <div className="browser-toolbar__controls">
-                    <label className="browser-toolbar__toggle">
-                      <input
-                        type="checkbox"
-                        checked={showHidden}
-                        onChange={(e) => setShowHidden(e.target.checked)}
-                      />
-                      Show hidden
-                    </label>
+                    <HiddenFilesToggle
+                      showHidden={showHidden ?? false}
+                      onToggle={handleToggleHidden}
+                    />
                   </div>
                 </div>
 
@@ -279,7 +314,7 @@ function App(): React.JSX.Element {
                       serverId={selectedServer}
                       initialPath="/"
                       navigateTo={navigateToPath}
-                      showHidden={showHidden}
+                      showHidden={showHidden ?? false}
                       onFileSelect={handleFileSelect}
                       onPathChange={handlePathChange}
                       onNavigationComplete={handleNavigationComplete}
