@@ -17,6 +17,12 @@ v1.1 completes deferred v1.0 features: move file UI with folder picker, markdown
 
 **Dependencies:** None (self-contained)
 
+**Plans:** 2 plans
+
+Plans:
+- [x] 07-01-PLAN.md - Backend persistence for showHiddenFiles preference
+- [x] 07-02-PLAN.md - Toggle UI, keyboard shortcut, and hidden file styling
+
 **Requirements:**
 - NAV-01: User can toggle visibility of dotfiles (hidden files)
 - NAV-02: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut
@@ -118,7 +124,7 @@ v1.1 completes deferred v1.0 features: move file UI with folder picker, markdown
 
 | Phase | Name | Status | Requirements |
 |-------|------|--------|--------------|
-| 7 | Hidden Files Toggle | Pending | NAV-01, NAV-02, NAV-03, NAV-04 |
+| 7 | Hidden Files Toggle | ✓ Complete | NAV-01, NAV-02, NAV-03, NAV-04 |
 | 8 | Password Authentication | Pending | AUTH-01, AUTH-02, AUTH-03, AUTH-04 |
 | 9 | Move File Operations | Pending | FILE-01, FILE-02, FILE-03, FILE-04 |
 | 10 | Markdown Lightbox | Pending | PREV-01, PREV-02, PREV-03, PREV-04 |
