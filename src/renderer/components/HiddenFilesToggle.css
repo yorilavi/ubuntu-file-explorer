@@ -1,0 +1,28 @@
+/* HiddenFilesToggle - Toolbar button for toggling hidden file visibility */
+
+.hidden-toggle {
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.15s ease-out;
+}
+
+.hidden-toggle:hover {
+  color: #fff;
+}
+
+.hidden-toggle--active {
+  color: #3b82f6;
+}
+
+.hidden-toggle--active:hover {
+  color: #60a5fa;
+}
+
+.hidden-toggle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
