@@ -34,12 +34,16 @@ Browse remote servers visually with instant image and code previews — no more 
 
 ### Active
 
+**Current Milestone: v1.1 Feature Completion**
+
+Goal: Complete the remaining v1.0 backlog — file move UI, markdown preview, hidden files toggle, lazy loading, resize reset, and password auth.
+
 - [ ] Move files to different folder on server (backend ready, needs RemoteFolderPicker UI)
 - [ ] Markdown lightbox viewer (spacebar on .md opens rendered view)
+- [ ] Hidden files toggle (show/hide dotfiles)
 - [ ] Lazy loading for large code files (>500 lines load incrementally)
 - [ ] Double-click resize handle to reset to default width
 - [ ] Password authentication support
-- [ ] Hidden files toggle (show/hide dotfiles)
 
 ### Out of Scope
 
@@ -100,4 +104,4 @@ Shipped v1.0 with 8,227 lines TypeScript/TSX/CSS in 48 source files.
 | AbortController for cancellation | Per-operation ID for clean cleanup | ✓ Good — ESC key works |
 
 ---
-*Last updated: 2026-01-28 after v1.0 milestone*
+*Last updated: 2026-01-28 after starting v1.1 milestone*

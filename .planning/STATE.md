@@ -5,27 +5,50 @@
 See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Planning next milestone (v1.1)
+**Current focus:** v1.1 Feature Completion
 
 ## Current Position
 
-Phase: Ready for v1.1 planning
+Phase: 7 - Hidden Files Toggle
 Plan: Not started
-Status: v1.0 shipped, ready for next milestone
-Last activity: 2026-01-28 — v1.0 milestone complete
+Status: Phase ready for planning
+Last activity: 2026-01-29 - Roadmap created for v1.1
 
-Progress: [████████████████████] v1.0 SHIPPED
+Progress: [##..................] v1.1 Phase 7 of 11
 
-## Recent Milestone
+## Milestone Goal
 
-**v1.0 MVP — Shipped 2026-01-28**
+Complete v1.0 deferred features:
+- Hidden files toggle with persistence (Phase 7)
+- Password authentication support (Phase 8)
+- Move file UI with RemoteFolderPicker modal (Phase 9)
+- Markdown lightbox viewer (Phase 10)
+- Lazy loading for large code files + resize handle reset (Phase 11)
+
+## Phase 7 Overview
+
+**Goal:** Users can control visibility of dotfiles with persistent preference
+
+**Requirements:**
+- NAV-01: User can toggle visibility of dotfiles (hidden files)
+- NAV-02: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut
+- NAV-03: Hidden files toggle state persists across sessions
+- NAV-04: Current toggle state visible in UI (toolbar or status bar)
+
+**Success Criteria:**
+1. User can press Cmd+Shift+. and hidden files appear/disappear in column view
+2. User can see current toggle state in toolbar (icon changes or indicator visible)
+3. User closes and reopens app, hidden files setting is preserved
+4. Toggle works consistently across all columns in Miller view
+
+## Previous Milestone
+
+**v1.0 MVP - Shipped 2026-01-28**
 
 - 6 phases, 22 plans completed
 - 8,227 lines TypeScript/TSX/CSS
 - All core features working: SSH connect, Miller columns, previews, file ops, favorites
 - Git tag: v1.0
-
-See `.planning/MILESTONES.md` for full details.
 
 ## Performance Metrics
 
@@ -34,17 +57,6 @@ See `.planning/MILESTONES.md` for full details.
 - Average duration: 4 min
 - Total execution time: 1 hour 23 min
 
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-foundation-security | 2 | 10 min 8 sec | 5 min 4 sec |
-| 02-ssh-sftp-core | 4 | 20 min 11 sec | 5 min 3 sec |
-| 03-column-view-navigator | 4 | 19 min 22 sec | 4 min 51 sec |
-| 04-preview-panel | 4 | 12 min | 3 min |
-| 05-file-operations | 3 | 15 min | 5 min |
-| 06-favorites-polish | 5 | ~11 min | ~2 min |
-
 ## Accumulated Context
 
 ### Decisions
@@ -52,13 +64,13 @@ See `.planning/MILESTONES.md` for full details.
 Decisions are logged in PROJECT.md Key Decisions table.
 All v1.0 decisions have been reviewed and outcomes recorded.
 
-### Pending Todos (from v1.0)
+### Technical Notes
 
-- Move file UI: Requires custom remote folder picker modal
-- Folder upload: Needs tar/gzip + server-side extraction check
-- Markdown lightbox: Spacebar on .md opens rendered viewer
-- Lazy code loading: Files >500 lines load incrementally
-- Double-click resize handle: Reset to default width
+- Hidden files: Cmd+Shift+. shortcut matches macOS Finder behavior
+- Password auth: ssh2 supports password auth natively, add UI and safeStorage path
+- Move file: Backend `sftp:moveFile` IPC ready, needs RemoteFolderPicker UI component
+- Markdown: Lightbox component exists for images, extend for markdown rendering
+- Lazy loading: Implement viewport-based content loading for large files
 
 ### Blockers/Concerns
 
@@ -66,9 +78,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-28 — Milestone completion
-Stopped at: v1.0 archived, ready for next milestone
-Resume with: `/gsd:new-milestone`
+Last session: 2026-01-29 - Roadmap created
+Stopped at: Roadmap complete, ready for Phase 7 planning
+Resume with: `/gsd:plan-phase 7`
 
 ---
-*Last updated: 2026-01-28*
+*Last updated: 2026-01-29*
