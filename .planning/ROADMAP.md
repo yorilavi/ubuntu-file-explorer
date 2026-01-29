@@ -69,6 +69,12 @@ Plans:
 
 **Dependencies:** Phase 7 (hidden files affects folder picker display)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md - RemoteFolderPicker modal with folder tree and breadcrumb
+- [ ] 09-02-PLAN.md - Context menu integration and toast undo
+
 **Requirements:**
 - FILE-01: User can move a file to a different folder on the server
 - FILE-02: User can browse remote folders in a modal to select move destination
