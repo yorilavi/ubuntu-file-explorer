@@ -182,6 +182,7 @@ function Column({
                 file={entry}
                 isSelected={isSelected}
                 isFocused={isActive && isFocused}
+                isHidden={entry.name.startsWith('.')}
                 serverId={serverId}
                 columnIndex={columnIndex}
                 onRefresh={onRefresh}

@@ -8,6 +8,7 @@ interface FileItemProps {
   file: FileEntry;
   isSelected: boolean;
   isFocused: boolean;
+  isHidden?: boolean;
   serverId: string;
   columnIndex: number;
   onRefresh: () => void;
@@ -25,6 +26,7 @@ function FileItem({
   file,
   isSelected,
   isFocused,
+  isHidden,
   serverId,
   columnIndex: _columnIndex,
   onRefresh,
@@ -302,6 +304,7 @@ function FileItem({
     isSelected && 'file-item--selected',
     isFocused && 'file-item--focused',
     file.isDirectory && 'file-item--directory',
+    isHidden && 'file-item--hidden',
   ]
     .filter(Boolean)
     .join(' ');
