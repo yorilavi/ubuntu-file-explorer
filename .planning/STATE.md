@@ -9,39 +9,36 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 ## Current Position
 
-Phase: 8 - Password Authentication (COMPLETE)
-Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-01-29 - Completed 08-02-PLAN.md
+Phase: 9 - Move File Operations (IN PROGRESS)
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-01-29 - Completed 09-01-PLAN.md
 
-Progress: [######....................] v1.1 Phase 8 of 11 (Complete)
+Progress: [#######...................] v1.1 Phase 9 Plan 1 of 2 (In Progress)
 
 ## Milestone Goal
 
 Complete v1.0 deferred features:
 - Hidden files toggle with persistence (Phase 7) - COMPLETE
 - Password authentication support (Phase 8) - COMPLETE
-- Move file UI with RemoteFolderPicker modal (Phase 9)
+- Move file UI with RemoteFolderPicker modal (Phase 9) - IN PROGRESS
 - Markdown lightbox viewer (Phase 10)
 - Lazy loading for large code files + resize handle reset (Phase 11)
 
-## Phase 8 Summary
+## Phase 9 Summary
 
-**Goal:** Enable password-based SSH authentication with secure credential storage
+**Goal:** Enable users to move files to different folders on remote server
 
 **Plan Status:**
-- Plan 01: COMPLETE - Credential IPC handlers (has/clear credential)
-- Plan 02: COMPLETE - Password field UI and clear functionality
+- Plan 01: COMPLETE - RemoteFolderPicker modal component
+- Plan 02: PENDING - Integration with FileItem context menu
 
-**Delivered:**
-- ssh:has-credential IPC handler
-- ssh:clear-credential IPC handler
-- window.electronAPI.hasCredential binding
-- window.electronAPI.clearCredential binding
-- Eye icon toggle to show/hide password
-- "Save password securely" checkbox (default checked)
-- Stored password placeholder (********) for edit mode
-- Clear saved password button
+**Delivered (Plan 01):**
+- FolderTreeItem component with lazy loading via listDirectory IPC
+- FolderTree container managing expanded paths
+- RemoteFolderPicker modal with breadcrumb navigation
+- Selection state with "Move Here" button
+- BEM styles matching existing dark theme
 
 ## Previous Milestone
 
@@ -60,8 +57,8 @@ Complete v1.0 deferred features:
 - Total execution time: 1 hour 23 min
 
 **v1.1 Progress:**
-- Plans completed: 4 (07-01, 07-02, 08-01, 08-02)
-- Duration: 13 min total (3 min + 4 min + 3 min + 3 min)
+- Plans completed: 5 (07-01, 07-02, 08-01, 08-02, 09-01)
+- Duration: 17 min total (3 min + 4 min + 3 min + 3 min + 4 min)
 
 ## Accumulated Context
 
@@ -75,12 +72,15 @@ Complete v1.0 deferred features:
 | clearCredential only deletes credential, not connection | 08-01 | Separation of concerns |
 | Eye shows when hidden, eye-off when visible | 08-02 | Standard password toggle convention |
 | Save password checkbox default checked | 08-02 | Per CONTEXT.md user preference |
+| 16px indentation per tree depth level | 09-01 | Clear visual hierarchy in folder tree |
+| Auto-expand to source file's parent | 09-01 | User sees current location on modal open |
+| Source folder marked with badge, not selectable | 09-01 | Prevents moving file to same location |
 
 ### Technical Notes
 
 - Hidden files: Cmd+Shift+. shortcut matches macOS Finder behavior - IMPLEMENTED
 - Password auth: Complete - eye toggle, save checkbox, stored password handling
-- Move file: Backend `sftp:moveFile` IPC ready, needs RemoteFolderPicker UI component
+- Move file: RemoteFolderPicker UI complete, needs context menu integration
 - Markdown: Lightbox component exists for images, extend for markdown rendering
 - Lazy loading: Implement viewport-based content loading for large files
 
@@ -90,9 +90,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-29 22:15 UTC
-Stopped at: Completed 08-02-PLAN.md (Password field UI)
-Resume with: Phase 9 (Move file UI) when ready
+Last session: 2026-01-29 23:59 UTC
+Stopped at: Completed 09-01-PLAN.md (RemoteFolderPicker modal)
+Resume with: Phase 9 Plan 02 (Move integration) when ready
 
 ---
 *Last updated: 2026-01-29*
