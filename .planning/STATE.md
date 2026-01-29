@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Phase: 7 - Hidden Files Toggle
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-01-29 - Completed 07-01-PLAN.md
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-01-29 - Completed 07-02-PLAN.md
 
-Progress: [###.................] v1.1 Phase 7 of 11 (Plan 1/2)
+Progress: [####..................] v1.1 Phase 7 of 11 (Complete)
 
 ## Milestone Goal
 
 Complete v1.0 deferred features:
-- Hidden files toggle with persistence (Phase 7) - IN PROGRESS
+- Hidden files toggle with persistence (Phase 7) - COMPLETE
 - Password authentication support (Phase 8)
 - Move file UI with RemoteFolderPicker modal (Phase 9)
 - Markdown lightbox viewer (Phase 10)
@@ -30,18 +30,18 @@ Complete v1.0 deferred features:
 **Goal:** Users can control visibility of dotfiles with persistent preference
 
 **Requirements:**
-- NAV-01: User can toggle visibility of dotfiles (hidden files)
-- NAV-02: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut
-- NAV-03: Hidden files toggle state persists across sessions
-- NAV-04: Current toggle state visible in UI (toolbar or status bar)
+- NAV-01: User can toggle visibility of dotfiles (hidden files) - DONE
+- NAV-02: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut - DONE
+- NAV-03: Hidden files toggle state persists across sessions - DONE
+- NAV-04: Current toggle state visible in UI (toolbar or status bar) - DONE
 
 **Plan Status:**
 - Plan 01: COMPLETE - Backend preference storage and IPC
-- Plan 02: PENDING - Renderer toggle UI and keyboard shortcut
+- Plan 02: COMPLETE - Renderer toggle UI and keyboard shortcut
 
-**Success Criteria:**
+**Success Criteria:** ALL MET
 1. User can press Cmd+Shift+. and hidden files appear/disappear in column view
-2. User can see current toggle state in toolbar (icon changes or indicator visible)
+2. User can see current toggle state in toolbar (eye icon changes)
 3. User closes and reopens app, hidden files setting is preserved
 4. Toggle works consistently across all columns in Miller view
 
@@ -62,8 +62,8 @@ Complete v1.0 deferred features:
 - Total execution time: 1 hour 23 min
 
 **v1.1 Progress:**
-- Plans completed: 1 (07-01)
-- Duration: 3 min
+- Plans completed: 2 (07-01, 07-02)
+- Duration: 7 min total (3 min + 4 min)
 
 ## Accumulated Context
 
@@ -72,10 +72,12 @@ Complete v1.0 deferred features:
 | Decision | Phase | Rationale |
 |----------|-------|-----------|
 | Default showHiddenFiles to false | 07-01 | Matches macOS Finder default behavior |
+| Eye icon open when showing hidden | 07-02 | Common UI convention - "you can see" |
+| Hidden files at 50% opacity | 07-02 | Visible but clearly distinguished |
 
 ### Technical Notes
 
-- Hidden files: Cmd+Shift+. shortcut matches macOS Finder behavior
+- Hidden files: Cmd+Shift+. shortcut matches macOS Finder behavior - IMPLEMENTED
 - Password auth: ssh2 supports password auth natively, add UI and safeStorage path
 - Move file: Backend `sftp:moveFile` IPC ready, needs RemoteFolderPicker UI component
 - Markdown: Lightbox component exists for images, extend for markdown rendering
@@ -87,9 +89,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-29 19:49 UTC
-Stopped at: Completed 07-01-PLAN.md (backend storage)
-Resume with: `/gsd:execute-phase 07-hidden-files-toggle` for plan 02
+Last session: 2026-01-29 19:55 UTC
+Stopped at: Completed Phase 7 (Hidden Files Toggle)
+Resume with: `/gsd:execute-phase 08-password-auth` when ready
 
 ---
 *Last updated: 2026-01-29*
