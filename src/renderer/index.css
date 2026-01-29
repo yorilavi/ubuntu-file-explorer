@@ -392,6 +392,74 @@ body {
   font-size: 0.875rem;
 }
 
+/* Password field with toggle */
+.form-field__input-wrapper {
+  position: relative;
+  display: flex;
+}
+
+.form-field__input-wrapper .form-field__input {
+  flex: 1;
+  padding-right: 2.5rem; /* Space for toggle button */
+}
+
+.form-field__password-toggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.form-field__password-toggle:hover {
+  color: #999;
+}
+
+/* Checkbox row for save password */
+.form-field__checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.form-field__checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.form-field__checkbox-row label {
+  font-size: 0.8125rem;
+  color: #888;
+  cursor: pointer;
+}
+
+/* Clear password button */
+.form-field__clear-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  margin-left: auto;
+}
+
+.form-field__clear-btn:hover {
+  color: #ef4444;
+}
+
 /* Buttons */
 .btn {
   padding: 0.625rem 1rem;
