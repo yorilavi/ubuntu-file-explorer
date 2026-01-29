@@ -23,10 +23,10 @@ Requirements for v1.1 Feature Completion milestone. Each maps to roadmap phases.
 
 ### Navigation & Display
 
-- [ ] **NAV-01**: User can toggle visibility of dotfiles (hidden files)
-- [ ] **NAV-02**: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut
-- [ ] **NAV-03**: Hidden files toggle state persists across sessions
-- [ ] **NAV-04**: Current toggle state visible in UI (toolbar or status bar)
+- [x] **NAV-01**: User can toggle visibility of dotfiles (hidden files)
+- [x] **NAV-02**: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut
+- [x] **NAV-03**: Hidden files toggle state persists across sessions
+- [x] **NAV-04**: Current toggle state visible in UI (toolbar or status bar)
 - [ ] **NAV-05**: Large code files (>500 lines) load initial content quickly
 - [ ] **NAV-06**: Scrolling in large files triggers incremental loading
 - [ ] **NAV-07**: No UI freeze when opening very large code files
@@ -38,10 +38,10 @@ Requirements for v1.1 Feature Completion milestone. Each maps to roadmap phases.
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can connect to server using password authentication
-- [ ] **AUTH-02**: Password field appears in connection form when password auth selected
-- [ ] **AUTH-03**: Password stored securely via safeStorage
-- [ ] **AUTH-04**: Connection remembers auth method preference per server
+- [x] **AUTH-01**: User can connect to server using password authentication
+- [x] **AUTH-02**: Password field appears in connection form when password auth selected
+- [x] **AUTH-03**: Password stored securely via safeStorage
+- [x] **AUTH-04**: Connection remembers auth method preference per server
 
 ## Out of Scope
 
@@ -70,19 +70,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PREV-02 | Phase 10 | Pending |
 | PREV-03 | Phase 10 | Pending |
 | PREV-04 | Phase 10 | Pending |
-| NAV-01 | Phase 7 | Pending |
-| NAV-02 | Phase 7 | Pending |
-| NAV-03 | Phase 7 | Pending |
-| NAV-04 | Phase 7 | Pending |
+| NAV-01 | Phase 7 | Complete |
+| NAV-02 | Phase 7 | Complete |
+| NAV-03 | Phase 7 | Complete |
+| NAV-04 | Phase 7 | Complete |
 | NAV-05 | Phase 11 | Pending |
 | NAV-06 | Phase 11 | Pending |
 | NAV-07 | Phase 11 | Pending |
 | UI-01 | Phase 11 | Pending |
 | UI-02 | Phase 11 | Pending |
-| AUTH-01 | Phase 8 | Pending |
-| AUTH-02 | Phase 8 | Pending |
-| AUTH-03 | Phase 8 | Pending |
-| AUTH-04 | Phase 8 | Pending |
+| AUTH-01 | Phase 8 | Complete |
+| AUTH-02 | Phase 8 | Complete |
+| AUTH-03 | Phase 8 | Complete |
+| AUTH-04 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 21 total
