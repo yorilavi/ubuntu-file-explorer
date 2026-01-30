@@ -96,6 +96,12 @@ Plans:
 
 **Dependencies:** None (extends existing image lightbox)
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md - Markdown rendering infrastructure (MarkdownRenderer, MarkdownSlide, openExternal IPC)
+- [ ] 10-02-PLAN.md - App integration with spacebar trigger, arrow navigation, position indicator
+
 **Requirements:**
 - PREV-01: User can press spacebar on .md file to open rendered markdown lightbox
 - PREV-02: Markdown renders with proper formatting (headers, lists, code blocks, links)
