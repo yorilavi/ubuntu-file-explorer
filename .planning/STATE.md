@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** v1.2 Folder Operations - roadmap created
+**Current focus:** v1.2 Folder Operations - executing phase 12
 
 ## Current Position
 
 Phase: 12 of 14 (Folder Upload)
-Plan: 01 of 03
+Plan: 02 of 03
 Status: In progress
-Last activity: 2026-01-30 - Completed 12-01-PLAN.md
+Last activity: 2026-01-30 - Completed 12-02-PLAN.md
 
-Progress: [########################░░░░░░] v1.1 Complete + Phase 12 Plan 01 done (1/9 v1.2 plans)
+Progress: [#########################░░░░░] v1.1 Complete + Phase 12 Plans 01-02 done (2/9 v1.2 plans)
 
 ## Milestone Summary
 
@@ -23,12 +23,12 @@ Progress: [########################░░░░░░] v1.1 Complete + Phase 12 
 Goal: Enable full folder transfer in both directions plus PDF preview.
 
 Roadmap:
-- Phase 12: Folder Upload (7 requirements) - Plan 01 complete
+- Phase 12: Folder Upload (7 requirements) - Plans 01-02 complete
 - Phase 13: Folder Download (6 requirements)
 - Phase 14: PDF Preview (6 requirements)
 - Total: 19 requirements, 100% coverage
 
-Next: Execute 12-02-PLAN.md
+Next: Execute 12-03-PLAN.md
 
 ---
 
@@ -52,7 +52,7 @@ Stats:
 ## Performance Metrics
 
 **Velocity (cumulative):**
-- Total plans completed: 33 (22 v1.0 + 10 v1.1 + 1 v1.2)
+- Total plans completed: 34 (22 v1.0 + 10 v1.1 + 2 v1.2)
 - Total phases: 11 complete, 12 in progress
 - Total milestones: 2 complete, 1 in progress
 
@@ -91,6 +91,8 @@ Stats:
 | Filter hidden files via segment check | 12-01 | Catches .DS_Store and ._* in any path segment |
 | Sequential file upload with progress | 12-01 | Simpler than parallel, reliable progress tracking |
 | Depth-sorted directory creation | 12-01 | Ensures parents exist before children |
+| Dock progress bar during folder upload | 12-02 | Visual feedback in macOS dock |
+| Progress includes operationId | 12-02 | Enables tracking of multiple concurrent uploads |
 
 ### Technical Notes
 
@@ -102,6 +104,10 @@ All v1.1 features implemented and verified:
 - Large file streaming with virtualization
 - Resize handle double-click reset
 
+Phase 12 Progress:
+- Plan 01: Backend service with folder enumeration and streaming upload
+- Plan 02: IPC handlers and preload API exposed
+
 ### Blockers/Concerns
 
 None.
@@ -109,8 +115,8 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 12-01-PLAN.md
-Resume file: .planning/phases/12-folder-upload/12-02-PLAN.md
+Stopped at: Completed 12-02-PLAN.md
+Resume file: .planning/phases/12-folder-upload/12-03-PLAN.md
 
 ---
 *Last updated: 2026-01-30*
