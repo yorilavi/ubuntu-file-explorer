@@ -11,6 +11,7 @@ import './PreviewPanel.css';
 interface PreviewPanelProps {
   serverId: string | null;
   selectedFile: FileEntry | null;
+  lightboxOpen?: boolean;  // Whether lightbox is currently open (for navigation updates)
   onImageClick?: (dataUrl: string) => void;  // For lightbox
   onImagePreviewReady?: (dataUrl: string) => void;  // Called when new image preview loads
   onMarkdownPreviewReady?: (content: string) => void;  // Called when markdown preview loads
@@ -127,6 +128,7 @@ function renderPreviewContent(
 function PreviewPanel({
   serverId,
   selectedFile,
+  lightboxOpen,
   onImageClick,
   onImagePreviewReady,
   onMarkdownPreviewReady,
@@ -144,15 +146,16 @@ function PreviewPanel({
     }
   }, [preview, onImagePreviewReady]);
 
-  // Notify parent when markdown preview is ready
+  // Update markdown content when navigating while lightbox is already open
+  // (Spacebar opening is handled separately by handleOpenLightbox)
   useEffect(() => {
-    if (preview?.type === 'code' && selectedFile && onMarkdownPreviewReady) {
+    if (lightboxOpen && preview?.type === 'code' && selectedFile && onMarkdownPreviewReady) {
       const ext = selectedFile.name.toLowerCase().split('.').pop();
       if (ext === 'md' || ext === 'mdx') {
         onMarkdownPreviewReady(preview.content);
       }
     }
-  }, [preview, selectedFile, onMarkdownPreviewReady]);
+  }, [lightboxOpen, preview, selectedFile, onMarkdownPreviewReady]);
 
   // Handle spacebar event to open lightbox
   const handleOpenLightbox = useCallback(() => {

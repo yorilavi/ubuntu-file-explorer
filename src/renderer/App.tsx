@@ -466,6 +466,7 @@ function App(): React.JSX.Element {
                     <PreviewPanel
                       serverId={selectedServer}
                       selectedFile={selectedFile}
+                      lightboxOpen={lightboxOpen}
                       onImageClick={handleImageClick}
                       onImagePreviewReady={handleImagePreviewReady}
                       onMarkdownPreviewReady={handleMarkdownPreviewReady}
