@@ -13,6 +13,7 @@ interface CodePreviewProps {
   lineCount: number;
   truncated: boolean;
   filePath?: string; // Remote file path for streaming
+  onStreamedContentReady?: (content: string, language: string) => void; // Called when streamed content is available
 }
 
 /**
@@ -26,6 +27,7 @@ function CodePreview({
   lineCount,
   truncated,
   filePath,
+  onStreamedContentReady,
 }: CodePreviewProps): React.JSX.Element {
   // Track system dark mode preference
   const [isDark, setIsDark] = useState(
@@ -91,6 +93,15 @@ function CodePreview({
 
     return unsubscribe;
   }, [filePath]);
+
+  // Notify parent when streamed content is ready for lightbox
+  useEffect(() => {
+    if (isStreaming && streamLines.length > 0 && onStreamedContentReady) {
+      // Join lines back into content string for lightbox use
+      const streamedContent = streamLines.join('\n');
+      onStreamedContentReady(streamedContent, streamLanguage);
+    }
+  }, [isStreaming, streamLines, streamLanguage, onStreamedContentReady]);
 
   // Determine what to display
   const displayLineCount = isStreaming ? streamLines.length : lineCount;

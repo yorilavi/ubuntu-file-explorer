@@ -33,7 +33,8 @@ function formatSize(bytes: number): string {
 function renderPreviewContent(
   preview: PreviewData,
   onImageClick?: (dataUrl: string) => void,
-  filePath?: string
+  filePath?: string,
+  onStreamedContentReady?: (content: string, language: string) => void
 ): React.JSX.Element {
   switch (preview.type) {
     case 'image':
@@ -55,6 +56,7 @@ function renderPreviewContent(
           lineCount={preview.lineCount}
           truncated={preview.truncated}
           filePath={filePath}
+          onStreamedContentReady={onStreamedContentReady}
         />
       );
 
@@ -143,6 +145,19 @@ function PreviewPanel({
   const previewRef = useRef(preview);
   previewRef.current = preview;
 
+  // Store streamed content for large files (used by lightbox)
+  const streamedContentRef = useRef<{ content: string; language: string } | null>(null);
+
+  // Reset streamed content when file changes
+  useEffect(() => {
+    streamedContentRef.current = null;
+  }, [selectedFile?.path]);
+
+  // Handle streamed content ready from CodePreview
+  const handleStreamedContentReady = useCallback((content: string, language: string) => {
+    streamedContentRef.current = { content, language };
+  }, []);
+
   // Notify parent when a new image preview is ready
   useEffect(() => {
     if (preview?.type === 'image' && onImagePreviewReady) {
@@ -160,10 +175,14 @@ function PreviewPanel({
   // (Spacebar opening is handled separately by handleOpenLightbox)
   useEffect(() => {
     if (lightboxOpen && preview?.type === 'code' && selectedFile) {
+      // For large files, preview.content is empty - use streamed content instead
+      const contentToUse = preview.content || streamedContentRef.current?.content || '';
+      const languageToUse = preview.content ? preview.language : (streamedContentRef.current?.language || preview.language);
+
       if (isMarkdownFile(selectedFile.name) && onMarkdownPreviewReady) {
-        onMarkdownPreviewReady(preview.content);
+        onMarkdownPreviewReady(contentToUse);
       } else if (onCodePreviewReady) {
-        onCodePreviewReady(preview.content, preview.language);
+        onCodePreviewReady(contentToUse, languageToUse);
       }
     }
   }, [lightboxOpen, preview, selectedFile, isMarkdownFile, onMarkdownPreviewReady, onCodePreviewReady]);
@@ -178,10 +197,14 @@ function PreviewPanel({
     }
     // Code files (including markdown)
     if (currentPreview?.type === 'code' && selectedFile) {
+      // For large files, preview.content is empty - use streamed content instead
+      const contentToUse = currentPreview.content || streamedContentRef.current?.content || '';
+      const languageToUse = currentPreview.content ? currentPreview.language : (streamedContentRef.current?.language || currentPreview.language);
+
       if (isMarkdownFile(selectedFile.name) && onMarkdownPreviewReady) {
-        onMarkdownPreviewReady(currentPreview.content);
+        onMarkdownPreviewReady(contentToUse);
       } else if (onCodePreviewReady) {
-        onCodePreviewReady(currentPreview.content, currentPreview.language);
+        onCodePreviewReady(contentToUse, languageToUse);
       }
     }
   }, [onImageClick, onMarkdownPreviewReady, onCodePreviewReady, selectedFile, isMarkdownFile]);
@@ -227,7 +250,7 @@ function PreviewPanel({
         </span>
       </div>
       <div className="preview-panel__content">
-        {preview ? renderPreviewContent(preview, onImageClick, selectedFile?.path) : null}
+        {preview ? renderPreviewContent(preview, onImageClick, selectedFile?.path, handleStreamedContentReady) : null}
       </div>
     </div>
   );
