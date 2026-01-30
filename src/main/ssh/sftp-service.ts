@@ -159,3 +159,55 @@ export async function listDirectory(serverId: string, path: string): Promise<Dir
     entries: fileEntries,
   };
 }
+
+/**
+ * Create a directory recursively on the remote server.
+ * Creates all parent directories if they don't exist.
+ *
+ * @param serverId - The server ID
+ * @param remotePath - The full remote path to create
+ */
+export async function mkdirRecursive(serverId: string, remotePath: string): Promise<void> {
+  const sftp = await getSFTPWrapper(serverId);
+  if (!sftp) {
+    throw new Error('Not connected to server');
+  }
+
+  // Split path into parts and build incrementally
+  const parts = remotePath.split('/').filter(Boolean);
+  let current = '';
+
+  for (const part of parts) {
+    current = current + '/' + part;
+
+    try {
+      // Check if directory exists
+      await new Promise<void>((resolve, reject) => {
+        sftp.stat(current, (err) => {
+          if (err) {
+            // Directory doesn't exist, create it
+            sftp.mkdir(current, (mkdirErr) => {
+              if (mkdirErr) {
+                // Error code 4 means already exists (race condition)
+                if ((mkdirErr as NodeJS.ErrnoException).code === '4' ||
+                    mkdirErr.message.includes('already exists')) {
+                  resolve();
+                } else {
+                  reject(mkdirErr);
+                }
+              } else {
+                resolve();
+              }
+            });
+          } else {
+            resolve(); // Already exists
+          }
+        });
+      });
+    } catch (err) {
+      throw new Error(`Failed to create directory ${current}: ${err}`);
+    }
+  }
+
+  console.log(`[sftp-service] Created directory: ${remotePath}`);
+}

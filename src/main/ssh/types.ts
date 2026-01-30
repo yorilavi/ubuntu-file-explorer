@@ -95,3 +95,48 @@ export interface DirectoryListing {
   /** Array of file/directory entries */
   entries: FileEntry[];
 }
+
+/**
+ * Progress update during folder upload.
+ */
+export interface FolderUploadProgress {
+  /** Total number of files to upload */
+  totalFiles: number;
+  /** Number of files completed (success or fail) */
+  completedFiles: number;
+  /** Current file being uploaded */
+  currentFile: string;
+  /** Overall percentage (0-100) */
+  percent: number;
+  /** Files that failed with error messages */
+  failedFiles: Array<{ path: string; error: string }>;
+}
+
+/**
+ * Result of a folder upload operation.
+ */
+export interface FolderUploadResult {
+  success: boolean;
+  /** Total files uploaded successfully */
+  uploadedCount: number;
+  /** Files that failed */
+  failedFiles: Array<{ path: string; error: string }>;
+  /** Whether operation was cancelled */
+  cancelled?: boolean;
+  /** Error message if complete failure */
+  error?: string;
+}
+
+/**
+ * Local file entry for folder enumeration.
+ */
+export interface LocalFileEntry {
+  /** Absolute local path */
+  localPath: string;
+  /** Path relative to source folder */
+  relativePath: string;
+  /** Whether this is a directory */
+  isDirectory: boolean;
+  /** File size in bytes (0 for directories) */
+  size: number;
+}
