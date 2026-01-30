@@ -140,3 +140,57 @@ export interface LocalFileEntry {
   /** File size in bytes (0 for directories) */
   size: number;
 }
+
+/**
+ * Progress update during folder download.
+ */
+export interface FolderDownloadProgress {
+  /** Total number of files to download */
+  totalFiles: number;
+  /** Number of files completed (success or fail) */
+  completedFiles: number;
+  /** Current file being downloaded */
+  currentFile: string;
+  /** Overall percentage (0-100) */
+  percent: number;
+  /** Total bytes to download */
+  totalBytes: number;
+  /** Bytes downloaded so far */
+  downloadedBytes: number;
+  /** Files that failed with error messages */
+  failedFiles: Array<{ path: string; error: string }>;
+}
+
+/**
+ * Result of a folder download operation.
+ */
+export interface FolderDownloadResult {
+  success: boolean;
+  /** Total files downloaded successfully */
+  downloadedCount: number;
+  /** Files that failed */
+  failedFiles: Array<{ path: string; error: string }>;
+  /** Whether operation was cancelled */
+  cancelled?: boolean;
+  /** Error message if complete failure */
+  error?: string;
+}
+
+/**
+ * Remote file entry for folder enumeration.
+ */
+export interface RemoteFileEntry {
+  /** Absolute remote path */
+  remotePath: string;
+  /** Path relative to source folder */
+  relativePath: string;
+  /** Whether this is a directory */
+  isDirectory: boolean;
+  /** File size in bytes (0 for directories) */
+  size: number;
+}
+
+/**
+ * Conflict resolution strategy for downloads.
+ */
+export type ConflictStrategy = 'rename' | 'overwrite' | 'skip';
