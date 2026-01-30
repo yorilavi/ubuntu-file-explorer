@@ -99,8 +99,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md - Markdown rendering infrastructure (MarkdownRenderer, MarkdownSlide, openExternal IPC)
-- [ ] 10-02-PLAN.md - App integration with spacebar trigger, arrow navigation, position indicator
+- [x] 10-01-PLAN.md - Markdown rendering infrastructure (MarkdownRenderer, MarkdownSlide, openExternal IPC)
+- [x] 10-02-PLAN.md - App integration with spacebar trigger, arrow navigation, position indicator
 
 **Requirements:**
 - PREV-01: User can press spacebar on .md file to open rendered markdown lightbox
@@ -145,7 +145,7 @@ Plans:
 | 7 | Hidden Files Toggle | Complete | NAV-01, NAV-02, NAV-03, NAV-04 |
 | 8 | Password Authentication | Complete | AUTH-01, AUTH-02, AUTH-03, AUTH-04 |
 | 9 | Move File Operations | Complete | FILE-01, FILE-02, FILE-03, FILE-04 |
-| 10 | Markdown Lightbox | Pending | PREV-01, PREV-02, PREV-03, PREV-04 |
+| 10 | Markdown Lightbox | Complete | PREV-01, PREV-02, PREV-03, PREV-04 |
 | 11 | Performance & Polish | Pending | NAV-05, NAV-06, NAV-07, UI-01, UI-02 |
 
 **Total:** 5 phases, 21 requirements
