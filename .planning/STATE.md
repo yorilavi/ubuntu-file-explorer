@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 ## Current Position
 
-Phase: 11 - Performance & Polish
+Phase: 11 - Performance & Polish (COMPLETE)
 Plan: 2 of 2 complete
-Status: Plan 02 complete
-Last activity: 2026-01-30 - Completed 11-02-PLAN.md
+Status: Phase complete
+Last activity: 2026-01-30 - Completed 11-01-PLAN.md
 
-Progress: [###########...............] v1.1 Phase 11 Plan 02 Complete (10 of ~11 plans)
+Progress: [############..............] v1.1 Phase 11 Complete (11 of ~11 plans)
 
 ## Milestone Goal
 
@@ -23,15 +23,23 @@ Complete v1.0 deferred features:
 - Password authentication support (Phase 8) - COMPLETE
 - Move file UI with RemoteFolderPicker modal (Phase 9) - COMPLETE
 - Markdown lightbox viewer (Phase 10) - COMPLETE
-- Lazy loading for large code files + resize handle reset (Phase 11) - PLAN 02 COMPLETE
+- Lazy loading for large code files + resize handle reset (Phase 11) - COMPLETE
 
 ## Phase 11 Summary
 
 **Goal:** Performance optimizations and UX polish for resize interactions
 
 **Plan Status:**
-- Plan 01: NOT STARTED - Lazy loading for large code files
+- Plan 01: COMPLETE - Lazy loading for large code files
 - Plan 02: COMPLETE - Double-click reset for resize handles
+
+**Plan 01 Delivered:**
+- CodeChunkData interface for streaming code chunks
+- streamLargeCodeFile() with UTF-8 boundary handling
+- preview:code-chunk IPC channel for progressive loading
+- onCodeChunk listener in preload API
+- VirtualizedCodePreview component using @tanstack/react-virtual
+- CodePreview integration with streaming detection
 
 **Plan 02 Delivered:**
 - handleResizeDoubleClick callback in ColumnView.tsx
@@ -62,8 +70,8 @@ Complete v1.0 deferred features:
 - Total execution time: 1 hour 23 min
 
 **v1.1 Progress:**
-- Plans completed: 10 (07-01, 07-02, 08-01, 08-02, 09-01, 09-02, 10-01, 10-02, 11-02)
-- Duration: 39 min total
+- Plans completed: 11 (07-01, 07-02, 08-01, 08-02, 09-01, 09-02, 10-01, 10-02, 11-01, 11-02)
+- Duration: 43 min total
 
 ## Accumulated Context
 
@@ -90,6 +98,8 @@ Complete v1.0 deferred features:
 | Extended code file support | 10-02 | User requested .py support during verification |
 | Default column width 220px | 11-02 | Established constant in codebase |
 | Default preview width 300px | 11-02 | Matches initial preview panel width |
+| Streaming threshold 500 lines | 11-01 | Matches existing MAX_CODE_LINES truncation |
+| 50KB initial, 100KB subsequent chunks | 11-01 | Fast initial render, efficient throughput |
 
 ### Technical Notes
 
@@ -98,7 +108,7 @@ Complete v1.0 deferred features:
 - Move file: Complete - context menu, folder picker modal, move IPC, undo toast
 - Markdown/Code lightbox: Complete - spacebar toggle, arrow navigation, position indicator
 - Resize reset: Complete - double-click handlers on column and preview resize handles
-- Lazy loading: Implement viewport-based content loading for large files (Phase 11 Plan 01)
+- Lazy loading: Complete - streaming chunks, virtualized rendering for 10,000+ line files
 
 ### Blockers/Concerns
 
@@ -106,9 +116,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-30 02:32 UTC
-Stopped at: Completed 11-02-PLAN.md (Double-click resize reset)
-Resume with: Phase 11 Plan 01 (lazy loading) or Phase 11 verification
+Last session: 2026-01-30 02:35 UTC
+Stopped at: Completed 11-01-PLAN.md (Lazy loading for large code files)
+Resume with: v1.1 verification and release
 
 ---
 *Last updated: 2026-01-30*
