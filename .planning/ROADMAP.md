@@ -17,11 +17,12 @@ v1.2 adds bidirectional folder transfer capabilities and PDF preview support. Us
 
 **Dependencies:** None (uses existing transfer infrastructure from v1.0-v1.1)
 
-**Plans:** TBD (to be created during phase planning)
+**Plans:** 3 plans
 
 Plans:
-- [ ] 12-01-PLAN.md - TBD
-- [ ] 12-02-PLAN.md - TBD
+- [x] 12-01-PLAN.md — Backend folder upload service with recursive mkdir and progress tracking
+- [x] 12-02-PLAN.md — IPC handlers and preload API for folder upload
+- [x] 12-03-PLAN.md — UI integration with context menu, progress toast, and cancellation
 
 **Requirements:**
 - FLDR-01: User can upload a local folder to a remote location recursively
@@ -103,11 +104,11 @@ Plans:
 
 | Phase | Name | Status | Requirements | Plans |
 |-------|------|--------|--------------|-------|
-| 12 | Folder Upload | Not Started | FLDR-01, FLDR-02, FLDR-03, FLDR-04, FLDR-05, FLDR-06, FLDR-07 | 0/TBD |
+| 12 | Folder Upload | Complete ✅ | FLDR-01, FLDR-02, FLDR-03, FLDR-04, FLDR-05, FLDR-06, FLDR-07 | 3/3 |
 | 13 | Folder Download | Not Started | FLDR-08, FLDR-09, FLDR-10, FLDR-11, FLDR-12, FLDR-13 | 0/TBD |
 | 14 | PDF Preview | Not Started | PDF-01, PDF-02, PDF-03, PDF-04, PDF-05, PDF-06 | 0/TBD |
 
-**Overall:** 0/3 phases complete (0%)
+**Overall:** 1/3 phases complete (33%)
 
 ---
 
@@ -142,11 +143,12 @@ Plans:
 ## Technical Notes
 
 **Folder Operations:**
-- Use ssh2-sftp-client v12.0.1 uploadDir/downloadDir methods
-- Integrate with existing 10-20 concurrent transfer limit from v1.0
-- Use streaming enumeration to prevent memory explosion on large folders
+- Use raw ssh2 SFTP with recursive mkdir helper (not ssh2-sftp-client)
+- Enumerate local folders using native fs.readdir with recursive option
+- Create all directories depth-first before uploading files
 - Track partial failures at file level for granular retry capability
 - Respect showHiddenFiles setting for .DS_Store/._ file exclusion
+- Use path.posix.join for remote paths (always forward slashes)
 
 **PDF Preview:**
 - Evaluate react-pdf v10.3.0 vs Chromium's built-in PDFium

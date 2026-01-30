@@ -9,13 +9,13 @@ Requirements for v1.2 Folder Operations milestone. Each maps to roadmap phases.
 
 ### Folder Upload
 
-- [ ] **FLDR-01**: User can upload a local folder to a remote location recursively
-- [ ] **FLDR-02**: Folder structure is preserved on the remote server
-- [ ] **FLDR-03**: User sees overall progress (X of Y files) during folder upload
-- [ ] **FLDR-04**: User can cancel folder upload with cleanup of partial transfers
-- [ ] **FLDR-05**: Empty directories are created on remote during upload
-- [ ] **FLDR-06**: .DS_Store and ._ metadata files are excluded when hidden files toggle is off
-- [ ] **FLDR-07**: User can see which files failed and retry failed transfers
+- [x] **FLDR-01**: User can upload a local folder to a remote location recursively
+- [x] **FLDR-02**: Folder structure is preserved on the remote server
+- [x] **FLDR-03**: User sees overall progress (X of Y files) during folder upload
+- [x] **FLDR-04**: User can cancel folder upload with cleanup of partial transfers
+- [x] **FLDR-05**: Empty directories are created on remote during upload
+- [x] **FLDR-06**: .DS_Store and ._ metadata files are excluded when hidden files toggle is off
+- [x] **FLDR-07**: User can see which files failed and retry failed transfers
 
 ### Folder Download
 
@@ -54,13 +54,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FLDR-01 | 12 | Pending |
-| FLDR-02 | 12 | Pending |
-| FLDR-03 | 12 | Pending |
-| FLDR-04 | 12 | Pending |
-| FLDR-05 | 12 | Pending |
-| FLDR-06 | 12 | Pending |
-| FLDR-07 | 12 | Pending |
+| FLDR-01 | 12 | Complete |
+| FLDR-02 | 12 | Complete |
+| FLDR-03 | 12 | Complete |
+| FLDR-04 | 12 | Complete |
+| FLDR-05 | 12 | Complete |
+| FLDR-06 | 12 | Complete |
+| FLDR-07 | 12 | Complete |
 | FLDR-08 | 13 | Pending |
 | FLDR-09 | 13 | Pending |
 | FLDR-10 | 13 | Pending |
