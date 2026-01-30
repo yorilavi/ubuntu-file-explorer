@@ -15,6 +15,7 @@ interface FileItemProps {
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onFavoritesChanged?: () => void;
+  onMoveToClick?: (file: FileEntry) => void;
 }
 
 /**
@@ -33,6 +34,7 @@ function FileItem({
   onClick,
   onDoubleClick,
   onFavoritesChanged,
+  onMoveToClick,
 }: FileItemProps): React.JSX.Element {
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
@@ -279,9 +281,10 @@ function FileItem({
     setIsRenaming(false);
   }, [serverId, file.path, file.name, renameValue, onRefresh]);
 
-  // Note: "Move to" is not implemented because it requires a remote folder picker.
-  // Native Electron dialogs can only browse local file systems, not remote SSH servers.
-  // This would require a custom folder picker modal showing the remote directory structure.
+  const handleMoveTo = useCallback(() => {
+    setContextMenu(null);
+    onMoveToClick?.(file);
+  }, [file, onMoveToClick]);
 
   const handleAddToFavorites = useCallback(async () => {
     setContextMenu(null);
@@ -371,6 +374,7 @@ function FileItem({
           ) : (
             <>
               <button onClick={handleDownload}>Download...</button>
+              <button onClick={handleMoveTo}>Move to...</button>
               <button onClick={handleRenameStart}>Rename</button>
               <button onClick={handleDelete}>Delete</button>
             </>
