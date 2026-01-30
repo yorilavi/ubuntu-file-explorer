@@ -582,6 +582,7 @@ function ColumnView({
                 columnIndex={index}
                 isActive={index === activeColumnIndex}
                 serverId={serverId}
+                showHiddenFiles={showHidden}
                 onRefresh={() => refreshColumn(index)}
                 onItemSelect={handleItemSelect}
                 onItemFocus={handleItemFocus}

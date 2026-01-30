@@ -11,6 +11,7 @@ interface ColumnProps {
   columnIndex: number;
   isActive: boolean;
   serverId: string;
+  showHiddenFiles: boolean;
   onRefresh: () => void;
   onItemSelect: (columnIndex: number, itemIndex: number, multi?: boolean, range?: boolean) => void;
   onItemFocus: (columnIndex: number, itemIndex: number) => void;
@@ -30,6 +31,7 @@ function Column({
   columnIndex,
   isActive,
   serverId,
+  showHiddenFiles,
   onRefresh,
   onItemSelect,
   onItemFocus,
@@ -188,6 +190,7 @@ function Column({
                 isHidden={entry.name.startsWith('.')}
                 serverId={serverId}
                 columnIndex={columnIndex}
+                showHiddenFiles={showHiddenFiles}
                 onRefresh={onRefresh}
                 onClick={(e) => handleItemClick(e, virtualRow.index)}
                 onDoubleClick={() => handleItemDoubleClick(virtualRow.index)}
