@@ -191,7 +191,7 @@ function LightboxView({
           doubleClickMaxStops: 2,
           keyboardMoveDistance: 50,
           wheelZoomDistanceFactor: 100,
-          scrollToZoom: true,
+          scrollToZoom: false,  // Disabled to allow scrolling in markdown/code slides
         }}
         carousel={{
           finite: true,

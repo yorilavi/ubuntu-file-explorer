@@ -1,7 +1,7 @@
 // CodeSlide - Lightbox slide wrapper for code files
 // Provides fixed header with filename and scrollable syntax-highlighted content
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './CodeSlide.css';
@@ -24,18 +24,32 @@ export function CodeSlide({
   filename,
   language,
 }: CodeSlideProps): React.JSX.Element {
-  // Stop wheel event propagation to prevent lightbox zoom from intercepting scroll
-  const handleWheel = (e: React.WheelEvent) => {
-    e.stopPropagation();
-  };
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Use capture phase to intercept wheel events before the lightbox zoom plugin
+  useEffect(() => {
+    const contentEl = contentRef.current;
+    if (!contentEl) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Stop the event from reaching the lightbox zoom handler
+      e.stopPropagation();
+    };
+
+    // Capture phase ensures we handle the event before the lightbox
+    contentEl.addEventListener('wheel', handleWheel, { capture: true, passive: true });
+    return () => {
+      contentEl.removeEventListener('wheel', handleWheel, { capture: true });
+    };
+  }, []);
 
   return (
-    <div className="code-slide" onWheel={handleWheel}>
+    <div className="code-slide">
       <div className="code-slide__header">
         <span className="code-slide__filename">{filename}</span>
         <span className="code-slide__language">{language}</span>
       </div>
-      <div className="code-slide__content">
+      <div ref={contentRef} className="code-slide__content">
         <SyntaxHighlighter
           language={language}
           style={oneDark}
