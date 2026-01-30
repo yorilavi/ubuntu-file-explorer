@@ -54,30 +54,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FLDR-01 | TBD | Pending |
-| FLDR-02 | TBD | Pending |
-| FLDR-03 | TBD | Pending |
-| FLDR-04 | TBD | Pending |
-| FLDR-05 | TBD | Pending |
-| FLDR-06 | TBD | Pending |
-| FLDR-07 | TBD | Pending |
-| FLDR-08 | TBD | Pending |
-| FLDR-09 | TBD | Pending |
-| FLDR-10 | TBD | Pending |
-| FLDR-11 | TBD | Pending |
-| FLDR-12 | TBD | Pending |
-| FLDR-13 | TBD | Pending |
-| PDF-01 | TBD | Pending |
-| PDF-02 | TBD | Pending |
-| PDF-03 | TBD | Pending |
-| PDF-04 | TBD | Pending |
-| PDF-05 | TBD | Pending |
-| PDF-06 | TBD | Pending |
+| FLDR-01 | 12 | Pending |
+| FLDR-02 | 12 | Pending |
+| FLDR-03 | 12 | Pending |
+| FLDR-04 | 12 | Pending |
+| FLDR-05 | 12 | Pending |
+| FLDR-06 | 12 | Pending |
+| FLDR-07 | 12 | Pending |
+| FLDR-08 | 13 | Pending |
+| FLDR-09 | 13 | Pending |
+| FLDR-10 | 13 | Pending |
+| FLDR-11 | 13 | Pending |
+| FLDR-12 | 13 | Pending |
+| FLDR-13 | 13 | Pending |
+| PDF-01 | 14 | Pending |
+| PDF-02 | 14 | Pending |
+| PDF-03 | 14 | Pending |
+| PDF-04 | 14 | Pending |
+| PDF-05 | 14 | Pending |
+| PDF-06 | 14 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 (pending roadmap)
+- Mapped to phases: 19 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-30*
+*Traceability updated: 2026-01-30*

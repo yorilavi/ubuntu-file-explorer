@@ -5,18 +5,32 @@
 See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Planning next milestone
+**Current focus:** v1.2 Folder Operations - roadmap created
 
 ## Current Position
 
-Phase: 12+ (defining requirements)
+Phase: 12 (ready to plan)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-01-30 — Milestone v1.2 started
+Status: Roadmap created, ready for phase planning
+Last activity: 2026-01-30 — v1.2 roadmap created
 
-Progress: [########################] v1.1 Complete (11 phases shipped)
+Progress: [########################] v1.1 Complete (11 phases shipped) → v1.2 Phase 12 ready
 
 ## Milestone Summary
+
+**v1.2 Folder Operations** — PLANNING
+
+Goal: Enable full folder transfer in both directions plus PDF preview.
+
+Roadmap:
+- Phase 12: Folder Upload (7 requirements)
+- Phase 13: Folder Download (6 requirements)
+- Phase 14: PDF Preview (6 requirements)
+- Total: 19 requirements, 100% coverage
+
+Next: `/gsd:plan-phase 12`
+
+---
 
 **v1.1 Feature Completion** — SHIPPED 2026-01-30
 
@@ -92,8 +106,8 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: v1.1 milestone complete
-Resume with: `/gsd:new-milestone` for v1.2
+Stopped at: v1.2 roadmap created
+Resume with: `/gsd:plan-phase 12`
 
 ---
 *Last updated: 2026-01-30*
