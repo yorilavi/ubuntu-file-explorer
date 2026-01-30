@@ -48,11 +48,12 @@ Plans:
 
 **Dependencies:** Phase 12 (shares folder traversal and progress tracking patterns)
 
-**Plans:** TBD (to be created during phase planning)
+**Plans:** 3 plans
 
 Plans:
-- [ ] 13-01-PLAN.md - TBD
-- [ ] 13-02-PLAN.md - TBD
+- [x] 13-01-PLAN.md — Backend folder download service with remote enumeration and progress tracking
+- [x] 13-02-PLAN.md — IPC handlers and preload API for folder download
+- [x] 13-03-PLAN.md — UI integration with context menu, progress toast, and retry
 
 **Requirements:**
 - FLDR-08: User can download a remote folder to local Mac recursively
@@ -105,10 +106,10 @@ Plans:
 | Phase | Name | Status | Requirements | Plans |
 |-------|------|--------|--------------|-------|
 | 12 | Folder Upload | Complete ✅ | FLDR-01, FLDR-02, FLDR-03, FLDR-04, FLDR-05, FLDR-06, FLDR-07 | 3/3 |
-| 13 | Folder Download | Not Started | FLDR-08, FLDR-09, FLDR-10, FLDR-11, FLDR-12, FLDR-13 | 0/TBD |
+| 13 | Folder Download | Complete ✅ | FLDR-08, FLDR-09, FLDR-10, FLDR-11, FLDR-12, FLDR-13 | 3/3 |
 | 14 | PDF Preview | Not Started | PDF-01, PDF-02, PDF-03, PDF-04, PDF-05, PDF-06 | 0/TBD |
 
-**Overall:** 1/3 phases complete (33%)
+**Overall:** 2/3 phases complete (67%)
 
 ---
 
