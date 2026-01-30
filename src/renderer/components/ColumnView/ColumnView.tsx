@@ -13,8 +13,9 @@ interface ColumnViewProps {
   onFileSelect?: (file: FileEntry, columnIndex: number) => void;
   onPathChange?: (path: string) => void;
   onNavigationComplete?: () => void;  // Called after external navigation is processed
-  onRefreshColumn?: (columnIndex: number) => void;  // Exposed for external refresh triggers
+  onRefreshColumn?: (refreshFn: () => void) => void;  // Callback to expose refresh function
   onFavoritesChanged?: () => void;  // Called when favorites are modified
+  onMoveToClick?: (file: FileEntry) => void;  // Called when "Move to..." is clicked on a file
 }
 
 const DEFAULT_COLUMN_WIDTH = 220;
@@ -214,7 +215,9 @@ function ColumnView({
   onFileSelect,
   onPathChange,
   onNavigationComplete,
+  onRefreshColumn,
   onFavoritesChanged,
+  onMoveToClick,
 }: ColumnViewProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -370,6 +373,18 @@ function ColumnView({
     },
     [columns, fetchDirectory]
   );
+
+  /**
+   * Refresh the active column. Used by parent for post-move refresh.
+   */
+  const refreshActiveColumn = useCallback(() => {
+    refreshColumn(activeColumnIndex);
+  }, [refreshColumn, activeColumnIndex]);
+
+  // Expose refresh function to parent
+  useEffect(() => {
+    onRefreshColumn?.(refreshActiveColumn);
+  }, [onRefreshColumn, refreshActiveColumn]);
 
   // Fetch initial directory
   useEffect(() => {
@@ -545,6 +560,7 @@ function ColumnView({
                 onNavigateBack={handleNavigateBack}
                 onColumnFocus={handleColumnFocus}
                 onFavoritesChanged={onFavoritesChanged}
+                onMoveToClick={onMoveToClick}
               />
             </div>
             {/* Resize handle after each column (including the last one) */}

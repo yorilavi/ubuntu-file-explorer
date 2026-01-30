@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { ColumnState } from '../../types/columnView';
+import type { FileEntry } from '../../../shared/types';
 import { useColumnNavigation } from '../../hooks/useColumnNavigation';
 import FileItem from '../FileItem';
 import './Column.css';
@@ -17,6 +18,7 @@ interface ColumnProps {
   onNavigateBack: (columnIndex: number) => void;
   onColumnFocus: (columnIndex: number) => void;
   onFavoritesChanged?: () => void;
+  onMoveToClick?: (file: FileEntry) => void;
 }
 
 /**
@@ -35,6 +37,7 @@ function Column({
   onNavigateBack,
   onColumnFocus,
   onFavoritesChanged,
+  onMoveToClick,
 }: ColumnProps): React.JSX.Element {
   const parentRef = useRef<HTMLDivElement>(null);
   const { path, entries, selectedIndices, focusedIndex, loading, error } = columnState;
@@ -189,6 +192,7 @@ function Column({
                 onClick={(e) => handleItemClick(e, virtualRow.index)}
                 onDoubleClick={() => handleItemDoubleClick(virtualRow.index)}
                 onFavoritesChanged={onFavoritesChanged}
+                onMoveToClick={onMoveToClick}
               />
             </div>
           );

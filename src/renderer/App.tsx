@@ -9,6 +9,7 @@ import PreviewPanel from './components/PreviewPanel';
 import LightboxView from './components/PreviewPanel/Lightbox';
 import HiddenFilesToggle from './components/HiddenFilesToggle';
 import { ToastProvider } from './components/ToastProvider';
+import { RemoteFolderPicker } from './components/RemoteFolderPicker';
 
 /**
  * Render connection status message for display during connection process.
@@ -35,6 +36,12 @@ function App(): React.JSX.Element {
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  // Move file state
+  const [moveTarget, setMoveTarget] = useState<FileEntry | null>(null);
+
+  // Ref to refresh current directory (set by ColumnView)
+  const refreshColumnRef = useRef<(() => void) | null>(null);
 
   // Preview panel resize state - persist via IPC
   const [previewWidth, setPreviewWidth] = useState(300);
@@ -214,6 +221,62 @@ function App(): React.JSX.Element {
     }
   }, [lightboxOpen]);
 
+  // Move file handlers
+  const handleMoveToClick = useCallback((file: FileEntry) => {
+    setMoveTarget(file);
+  }, []);
+
+  const handleMoveConfirm = useCallback(async (destDir: string) => {
+    if (!moveTarget || !selectedServer) return;
+
+    const file = moveTarget;
+    const sourceDir = file.path.substring(0, file.path.lastIndexOf('/')) || '/';
+
+    setMoveTarget(null); // Close modal immediately
+
+    try {
+      const result = await window.electronAPI.moveFile(selectedServer, file.path, destDir);
+
+      if (result.success) {
+        toast.success(`Moved "${file.name}" to ${destDir}`, {
+          duration: 5000,
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              // Move back to original location
+              const undoResult = await window.electronAPI.moveFile(
+                selectedServer,
+                result.path!, // new path after move
+                sourceDir
+              );
+              if (undoResult.success) {
+                toast.success(`Moved "${file.name}" back`);
+                // Refresh current directory
+                refreshColumnRef.current?.();
+              } else {
+                toast.error(`Undo failed: ${undoResult.error}`);
+              }
+            },
+          },
+        });
+        // Refresh current directory to show file is gone
+        refreshColumnRef.current?.();
+      } else {
+        toast.error(`Move failed: ${file.name}`, {
+          description: result.error,
+        });
+      }
+    } catch (error) {
+      toast.error(`Move failed: ${file.name}`, {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }, [moveTarget, selectedServer]);
+
+  const handleRefreshColumnCallback = useCallback((refreshFn: () => void) => {
+    refreshColumnRef.current = refreshFn;
+  }, []);
+
   // Toggle hidden files visibility and persist preference
   const handleToggleHidden = useCallback(() => {
     setShowHidden((prev) => {
@@ -319,6 +382,8 @@ function App(): React.JSX.Element {
                       onPathChange={handlePathChange}
                       onNavigationComplete={handleNavigationComplete}
                       onFavoritesChanged={handleFavoritesChanged}
+                      onMoveToClick={handleMoveToClick}
+                      onRefreshColumn={handleRefreshColumnCallback}
                     />
                   </div>
                   <div
@@ -356,6 +421,18 @@ function App(): React.JSX.Element {
           src={lightboxSrc}
           open={lightboxOpen}
           onClose={handleLightboxClose}
+        />
+      )}
+
+      {/* Move file folder picker modal */}
+      {moveTarget && selectedServer && (
+        <RemoteFolderPicker
+          isOpen={true}
+          onClose={() => setMoveTarget(null)}
+          serverId={selectedServer}
+          sourcePath={moveTarget.path}
+          sourceFileName={moveTarget.name}
+          onMoveConfirm={handleMoveConfirm}
         />
       )}
     </>
