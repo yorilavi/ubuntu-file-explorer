@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-30)
 ## Current Position
 
 Phase: 13 of 14 (Folder Download)
-Plan: 01 of 03
+Plan: 02 of 03
 Status: In progress
-Last activity: 2026-01-30 - Completed 13-01-PLAN.md
+Last activity: 2026-01-30 - Completed 13-02-PLAN.md
 
-Progress: [###########################░░░] v1.1 Complete + Phase 12 complete + 13-01 (4/9 v1.2 plans)
+Progress: [############################░░] v1.1 Complete + Phase 12 complete + 13-02 (5/9 v1.2 plans)
 
 ## Milestone Summary
 
@@ -24,11 +24,11 @@ Goal: Enable full folder transfer in both directions plus PDF preview.
 
 Roadmap:
 - Phase 12: Folder Upload (7 requirements) - COMPLETE
-- Phase 13: Folder Download (6 requirements) - IN PROGRESS (Plan 01 complete)
+- Phase 13: Folder Download (6 requirements) - IN PROGRESS (Plan 02 complete)
 - Phase 14: PDF Preview (6 requirements)
-- Total: 19 requirements, 8 complete (42%)
+- Total: 19 requirements, 10 complete (53%)
 
-Next: Execute 13-02-PLAN.md (IPC handlers)
+Next: Execute 13-03-PLAN.md (UI integration)
 
 ---
 
@@ -52,13 +52,13 @@ Stats:
 ## Performance Metrics
 
 **Velocity (cumulative):**
-- Total plans completed: 38 (22 v1.0 + 10 v1.1 + 6 v1.2)
+- Total plans completed: 39 (22 v1.0 + 10 v1.1 + 7 v1.2)
 - Total phases: 12 complete, 1 in progress
 - Total milestones: 2 complete, 1 in progress
 
 **v1.2 Phase 13 Execution:**
 - Duration: In progress
-- Plans: 1/3 complete
+- Plans: 2/3 complete
 - Phases: 0 complete
 
 ## Accumulated Context
@@ -101,6 +101,9 @@ Stats:
 | Finder-style rename for conflicts | 13-01 | "file (1).ext" pattern for conflict resolution |
 | Track file count and byte count | 13-01 | Detailed progress for UI feedback |
 | Clean up partial files on cancel/error | 13-01 | Prevents leaving corrupt partial downloads |
+| Same progress channel pattern as upload | 13-02 | Consistency across upload/download features |
+| Include operationId in progress events | 13-02 | Enables UI to track multiple concurrent operations |
+| Dock progress based on file count | 13-02 | Simpler, matches folder upload pattern |
 
 ### Technical Notes
 
@@ -122,6 +125,10 @@ Phase 13 In Progress:
   - Types: FolderDownloadProgress, FolderDownloadResult, RemoteFileEntry, ConflictStrategy
   - Service: downloadFolder, cancelFolderDownload, retryFailedDownloads
   - Patterns: recursive enumeration, streaming download, conflict resolution
+- Plan 02: IPC handlers and preload API (COMPLETE)
+  - Handlers: file-ops:download-folder, file-ops:cancel-folder-download, file-ops:retry-failed-downloads
+  - Preload: downloadFolder, onFolderDownloadProgress, cancelFolderDownload, retryFailedDownloads
+  - Shared types: ConflictStrategy, FolderDownloadProgress, FolderDownloadResult
 
 ### Blockers/Concerns
 
@@ -130,8 +137,8 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 13-01-PLAN.md
-Resume file: None - ready for 13-02-PLAN.md
+Stopped at: Completed 13-02-PLAN.md
+Resume file: None - ready for 13-03-PLAN.md
 
 ---
 *Last updated: 2026-01-30*
