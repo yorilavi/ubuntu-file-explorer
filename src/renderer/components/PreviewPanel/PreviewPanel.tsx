@@ -13,6 +13,7 @@ interface PreviewPanelProps {
   selectedFile: FileEntry | null;
   onImageClick?: (dataUrl: string) => void;  // For lightbox
   onImagePreviewReady?: (dataUrl: string) => void;  // Called when new image preview loads
+  onMarkdownPreviewReady?: (content: string) => void;  // Called when markdown preview loads
 }
 
 /**
@@ -128,6 +129,7 @@ function PreviewPanel({
   selectedFile,
   onImageClick,
   onImagePreviewReady,
+  onMarkdownPreviewReady,
 }: PreviewPanelProps): React.JSX.Element {
   const { preview, loading, progress } = usePreview(serverId, selectedFile);
 
@@ -142,13 +144,32 @@ function PreviewPanel({
     }
   }, [preview, onImagePreviewReady]);
 
+  // Notify parent when markdown preview is ready
+  useEffect(() => {
+    if (preview?.type === 'code' && selectedFile && onMarkdownPreviewReady) {
+      const ext = selectedFile.name.toLowerCase().split('.').pop();
+      if (ext === 'md' || ext === 'mdx') {
+        onMarkdownPreviewReady(preview.content);
+      }
+    }
+  }, [preview, selectedFile, onMarkdownPreviewReady]);
+
   // Handle spacebar event to open lightbox
   const handleOpenLightbox = useCallback(() => {
     const currentPreview = previewRef.current;
+    // Image
     if (currentPreview?.type === 'image' && onImageClick) {
       onImageClick(currentPreview.dataUrl);
+      return;
     }
-  }, [onImageClick]);
+    // Markdown - check file extension since preview type is 'code'
+    if (currentPreview?.type === 'code' && selectedFile) {
+      const ext = selectedFile.name.toLowerCase().split('.').pop();
+      if ((ext === 'md' || ext === 'mdx') && onMarkdownPreviewReady) {
+        onMarkdownPreviewReady(currentPreview.content);
+      }
+    }
+  }, [onImageClick, onMarkdownPreviewReady, selectedFile]);
 
   useEffect(() => {
     window.addEventListener('open-lightbox', handleOpenLightbox);
