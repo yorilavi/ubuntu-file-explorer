@@ -86,8 +86,14 @@ function App(): React.JSX.Element {
 
   // Preview panel resize state - persist via IPC
   const [previewWidth, setPreviewWidth] = useState(300);
+  const previewWidthRef = useRef(previewWidth); // Track current width for save
   const [previewResizing, setPreviewResizing] = useState<{ startX: number; startWidth: number } | null>(null);
   const browserMainRef = useRef<HTMLDivElement>(null);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    previewWidthRef.current = previewWidth;
+  }, [previewWidth]);
 
   // Load saved preview width on mount
   useEffect(() => {
@@ -116,8 +122,8 @@ function App(): React.JSX.Element {
 
     const handleMouseUp = () => {
       setPreviewResizing(null);
-      // Save via IPC
-      window.electronAPI.setPreviewPanelWidth(previewWidth);
+      // Save via IPC - use ref to get current value, not stale closure
+      window.electronAPI.setPreviewPanelWidth(previewWidthRef.current);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
