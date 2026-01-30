@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 ## Current Position
 
-Phase: 9 - Move File Operations (COMPLETE)
-Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-01-30 - Completed 09-02-PLAN.md
+Phase: 10 - Markdown Lightbox (IN PROGRESS)
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-01-30 - Completed 10-01-PLAN.md
 
-Progress: [########..................] v1.1 Phase 9 Complete (6 of ~11 plans)
+Progress: [#########.................] v1.1 Phase 10 Plan 1 Complete (7 of ~11 plans)
 
 ## Milestone Goal
 
@@ -22,25 +22,23 @@ Complete v1.0 deferred features:
 - Hidden files toggle with persistence (Phase 7) - COMPLETE
 - Password authentication support (Phase 8) - COMPLETE
 - Move file UI with RemoteFolderPicker modal (Phase 9) - COMPLETE
-- Markdown lightbox viewer (Phase 10)
+- Markdown lightbox viewer (Phase 10) - IN PROGRESS
 - Lazy loading for large code files + resize handle reset (Phase 11)
 
-## Phase 9 Summary
+## Phase 10 Summary
 
-**Goal:** Enable users to move files to different folders on remote server
+**Goal:** Render markdown files in lightbox with GFM formatting and syntax highlighting
 
 **Plan Status:**
-- Plan 01: COMPLETE - RemoteFolderPicker modal component
-- Plan 02: COMPLETE - Integration with FileItem context menu
+- Plan 01: COMPLETE - Markdown rendering infrastructure
+- Plan 02: PENDING - Integration with PreviewPanel and spacebar handler
 
-**Delivered:**
-- FolderTreeItem component with lazy loading via listDirectory IPC
-- FolderTree container managing expanded paths
-- RemoteFolderPicker modal with breadcrumb navigation
-- Selection state with "Move Here" button
-- BEM styles matching existing dark theme
-- "Move to..." context menu option for files
-- Full move workflow with 5-second undo toast
+**Delivered (Plan 01):**
+- react-markdown, remark-gfm, github-markdown-css dependencies
+- MarkdownRenderer component with GFM support and oneDark syntax highlighting
+- MarkdownSlide lightbox wrapper with fixed header and scrollable content
+- Extended Lightbox supporting both legacy single-image and new slides array
+- openExternal IPC for opening links in system browser
 
 ## Previous Milestone
 
@@ -59,8 +57,8 @@ Complete v1.0 deferred features:
 - Total execution time: 1 hour 23 min
 
 **v1.1 Progress:**
-- Plans completed: 6 (07-01, 07-02, 08-01, 08-02, 09-01, 09-02)
-- Duration: 20 min total (3 min + 4 min + 3 min + 3 min + 4 min + 3 min)
+- Plans completed: 7 (07-01, 07-02, 08-01, 08-02, 09-01, 09-02, 10-01)
+- Duration: 24 min total (3 min + 4 min + 3 min + 3 min + 4 min + 3 min + 4 min)
 
 ## Accumulated Context
 
@@ -79,13 +77,16 @@ Complete v1.0 deferred features:
 | Source folder marked with badge, not selectable | 09-01 | Prevents moving file to same location |
 | 5-second undo window for move operations | 09-02 | Matches common patterns like Gmail undo |
 | Refresh active column after move/undo | 09-02 | Keep view current after file operations |
+| Backward compatible Lightbox interface | 10-01 | Supports both legacy src prop and new slides array |
+| ExtendedSlide with customType discriminator | 10-01 | Avoids TypeScript conflicts with library types |
+| URL validation in openExternal | 10-01 | Only http/https allowed for security |
 
 ### Technical Notes
 
 - Hidden files: Cmd+Shift+. shortcut matches macOS Finder behavior - IMPLEMENTED
 - Password auth: Complete - eye toggle, save checkbox, stored password handling
 - Move file: Complete - context menu, folder picker modal, move IPC, undo toast
-- Markdown: Lightbox component exists for images, extend for markdown rendering
+- Markdown: Infrastructure complete (MarkdownRenderer, MarkdownSlide, Lightbox extended)
 - Lazy loading: Implement viewport-based content loading for large files
 
 ### Blockers/Concerns
@@ -94,9 +95,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-30 00:03 UTC
-Stopped at: Completed 09-02-PLAN.md (Move file integration)
-Resume with: Phase 10 (Markdown lightbox viewer) when ready
+Last session: 2026-01-30 01:10 UTC
+Stopped at: Completed 10-01-PLAN.md (Markdown rendering infrastructure)
+Resume with: Phase 10 Plan 02 (Markdown lightbox integration)
 
 ---
 *Last updated: 2026-01-30*
