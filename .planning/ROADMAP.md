@@ -122,6 +122,12 @@ Plans:
 
 **Dependencies:** None (independent enhancements)
 
+**Plans:** 2 plans
+
+Plans:
+- [x] 11-01-PLAN.md - Lazy loading for large code files with virtualized rendering
+- [x] 11-02-PLAN.md - Double-click reset for column and preview panel resize handles
+
 **Requirements:**
 - NAV-05: Large code files (>500 lines) load initial content quickly
 - NAV-06: Scrolling in large files triggers incremental loading
@@ -146,7 +152,7 @@ Plans:
 | 8 | Password Authentication | Complete | AUTH-01, AUTH-02, AUTH-03, AUTH-04 |
 | 9 | Move File Operations | Complete | FILE-01, FILE-02, FILE-03, FILE-04 |
 | 10 | Markdown Lightbox | Complete | PREV-01, PREV-02, PREV-03, PREV-04 |
-| 11 | Performance & Polish | Pending | NAV-05, NAV-06, NAV-07, UI-01, UI-02 |
+| 11 | Performance & Polish | Complete | NAV-05, NAV-06, NAV-07, UI-01, UI-02 |
 
 **Total:** 5 phases, 21 requirements
 

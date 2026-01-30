@@ -16,10 +16,10 @@ Requirements for v1.1 Feature Completion milestone. Each maps to roadmap phases.
 
 ### Preview & Viewing
 
-- [ ] **PREV-01**: User can press spacebar on .md file to open rendered markdown lightbox
-- [ ] **PREV-02**: Markdown renders with proper formatting (headers, lists, code blocks, links)
-- [ ] **PREV-03**: User can close markdown lightbox with Escape or click outside
-- [ ] **PREV-04**: Markdown lightbox supports arrow key navigation between .md files
+- [x] **PREV-01**: User can press spacebar on .md file to open rendered markdown lightbox
+- [x] **PREV-02**: Markdown renders with proper formatting (headers, lists, code blocks, links)
+- [x] **PREV-03**: User can close markdown lightbox with Escape or click outside
+- [x] **PREV-04**: Markdown lightbox supports arrow key navigation between .md files
 
 ### Navigation & Display
 
@@ -27,14 +27,14 @@ Requirements for v1.1 Feature Completion milestone. Each maps to roadmap phases.
 - [x] **NAV-02**: Hidden files toggle accessible via Cmd+Shift+. keyboard shortcut
 - [x] **NAV-03**: Hidden files toggle state persists across sessions
 - [x] **NAV-04**: Current toggle state visible in UI (toolbar or status bar)
-- [ ] **NAV-05**: Large code files (>500 lines) load initial content quickly
-- [ ] **NAV-06**: Scrolling in large files triggers incremental loading
-- [ ] **NAV-07**: No UI freeze when opening very large code files
+- [x] **NAV-05**: Large code files (>500 lines) load initial content quickly
+- [x] **NAV-06**: Scrolling in large files triggers incremental loading
+- [x] **NAV-07**: No UI freeze when opening very large code files
 
 ### UI Polish
 
-- [ ] **UI-01**: User can double-click column resize handle to reset to default width
-- [ ] **UI-02**: User can double-click preview panel resize handle to reset to default width
+- [x] **UI-01**: User can double-click column resize handle to reset to default width
+- [x] **UI-02**: User can double-click preview panel resize handle to reset to default width
 
 ### Authentication
 
@@ -66,19 +66,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FILE-02 | Phase 9 | Complete |
 | FILE-03 | Phase 9 | Complete |
 | FILE-04 | Phase 9 | Complete |
-| PREV-01 | Phase 10 | Pending |
-| PREV-02 | Phase 10 | Pending |
-| PREV-03 | Phase 10 | Pending |
-| PREV-04 | Phase 10 | Pending |
+| PREV-01 | Phase 10 | Complete |
+| PREV-02 | Phase 10 | Complete |
+| PREV-03 | Phase 10 | Complete |
+| PREV-04 | Phase 10 | Complete |
 | NAV-01 | Phase 7 | Complete |
 | NAV-02 | Phase 7 | Complete |
 | NAV-03 | Phase 7 | Complete |
 | NAV-04 | Phase 7 | Complete |
-| NAV-05 | Phase 11 | Pending |
-| NAV-06 | Phase 11 | Pending |
-| NAV-07 | Phase 11 | Pending |
-| UI-01 | Phase 11 | Pending |
-| UI-02 | Phase 11 | Pending |
+| NAV-05 | Phase 11 | Complete |
+| NAV-06 | Phase 11 | Complete |
+| NAV-07 | Phase 11 | Complete |
+| UI-01 | Phase 11 | Complete |
+| UI-02 | Phase 11 | Complete |
 | AUTH-01 | Phase 8 | Complete |
 | AUTH-02 | Phase 8 | Complete |
 | AUTH-03 | Phase 8 | Complete |
@@ -91,4 +91,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-29 after roadmap creation*
+*Last updated: 2026-01-30 after Phase 11 completion*
