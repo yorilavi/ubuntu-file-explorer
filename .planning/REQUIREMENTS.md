@@ -9,10 +9,10 @@ Requirements for v1.1 Feature Completion milestone. Each maps to roadmap phases.
 
 ### File Operations
 
-- [ ] **FILE-01**: User can move a file to a different folder on the server
-- [ ] **FILE-02**: User can browse remote folders in a modal to select move destination
-- [ ] **FILE-03**: User can navigate up/down folder hierarchy in folder picker
-- [ ] **FILE-04**: Move operation shows progress/completion feedback via toast
+- [x] **FILE-01**: User can move a file to a different folder on the server
+- [x] **FILE-02**: User can browse remote folders in a modal to select move destination
+- [x] **FILE-03**: User can navigate up/down folder hierarchy in folder picker
+- [x] **FILE-04**: Move operation shows progress/completion feedback via toast
 
 ### Preview & Viewing
 
@@ -62,10 +62,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FILE-01 | Phase 9 | Pending |
-| FILE-02 | Phase 9 | Pending |
-| FILE-03 | Phase 9 | Pending |
-| FILE-04 | Phase 9 | Pending |
+| FILE-01 | Phase 9 | Complete |
+| FILE-02 | Phase 9 | Complete |
+| FILE-03 | Phase 9 | Complete |
+| FILE-04 | Phase 9 | Complete |
 | PREV-01 | Phase 10 | Pending |
 | PREV-02 | Phase 10 | Pending |
 | PREV-03 | Phase 10 | Pending |

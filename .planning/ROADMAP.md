@@ -72,8 +72,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md - RemoteFolderPicker modal with folder tree and breadcrumb
-- [ ] 09-02-PLAN.md - Context menu integration and toast undo
+- [x] 09-01-PLAN.md - RemoteFolderPicker modal with folder tree and breadcrumb
+- [x] 09-02-PLAN.md - Context menu integration and toast undo
 
 **Requirements:**
 - FILE-01: User can move a file to a different folder on the server
@@ -138,7 +138,7 @@ Plans:
 |-------|------|--------|--------------|
 | 7 | Hidden Files Toggle | Complete | NAV-01, NAV-02, NAV-03, NAV-04 |
 | 8 | Password Authentication | Complete | AUTH-01, AUTH-02, AUTH-03, AUTH-04 |
-| 9 | Move File Operations | Pending | FILE-01, FILE-02, FILE-03, FILE-04 |
+| 9 | Move File Operations | Complete | FILE-01, FILE-02, FILE-03, FILE-04 |
 | 10 | Markdown Lightbox | Pending | PREV-01, PREV-02, PREV-03, PREV-04 |
 | 11 | Performance & Polish | Pending | NAV-05, NAV-06, NAV-07, UI-01, UI-02 |
 
