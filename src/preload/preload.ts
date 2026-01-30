@@ -374,6 +374,16 @@ const electronAPI = {
    */
   setShowHiddenFiles: (show: boolean): Promise<void> =>
     ipcRenderer.invoke('ui:setShowHiddenFiles', show),
+
+  // Shell Operations
+  // ================
+
+  /**
+   * Open a URL in the system default browser.
+   * Only http:// and https:// URLs are allowed for security.
+   */
+  openExternal: (url: string): Promise<void> =>
+    ipcRenderer.invoke('shell:open-external', url),
 };
 
 // Expose the API to the renderer as window.electronAPI

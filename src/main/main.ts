@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerSSHHandlers } from './ipc/ssh-handlers';
@@ -76,6 +76,16 @@ ipcMain.handle('ping', async (_event, message: string): Promise<string> => {
  */
 ipcMain.handle('get-app-version', async (): Promise<string> => {
   return app.getVersion();
+});
+
+/**
+ * Open external URL in system default browser.
+ * Security: Only http:// and https:// URLs are allowed.
+ */
+ipcMain.handle('shell:open-external', async (_event, url: string): Promise<void> => {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    await shell.openExternal(url);
+  }
 });
 
 // App lifecycle
