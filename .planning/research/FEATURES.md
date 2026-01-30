@@ -1,269 +1,336 @@
-# Features Research: SSH File Explorer
+# Feature Landscape: Folder Transfer & PDF Preview (v1.2)
+
+**Domain:** SSH/SFTP file manager (Electron desktop app)
+**Milestone:** v1.2 Folder Operations
+**Researched:** 2026-01-29
+**Context:** Subsequent milestone adding folder operations and PDF preview to existing file explorer
+
+---
 
 ## Executive Summary
 
-Research based on analysis of leading SFTP/SSH file management applications including Transmit 5, Cyberduck, FileZilla, WinSCP, ForkLift, Commander One, and Electerm. The SSH file explorer market has clear table stakes that users expect, with differentiation coming from UX polish, preview capabilities, and native platform integration.
+This research focuses on folder transfer and PDF preview features for v1.2 milestone. Based on analysis of SFTP client folder transfer behavior (FileZilla, WinSCP, Transmit, Cyberduck) and PDF preview implementations (macOS Preview, Windows PowerToys, Electron PDF.js integrations), this document categorizes features into table stakes (must-have), differentiators (competitive advantage), and anti-features (deliberately avoid).
+
+**Key findings:**
+- Folder transfer table stakes: recursive upload/download, overall progress, cancellation, cleanup
+- PDF preview table stakes: render in panel, page navigation, basic zoom, lazy loading
+- Smart hidden file handling is a low-complexity differentiator (macOS-specific)
+- Conflict resolution UI is complex, defer to simpler "replace all" approach for v1.2
+- PDF.js is the clear library choice for Electron PDF rendering
 
 ---
 
 ## Table Stakes
 
-Features users expect as baseline functionality. Without these, users will immediately look elsewhere.
+Features users expect. Missing = product feels incomplete.
 
-### 1. Core Connection & Authentication
-| Feature | Description | Complexity |
-|---------|-------------|------------|
-| **SSH/SFTP Protocol Support** | Connect to remote servers via SFTP | Medium |
-| **Password Authentication** | Basic username/password login | Low |
-| **SSH Key Authentication** | Support for RSA, Ed25519, ECDSA keys | Medium |
-| **SSH Key Passphrase Support** | Decrypt password-protected private keys | Low |
-| **Connection Profiles/Bookmarks** | Save and recall server connection settings | Medium |
-| **Host Key Verification** | Verify and remember server fingerprints | Low |
+### Folder Transfer
 
-### 2. File Operations
-| Feature | Description | Complexity |
-|---------|-------------|------------|
-| **Browse Remote Directories** | Navigate folder hierarchies | Medium |
-| **Upload Files** | Transfer local files to remote server | Medium |
-| **Download Files** | Transfer remote files to local machine | Medium |
-| **Create Folders** | Make new directories on remote server | Low |
-| **Delete Files/Folders** | Remove items from remote server | Low |
-| **Rename Files/Folders** | Change names of remote items | Low |
-| **File Permissions Display** | Show unix permissions (rwx) | Low |
-| **File Size/Date Display** | Show metadata for files | Low |
-| **Hidden Files Toggle** | Show/hide dotfiles | Low |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Recursive folder upload** | Standard SFTP `-r` behavior | Medium | Must preserve directory structure |
+| **Recursive folder download** | Standard SFTP `-r` behavior | Medium | Must preserve directory structure |
+| **Overall progress indicator** | Users need to know total completion status | Medium | Combines per-file progress into overall % |
+| **Per-file progress indication** | Users want granular visibility | Low | **Reuse existing file transfer progress** |
+| **Ability to cancel folder transfer** | Standard in all file managers | Medium | Must clean up partial files/folders |
+| **Preserve permissions/timestamps** | Matches SFTP `-P` flag behavior | Low | SFTP library handles this natively |
+| **Handle empty directories** | Edge case that breaks structure | Low | Must explicitly create empty dirs |
+| **Clean up partial transfers on cancel** | Prevent orphaned files polluting filesystem | Medium | Delete incomplete files/folders created |
 
-### 3. Transfer Management
-| Feature | Description | Complexity |
-|---------|-------------|------------|
-| **Drag & Drop Upload/Download** | Intuitive file transfer via drag & drop | Medium |
-| **Transfer Progress Indicator** | Show upload/download progress | Low |
-| **Cancel Transfers** | Abort in-progress transfers | Low |
-| **Multiple File Selection** | Select and operate on multiple files | Low |
+### PDF Preview
 
-### 4. Navigation & UX
-| Feature | Description | Complexity |
-|---------|-------------|------------|
-| **Breadcrumb Navigation** | Show current path, click to navigate | Low |
-| **Path Bar / Go To** | Type path directly to navigate | Low |
-| **Back/Forward Navigation** | History-based navigation | Low |
-| **Keyboard Shortcuts** | Standard shortcuts (Cmd+C, Cmd+V, etc.) | Medium |
-| **Context Menus** | Right-click actions on files | Low |
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **Display PDF in preview panel** | Matches existing image/code preview pattern | Medium | Must integrate with existing preview panel |
+| **Page navigation (next/prev)** | Multi-page PDFs require navigation | Low | Arrow keys or buttons |
+| **Zoom controls (fit width, fit page, actual size)** | Standard PDF viewer feature | Low | 3 basic zoom modes are sufficient |
+| **Page indicator (e.g., "Page 3 of 25")** | Users need to know position in document | Low | Simple text display |
+| **Lazy loading for large PDFs** | Prevents memory crashes | High | Only render visible pages + buffer |
 
 ---
 
 ## Differentiators
 
-Features that set the application apart from competition and provide competitive advantage.
+Features that set product apart. Not expected, but valued.
 
-### 1. Visual Experience (High Priority for Your App)
-| Feature | Description | Complexity | Why Differentiating |
-|---------|-------------|------------|---------------------|
-| **Miller Column View** | macOS Finder-style cascading columns | High | Very few SFTP clients offer this; most use dual-pane |
-| **Preview Panel** | Inline preview of selected files | Medium | Cyberduck has quick-look, most others don't |
-| **Image Preview** | View images without downloading | Medium | SmartFTP, ForkLift have this; FileZilla doesn't |
-| **Syntax-Highlighted Code Preview** | Preview code with highlighting | Medium | Muon SSH, Shell Assistant have this; rare feature |
-| **Thumbnail View for Images** | Grid of image thumbnails | High | SmartFTP has this; most clients don't |
-| **Native macOS Design** | Looks like Finder, not a port | Medium | Transmit excels here; most clients look dated |
-
-### 2. Organization & Workflow
-| Feature | Description | Complexity | Why Differentiating |
-|---------|-------------|------------|---------------------|
-| **Favorites Sidebar** | Pin frequently-accessed remote folders | Medium | Beyond basic bookmarks; folder-level favorites |
-| **Recent Locations** | Quick access to recently visited paths | Low | Convenience feature most clients lack |
-| **Custom Folder Icons/Colors** | Visual organization of bookmarks | Low | Polish that creates stickiness |
-| **Multiple Tabs** | Work with multiple servers/paths | Medium | Transmit, WinSCP have this; adds workflow value |
-| **Split View** | Compare two locations side-by-side | High | Commander-style; useful but complex |
-
-### 3. Performance & Reliability
-| Feature | Description | Complexity | Why Differentiating |
-|---------|-------------|------------|---------------------|
-| **Connection Keep-Alive** | Prevent SSH timeout disconnects | Low | Critical UX improvement |
-| **Auto-Reconnect** | Seamlessly reconnect on network change | Medium | Reduces friction significantly |
-| **Resume Interrupted Transfers** | Continue failed transfers | High | FileZilla has this; enterprise-grade feature |
-| **Parallel Transfers** | Multiple simultaneous file transfers | High | WinSCP does up to 9; speeds large operations |
-
-### 4. Search & Discovery
-| Feature | Description | Complexity | Why Differentiating |
-|---------|-------------|------------|---------------------|
-| **Quick Filter** | Filter visible files by name | Low | Instant feedback while typing |
-| **Remote File Search** | Search files on server (via find command) | High | HippoEDIT FTP Explorer has this; rare |
-| **Content Search (grep)** | Search within file contents | Very High | WinSCP scripting supports this; complex |
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Smart hidden file handling** | Auto-exclude .DS_Store, ._ files from transfers | Low | macOS-specific quality of life |
+| **Folder transfer summary toast** | "Transferred 45 of 50 files (5 failed)" with details | Low | Better than generic "complete" message |
+| **Percentage zoom levels (50-300%)** | Precise control vs just fit modes | Low | Standard PDF viewer feature set |
+| **PDF preview in lightbox (Spacebar)** | Consistent with existing image lightbox | Medium | Reuse lightbox pattern from images |
+| **Search within PDF** | Useful for long documents | Medium | PDF.js includes text layer support |
+| **Folder transfer conflict preview** | Show replace/skip/keep both options per conflict | High | Defer to v1.3, start with "replace all" |
 
 ---
 
-## Anti-Features for v1
+## Anti-Features
 
-Features to deliberately skip in first version, with rationale.
+Features to explicitly NOT build. Common mistakes in this domain.
 
-### 1. Terminal Integration
-| Feature | Why Skip | Reconsider When |
-|---------|----------|-----------------|
-| **Built-in Terminal Emulator** | Significant complexity; Electerm already does this well | v2+ if users request; consider linking to external terminal |
-| **Shell Command Execution** | Security implications; scope creep | Never for this app (different product category) |
-
-### 2. Sync & Automation
-| Feature | Why Skip | Reconsider When |
-|---------|----------|-----------------|
-| **Folder Synchronization** | Complex two-way sync logic; edge cases | v2+ with simple one-way sync first |
-| **Watch Directory Auto-Upload** | Background service complexity | v3+ after core is solid |
-| **Scheduled Transfers** | Requires background process/daemon | Not aligned with visual explorer focus |
-| **Scripting/Automation API** | Developer feature; different audience | v2+ if developer adoption grows |
-
-### 3. Cloud & Multi-Protocol
-| Feature | Why Skip | Reconsider When |
-|---------|----------|-----------------|
-| **FTP/FTPS Support** | Legacy protocols; focus on SSH/SFTP | v2 if significant demand |
-| **Cloud Storage (S3, GCS, etc.)** | Different auth models; scope creep | Separate product or v3+ |
-| **WebDAV Support** | Niche use case | Only if users request |
-| **Mount as Local Drive** | OS-level integration complexity | Never (CloudMounter/Mountain Duck do this) |
-
-### 4. Advanced File Features
-| Feature | Why Skip | Reconsider When |
-|---------|----------|-----------------|
-| **In-App File Editing** | Opens up editor complexity rabbit hole | v2 with simple text editor only |
-| **File Comparison/Diff** | Beyond explorer scope | Never (use dedicated diff tools) |
-| **Archive Handling (zip/tar)** | Complex extraction on remote | v2 for viewing; extraction is tricky |
-| **Batch Rename** | Power user feature; low priority | v2+ |
-
-### 5. Enterprise Features
-| Feature | Why Skip | Reconsider When |
-|---------|----------|-----------------|
-| **Jump Host / Bastion Support** | Complex SSH tunneling | v2 if enterprise users adopt |
-| **SOCKS/HTTP Proxy Support** | Corporate environment feature | v2+ based on demand |
-| **FIDO2/Hardware Key Support** | Requires native modules | v2 if security-focused users adopt |
-| **2FA/OTP Integration** | Server-side dependent | v2+ |
-| **Team Credential Sharing** | Requires backend service | Not aligned with desktop-first focus |
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| **Automatic folder sync/bidirectional sync** | Massive complexity, conflict resolution nightmare | One-way transfers only (upload OR download) |
+| **PDF editing (annotations, forms)** | Scope creep, this is a viewer not editor | Read-only preview, open in native app for editing |
+| **Merge folders automatically on conflict** | Destructive, users lose data silently | Always prompt with replace/skip/keep both |
+| **Transfer all hidden files by default** | Pollutes server with .DS_Store, ._ files | Filter macOS metadata files unless explicitly shown |
+| **Load entire PDF into memory** | Crashes on large PDFs (100+ MB) | Lazy load pages, render only visible + buffer |
+| **Show detailed SFTP error messages** | Technical jargon confuses users | User-friendly error messages with retry option |
+| **Individual file conflict dialogs during transfer** | Interrupts flow, 1000 dialogs for 1000 files | Batch conflict resolution UI (future) or "replace all" (v1.2) |
+| **Resume interrupted folder transfers** | Very high complexity, state persistence needed | Defer to v1.3+, network is generally reliable |
 
 ---
 
 ## Feature Dependencies
 
-Understanding which features must be built before others.
-
 ```
-Connection & Auth (Foundation)
-├── SSH/SFTP Protocol Support
-│   ├── Password Auth
-│   ├── SSH Key Auth
-│   │   └── Key Passphrase Support
-│   └── Host Key Verification
-└── Connection Profiles
-    └── Favorites Sidebar
+Folder Transfer Dependencies:
+- File upload/download (✓ ALREADY EXISTS) → Folder upload/download
+- Progress toasts (✓ ALREADY EXISTS) → Overall folder progress
+- Cancel mechanism (✓ ALREADY EXISTS) → Cancel folder transfer
+- Hidden files toggle (✓ ALREADY EXISTS) → Smart hidden file filtering
 
-File Operations (Requires Connection)
-├── Browse Directories
-│   ├── Miller Column View
-│   ├── Preview Panel
-│   │   ├── Image Preview
-│   │   └── Syntax Highlighting
-│   └── Thumbnail View
-├── Upload/Download
-│   ├── Drag & Drop
-│   ├── Transfer Progress
-│   ├── Resume Transfers
-│   └── Parallel Transfers
-└── CRUD Operations (Create/Delete/Rename)
-
-Navigation (Requires Browse)
-├── Breadcrumb Navigation
-├── Path Bar
-├── Back/Forward History
-└── Quick Filter
-    └── Remote File Search
-
-UX Polish (Layered On Top)
-├── Keyboard Shortcuts
-├── Context Menus
-├── Recent Locations
-└── Connection Keep-Alive
-    └── Auto-Reconnect
+PDF Preview Dependencies:
+- Preview panel (✓ ALREADY EXISTS) → PDF preview panel
+- Lightbox viewer (✓ ALREADY EXISTS for images) → PDF lightbox
+- Arrow key navigation (✓ ALREADY EXISTS) → PDF page navigation
+- Spacebar toggle (✓ ALREADY EXISTS) → PDF lightbox toggle
 ```
-
-### Critical Path for MVP
-1. **SSH Connection** (password + key auth)
-2. **Directory Browsing** (list files, navigate)
-3. **Miller Column View** (core differentiator)
-4. **File Upload/Download** (core utility)
-5. **Preview Panel** (core differentiator)
-6. **Connection Profiles** (essential UX)
-7. **Favorites Sidebar** (core differentiator)
 
 ---
 
-## Complexity Notes
+## MVP Recommendation (v1.2)
 
-Relative effort estimates for key features.
+### Must Have (Table Stakes)
 
-### Low Complexity (1-2 days each)
-- Password authentication
-- Show/hide hidden files
-- File metadata display (size, date, permissions)
-- Breadcrumb navigation
-- Path bar input
-- Cancel transfers
-- Quick filter (client-side)
-- Context menus
-- Back/forward navigation
-- Connection keep-alive
+**Folder Transfer:**
+1. ✅ **Folder upload** - Recursive transfer with structure preservation
+2. ✅ **Folder download** - Recursive transfer with structure preservation
+3. ✅ **Overall progress indicator** - Single progress bar showing total % complete
+4. ✅ **Per-file progress** - Reuse existing toast-based file progress
+5. ✅ **Cancel folder transfer** - Abort operation, clean up partial transfers
+6. ✅ **Handle empty directories** - Explicitly create during transfer
 
-### Medium Complexity (3-5 days each)
-- SSH key authentication (file reading, passphrase handling)
-- Directory browsing with proper error handling
-- Drag & drop implementation in Electron
-- Transfer progress with accurate percentages
-- Connection profiles (save/load/edit)
-- Preview panel (image display)
-- Favorites sidebar with persistence
-- Multiple file selection + operations
-- Keyboard shortcuts (comprehensive)
-- Auto-reconnect logic
-- Multiple tabs
+**PDF Preview:**
+7. ✅ **PDF preview in panel** - Basic rendering with PDF.js
+8. ✅ **PDF page navigation** - Arrow keys for next/prev page
+9. ✅ **PDF zoom controls** - Fit width, fit page, actual size
+10. ✅ **Lazy loading for PDFs** - Render only visible pages to avoid memory issues
 
-### High Complexity (1-2 weeks each)
-- **Miller column view**: Custom component, scroll synchronization, performance with large directories, proper selection state across columns
-- **Syntax highlighting preview**: Integrate highlighting library, handle large files, multiple language detection
-- **Thumbnail generation**: Download file content, resize images, caching strategy
-- **Resume interrupted transfers**: Track partial transfers, checksum verification
-- **Parallel transfers**: Connection pooling, queue management, UI coordination
-- **Remote file search**: Execute find command, stream results, handle permissions
-- **Split view**: Layout management, synchronized operations
+### Nice to Have (Differentiators)
 
-### Very High Complexity (2+ weeks each)
-- Content search (grep on remote): Security sandboxing, output parsing, huge result handling
-- Folder synchronization: Conflict resolution, bidirectional sync, delete handling
-- Jump host support: SSH tunneling, connection chaining
+11. ✅ **Smart hidden file handling** - Auto-exclude .DS_Store from uploads (LOW complexity)
+12. ✅ **PDF preview in lightbox** - Spacebar to open full-screen PDF viewer (reuse existing)
+13. ✅ **Percentage zoom levels** - 50%, 75%, 100%, 125%, 150%, 200%, 300%
+14. ✅ **Page indicator** - "Page 3 of 25" display
+15. ✅ **Folder transfer summary** - "Transferred 45 of 50 files (5 failed)"
+
+### Defer to Post-v1.2
+
+- **Folder transfer conflict UI**: High complexity, requires pre-transfer scanning and modal UI. Start with "replace all" or "skip all" simpler approach, add granular control in v1.3 if needed.
+- **Resume interrupted transfers**: Very high complexity, requires transfer state persistence. Network is generally reliable, not critical for v1.2.
+- **Search within PDF**: Medium complexity, nice-to-have but not blocking. PDF.js supports it, but focus on core viewing first.
 
 ---
 
-## Competitive Landscape Summary
+## Implementation Notes
 
-| App | Platform | Price | Key Strengths | Key Weaknesses |
-|-----|----------|-------|---------------|----------------|
-| **Transmit 5** | macOS | $45 | Beautiful UI, fast, 11 protocols | No terminal, macOS only |
-| **Cyberduck** | Win/Mac | Free | Wide protocol support, cloud integration | Clunky UI, single-window |
-| **FileZilla** | Cross-platform | Free | Reliable, open-source, resume transfers | No preview, dated UI |
-| **WinSCP** | Windows | Free | Powerful scripting, Explorer view | Windows only, complex |
-| **ForkLift** | macOS | $30 | Preview panel, dual-pane | Less polished than Transmit |
-| **Electerm** | Cross-platform | Free | Terminal + SFTP combo | Jack of all trades |
-| **Commander One** | macOS | Free/$30 | Dual-pane, Finder integration | Overwhelming for simple tasks |
+### Folder Transfer Approach
 
-### Your Positioning
-- **Gap in Market**: No cross-platform Electron app offers Miller columns + preview panel + native feel
-- **Closest Competitor**: Transmit 5 (macOS only, no column view, but beautiful UX)
-- **Differentiation**: Column view navigation + instant previews + favorites = visual browsing optimized
+Based on SFTP best practices and existing architecture:
+
+#### Recursive Transfer Algorithm
+
+1. **Walk directory tree** - Enumerate all files and folders
+2. **Create directory structure first** - Handle empty directories explicitly
+3. **Queue all files for transfer** - Build transfer list with paths
+4. **Transfer files sequentially** - Reuse existing file transfer with progress callbacks
+5. **Update overall progress** - `(completedFiles / totalFiles) * 100`
+
+#### Hidden File Filtering (macOS-specific)
+
+**Files to exclude when `showHiddenFiles: false` (default):**
+- `.DS_Store` - Finder metadata
+- `._*` - Resource fork files (AppleDouble format)
+- `.Spotlight-V100` - Spotlight index
+- `.Trashes` - Trash folder
+- `.fseventsd` - File system events
+- `.TemporaryItems` - Temporary files
+
+**User override:** Enable "Show Hidden Files" (Cmd+Shift+.) to transfer all files including dotfiles.
+
+#### Error Handling Strategy
+
+| Scenario | Behavior | User Experience |
+|----------|----------|-----------------|
+| **Per-file failure** | Log error, continue with remaining files | Final summary shows failures |
+| **Network failure** | Abort entire operation | Show user-friendly error with retry option |
+| **Cleanup on cancel** | Delete partial files/folders created | "Transfer canceled. Cleaned up 12 partial files." |
+| **Permissions error** | Skip file, log error, continue | Include in failure summary |
+
+#### Progress Indication
+
+**Reuse existing Sonner toast infrastructure:**
+- **Overall progress bar**: `(completedBytes / totalBytes) * 100`
+- **Subtext**: "Transferring file 12 of 45: long-filename.txt"
+- **Cancel button**: ESC key or click X (reuse existing AbortController pattern)
+- **Final toast**: "Transferred 45 of 50 files (5 failed)" with expandable details
+
+### PDF Preview Approach
+
+Based on Electron + PDF.js ecosystem research:
+
+#### Library Choice: PDF.js
+
+**Why PDF.js:**
+- Mozilla's open-source PDF renderer (HIGH confidence)
+- Well-maintained, current standard for web PDF viewing
+- Excellent Electron integration via iframe or direct canvas rendering
+- No licensing costs (vs commercial alternatives like PSPDFKit, Nutrient)
+- Memory management built-in with lazy loading support
+
+**Implementation Options:**
+
+| Option | Pros | Cons | Recommendation |
+|--------|------|------|----------------|
+| **PDF.js Express (community)** | Pre-built viewer with controls, easier integration | Heavier bundle, less control | ❌ Not recommended |
+| **PDF.js Core + Custom UI** | Lighter bundle, full control, consistent with app style | More implementation work | ✅ **Recommended** |
+
+#### Memory Management Strategy
+
+**Critical for large PDFs (100+ MB):**
+- Set `maxPages` limit for concurrent rendering (25 pages max per PDF.js docs)
+- Unload pages outside viewport + 2-page buffer
+- Use canvas recycling for rendered pages
+- Monitor memory usage, clear cache on navigation away from PDF
+
+```typescript
+// Pseudo-code for memory management
+const VISIBLE_PAGE_BUFFER = 2; // Pages before/after visible page to keep loaded
+const MAX_CONCURRENT_PAGES = 25; // PDF.js recommendation
+
+function getPageRangeToLoad(currentPage: number, totalPages: number) {
+  const start = Math.max(1, currentPage - VISIBLE_PAGE_BUFFER);
+  const end = Math.min(totalPages, currentPage + VISIBLE_PAGE_BUFFER);
+  return { start, end };
+}
+
+function unloadPagesOutsideRange(loadedPages: Set<number>, range: {start: number, end: number}) {
+  loadedPages.forEach(pageNum => {
+    if (pageNum < range.start || pageNum > range.end) {
+      unloadPage(pageNum); // Free canvas, clear cache
+    }
+  });
+}
+```
+
+#### Zoom Implementation
+
+**Standard zoom levels:**
+
+```typescript
+const ZOOM_LEVELS = {
+  FIT_WIDTH: 'fit-width',   // Scale to match window width
+  FIT_PAGE: 'fit-page',     // Scale to fit entire page in view
+  ACTUAL_SIZE: 1.0,         // 100% (original size)
+  PERCENTAGES: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0] // 50%, 75%, ..., 300%
+};
+```
+
+**How zoom modes work:**
+- **Fit width**: Relative zoom, sets width to match container (dynamic based on window size)
+- **Fit page**: Scales entire page to fit viewport (dynamic)
+- **Actual size**: Fixed 100% zoom
+- **Percentages**: Fixed zoom levels
+
+#### Lightbox Integration
+
+**Reuse existing lightbox modal from images/markdown:**
+- Same keyboard shortcuts: Spacebar (toggle), ESC (close), Arrow keys (navigate pages)
+- Same modal structure and styling
+- Add PDF-specific controls: Zoom buttons, page counter, search (future)
+
+**Benefits of reuse:**
+- Consistent UX across preview types
+- Minimal additional code
+- Users already familiar with lightbox behavior
+
+---
+
+## Complexity Assessment
+
+| Feature | Complexity | Estimated Effort | Dependencies |
+|---------|------------|------------------|--------------|
+| Folder upload | Medium | 2-3 days | File upload (exists) |
+| Folder download | Medium | 2-3 days | File download (exists) |
+| Overall progress | Medium | 1-2 days | Progress toasts (exists) |
+| Cancel + cleanup | Medium | 1-2 days | AbortController (exists) |
+| Smart hidden file filter | Low | 0.5 day | Hidden files toggle (exists) |
+| PDF.js integration | Medium | 2-3 days | Preview panel (exists) |
+| PDF page navigation | Low | 0.5 day | Arrow key nav (exists) |
+| PDF zoom controls | Low | 1 day | None |
+| PDF lazy loading | High | 3-4 days | PDF.js core |
+| PDF lightbox | Medium | 1-2 days | Lightbox modal (exists) |
+
+**Total estimated effort:** 12-18 days (2-3 weeks)
+
+---
+
+## Confidence Assessment
+
+| Area | Confidence | Source | Notes |
+|------|------------|--------|-------|
+| Folder transfer patterns | **HIGH** | SFTP standard behavior, well-documented | Multiple SFTP clients follow same patterns |
+| Progress indication | **HIGH** | Existing implementation + file manager best practices | Existing toast system proven |
+| Hidden file filtering | **HIGH** | macOS Finder behavior is well-known | Clear list of files to exclude |
+| Error handling approach | **MEDIUM** | Best practices from managed file transfer systems | WebSearch verified with retry patterns |
+| PDF.js for Electron | **HIGH** | Multiple tutorials, active community | Well-established integration pattern |
+| PDF memory management | **MEDIUM** | PDF.js docs + community discussions | Not tested at scale, but pattern is clear |
+| Zoom level standards | **HIGH** | Adobe and browser PDF viewer patterns | Industry standard zoom modes |
+| Conflict resolution UI | **LOW** | Deferred to future, needs UX research | Complex feature, needs dedicated research |
+
+---
+
+## Prior Research Reference
+
+This document extends the original FEATURES.md research (2026-01-26) which covered core SSH file explorer features. That research established:
+
+- **Table stakes**: SSH connection, file operations, transfer management, navigation/UX
+- **Differentiators**: Miller column view, preview panel, image preview, syntax highlighting, native macOS design
+- **Anti-features**: Terminal integration, folder sync (v1), cloud/multi-protocol, in-app editing, enterprise features
+
+**Connection to v1.2:** Folder transfer and PDF preview build on the established foundation of file operations and preview capabilities. The existing architecture (progress toasts, preview panel, lightbox, keyboard navigation) enables rapid implementation of these features with consistent UX.
 
 ---
 
 ## Sources
 
+### Folder Transfer Research
+- [How To Use SFTP to Securely Transfer Files with a Remote Server | DigitalOcean](https://www.digitalocean.com/community/tutorials/how-to-use-sftp-to-securely-transfer-files-with-a-remote-server)
+- [Using Sftp -R | JSCAPE](https://www.jscape.com/blog/sftp-r)
+- [Best practices for file system transfers | Google Cloud](https://docs.cloud.google.com/storage-transfer/docs/on-prem-agent-best-practices)
+- [Using Rclone To Sync Any SFTP Server With SFTP To Go](https://sftptogo.com/blog/rclone-sync-any-sftp-server/)
+- [Synchronize Files with FTP Server or SFTP Server :: WinSCP](https://winscp.net/eng/docs/guide_synchronize)
+- [Resumable File Upload in JavaScript: Handling Partial Updates | TECH CHAMPION](https://tech-champion.com/programming/javascript/resumable-file-upload-in-javascript-handling-partial-updates-and-one-time-uris/)
+- [A Guide to Retry Pattern in Distributed Systems](https://blog.bytebytego.com/p/a-guide-to-retry-pattern-in-distributed)
+- [fix: delete partial files on transfer cancellation | LocalSend PR #2493](https://github.com/localsend/localsend/pull/2493)
+- [macOS Finder copy progress window behavior | MacRumors Forums](https://forums.macrumors.com/threads/did-apple-remove-the-file-copy-progress-window-from-finder.2328081/)
+- [Transfer hidden files / dotfiles with sftp-deploy | Atlassian Community](https://community.atlassian.com/forums/Bitbucket-questions/Transfer-hidden-files-dotfiles-with-sftp-deploy/qaq-p/1570321)
+
+### PDF Preview Research
+- [How to build an Electron PDF viewer with PDF.js | Nutrient](https://www.nutrient.io/blog/how-to-build-an-electron-pdf-viewer-with-pdfjs/)
+- [How to Build a PDF Viewer with Electron and PDF.js | Apryse](https://apryse.com/blog/electron/how-to-build-an-electron-pdf-viewer)
+- [GitHub - praharshjain/Electron-PDF-Viewer](https://github.com/praharshjain/Electron-PDF-Viewer)
+- [PowerToys File Explorer Add-ons Utility for Windows | Microsoft Learn](https://learn.microsoft.com/en-us/windows/powertoys/file-explorer)
+- [Inside Preview in iOS 26 | Apple Insider](https://appleinsider.com/inside/ios-26/tips/inside-preview-in-ios-26---how-to-edit-pdfs-sign-documents-and-scan-files)
+- [Adjusting PDF views | Adobe Acrobat](https://helpx.adobe.com/acrobat/using/adjusting-pdf-views.html)
+- [Customize the zoom levels - React PDF Viewer](https://react-pdf-viewer.dev/examples/customize-the-zoom-levels/)
+- [Understand lazy loading PDF pages | Study Raid](https://app.studyraid.com/en/read/11535/362631/lazy-loading-pdf-pages)
+- [How to Fix Memory Leaks in JavaScript PDF Viewers | Syncfusion Blogs](https://www.syncfusion.com/blogs/post/memory-leaks-in-javascript-pdf-viewer)
+- [Performance issues when rendering large PDFs | react-pdf Discussion #1691](https://github.com/wojtekmaj/react-pdf/discussions/1691)
+- [Understand handling large PDF files efficiently | Study Raid](https://app.studyraid.com/en/read/11535/362627/handling-large-pdf-files-efficiently)
+
+### Previous Research (2026-01-26)
 - [Best SFTP Clients of 2025](https://sftptogo.com/blog/best-sftp-clients-of-2025-secure-fast-file-transfers/)
-- [Comparitech SFTP Client Comparison](https://www.comparitech.com/net-admin/best-ftp-sftp-clients-windows-linux/)
 - [Transmit 5 Official](https://panic.com/transmit/)
 - [Cyberduck vs FileZilla](https://www.dreamhost.com/blog/cyberduck-vs-filezilla/)
-- [Miller Columns - Wikipedia](https://en.wikipedia.org/wiki/Miller_columns)
-- [Electerm](https://electerm.html5beta.com)
-- [ssh2-sftp-client npm](https://www.npmjs.com/package/ssh2-sftp-client)
-- [SmartFTP Thumbnails](https://www.smartftp.com/en-us/client/features/thumbnails)
-- [WinSCP Synchronization Guide](https://winscp.net/eng/docs/guide_synchronize)
-- [SSH Client Connection Managers Comparison](https://www.comparitech.com/net-admin/best-ssh-client-and-connection-managers/)

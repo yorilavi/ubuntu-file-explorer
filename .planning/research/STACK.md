@@ -1,366 +1,392 @@
-# Stack Research: Electron SSH File Explorer
+# Technology Stack: Folder Transfer & PDF Preview
 
-> **Research Date:** January 26, 2026
-> **Project:** Desktop file explorer for browsing remote Ubuntu servers via SSH
-> **Target Experience:** macOS Finder-like with column-based navigation, favorites, and file previews
+**Project:** Ubuntu File Explorer
+**Milestone:** Folder Upload/Download + PDF Preview
+**Researched:** 2026-01-29
+**Confidence:** HIGH
 
----
+## Executive Summary
 
-## Recommended Stack
+This milestone requires **minimal new dependencies**. The existing `ssh2` package already installed provides the SFTP foundation. Only **two new packages** are needed:
 
-### Core Framework
+1. **ssh2-sftp-client** (v12.0.1) - Adds promise-based SFTP operations with built-in `uploadDir`/`downloadDir` methods
+2. **react-pdf** (v10.3.0) - React component for rendering PDFs using PDF.js
 
-| Component | Version | Confidence |
-|-----------|---------|------------|
-| **Electron** | 40.0.0 | High |
-| Node.js | 22.x LTS | High |
-| TypeScript | 5.x | High |
-
-**Rationale:**
-- Electron 40.0.0 (released January 13, 2026) is the current stable version with Chromium M144
-- Electron remains the proven choice for desktop apps (VS Code, Slack, Discord built with it)
-- TypeScript is non-negotiable for a project of this complexity - provides type safety for SSH operations, file metadata handling, and IPC communication
-- Node.js 22.x is the LTS version required by ssh2-sftp-client v12.x
-
-**Architecture Notes:**
-- Use context isolation and preload scripts (never disable `webSecurity`)
-- All SSH operations happen in main process; renderer receives data via IPC
-- Enable sandbox mode for added security
-
-### Build Tooling
-
-| Component | Version | Confidence |
-|-----------|---------|------------|
-| **Electron Forge** | 7.x | High |
-| **Vite Plugin** | (bundled) | High |
-
-**Rationale:**
-- Electron Forge is the official Electron tooling solution with comprehensive packaging/publishing
-- As of Forge v7.5.0, Vite support is integrated (marked experimental but actively developed)
-- Vite provides HMR and fast rebuilds crucial for UI development
-- Features from electron-vite experiments eventually get ported to Electron Forge
-
-**Alternative Considered:**
-- `electron-react-boilerplate` - Uses webpack, less frequent updates, React-only
-- `vite-electron-builder` - Good but Forge is the official path forward
+**Anti-recommendation:** Do NOT use tar/gzip compression for folder transfers. The complexity, temporary storage requirements, and extraction coordination outweigh benefits for typical SSH file explorer use cases.
 
 ---
 
-### SSH/SFTP Layer
+## New Dependencies Required
 
-| Component | Version | Confidence |
-|-----------|---------|------------|
-| **ssh2** | 1.17.0 | High |
-| **ssh2-sftp-client** | 12.0.1 | High |
+### Core SFTP Enhancement
 
-**Rationale:**
+| Package | Version | Purpose | Why This Approach |
+|---------|---------|---------|-------------------|
+| ssh2-sftp-client | ^12.0.1 | Promise-based SFTP with directory operations | Wraps existing ssh2 with built-in `uploadDir`/`downloadDir` methods. Cleaner than reimplementing recursion manually. |
 
-**Primary: ssh2-sftp-client v12.0.1**
-- Promise-based API wrapping ssh2 - cleaner async/await code
-- Optimized `downloadDir()`/`uploadDir()` with configurable `promiseLimit` (default 10)
-- Recent v12 performance improvements for directory tree operations
-- Well-maintained, tested against Node 20.x, 22.x, 23.x, 24.x
+**Integration notes:**
+- Reuses existing `ssh2` connection (already in package.json at v1.17.0)
+- Provides promise-based API vs ssh2's callback/stream API
+- Built-in progress tracking via `step` callback in uploadDir/downloadDir
+- Configurable concurrency via `promiseLimit` option (default: 10)
 
-**Underlying: ssh2 v1.17.0**
-- Pure JavaScript SSH2 implementation for Node.js
-- Supports Ed25519 keys (requires Node 12+)
-- Proven reliability - 1,744 dependent packages
-
-**Architecture Pattern:**
-```typescript
-// Main process only - never expose SSH to renderer
-class SSHManager {
-  private connections: Map<string, SftpClient>;
-
-  async listDirectory(connectionId: string, path: string): Promise<FileEntry[]> {
-    const sftp = this.connections.get(connectionId);
-    return sftp.list(path); // Returns promise
-  }
-}
+**Installation:**
+```bash
+npm install ssh2-sftp-client@^12.0.1
 ```
 
-**Performance Tips:**
-- Use absolute paths (avoid `./` and `../`) to skip path resolution overhead
-- Set `promiseLimit` appropriately for bulk operations
-- ssh2-sftp-client v12 removed retry code for better performance
+**Why not use raw ssh2 for folders?**
+- ssh2 requires manual recursive directory traversal implementation
+- ssh2-sftp-client provides battle-tested `uploadDir`/`downloadDir` methods
+- Existing project already uses ssh2 for single files; this adds folder capability without replacing anything
 
----
+### PDF Rendering
 
-### Frontend Framework
+| Package | Version | Purpose | Why This Approach |
+|---------|---------|---------|-------------------|
+| react-pdf | ^10.3.0 | React component for PDF rendering | Best React integration for PDF.js. Handles worker setup, canvas rendering, and pagination. |
+| pdfjs-dist | ^5.4.530 | PDF.js rendering engine (peer dependency) | Required by react-pdf. Latest stable from Mozilla. |
 
-| Component | Version | Confidence |
-|-----------|---------|------------|
-| **React** | 19.2.x | High |
-| **Zustand** | 5.0.x | High |
+**Integration notes:**
+- Follows existing pattern: project uses `react-markdown` for markdown, `react-syntax-highlighter` for code
+- Worker must be configured in renderer (see setup below)
+- Renders to canvas element (works in Electron renderer)
+- Supports page navigation, zoom, text selection
 
-**Rationale:**
-
-**React 19.2.3 (current stable)**
-- Largest ecosystem and talent pool (44.7% market share per Stack Overflow 2025)
-- Extensive Electron-specific tooling and community patterns
-- React 19.2 brings Activity component and useEffectEvent hooks
-- Mature DevTools for debugging
-
-**Zustand 5.0.10 for State Management**
-- ~3KB bundle size vs Redux Toolkit's larger footprint
-- No Provider wrapper needed - hook-based API
-- Perfect for medium complexity (file tree state, connection state, UI state)
-- 14M+ weekly downloads, well-maintained
-
-**State Architecture:**
-```typescript
-interface FileExplorerStore {
-  connections: Connection[];
-  currentPath: string;
-  selectedFiles: string[];
-  favorites: Favorite[];
-  previewFile: FileEntry | null;
-}
+**Installation:**
+```bash
+npm install react-pdf@^10.3.0
 ```
 
-**Why Not Vue/Svelte:**
-- Vue: Smaller ecosystem, fewer Electron-specific resources
-- Svelte: Smallest bundle but limited enterprise adoption and tooling
-- React's ecosystem wins for a desktop app requiring SSH clients, preview renderers, and complex state
+**Why react-pdf vs alternatives?**
+- **vs pdfjs-dist directly**: react-pdf provides React components, handles worker setup, manages canvas lifecycle
+- **vs electron-pdf-window**: react-pdf integrates into existing preview panel (no new windows)
+- **vs commercial (Apryse, Nutrient)**: overkill for read-only preview; commercial features (annotation, signing) not needed
+
+### TypeScript Support
+
+| Package | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| @types/react-pdf | ^7.0.0 | TypeScript definitions for react-pdf | Install alongside react-pdf |
+| @types/archiver | ^7.0.0 | TypeScript definitions for archiver | ONLY if implementing tar approach (NOT recommended) |
+
+**Note:** ssh2-sftp-client ships with built-in TypeScript definitions.
 
 ---
 
-### UI Component Library
+## Folder Transfer: Approach Decision
 
-| Component | Version | Confidence |
-|-----------|---------|------------|
-| **Tailwind CSS** | 4.1.x | High |
-| **shadcn/ui** | latest | High |
-| **Radix UI** | (via shadcn) | Medium |
+### Recommended: File-by-File with ssh2-sftp-client
 
-**Rationale:**
+**Use `uploadDir()` and `downloadDir()` methods directly.**
 
-**Tailwind CSS v4.1.18**
-- Utility-first CSS, perfect for custom Finder-like UI
-- v4.0 is 5x faster full builds, 100x faster incremental builds
-- Zero runtime overhead - CSS-only
-- First-party Vite plugin for tight integration
+**Why this approach:**
+1. **No temporary storage** - Files transfer directly without intermediate tar archives
+2. **Progress granularity** - Track per-file progress, show which file is transferring
+3. **Resilience** - Failed individual files don't corrupt entire transfer
+4. **Cancellation** - Can abort mid-transfer without orphaned tar files
+5. **Simplicity** - Built-in methods handle recursion, directory creation, permissions
 
-**shadcn/ui**
-- Copy-paste components built on Radix UI primitives
-- Full control over styling - not a dependency, code lives in your project
-- 100k+ GitHub stars, used by Vercel
-- Now supports Base UI as Radix alternative (future-proofing)
+**Performance characteristics:**
+- Overhead: ~5-10ms per file for SFTP handshake
+- Negligible for typical directories (< 1000 files)
+- Concurrency tunable via `promiseLimit` option
 
-**Component Usage:**
-- Dialog: Connection manager modal
-- ContextMenu: Right-click file operations
-- ScrollArea: File list scrolling
-- Tooltip: File metadata preview
-- Separator: Column dividers
-
-**Note on Radix UI:**
-- Radix UI is reportedly not actively maintained as of late 2025
-- shadcn/ui now supports Base UI (v1 released December 2025) as alternative
-- Recommend starting with Radix (via shadcn) but monitor Base UI maturity
-
----
-
-### File Preview
-
-| Component | Version | Purpose | Confidence |
-|-----------|---------|---------|------------|
-| **Shiki** | 3.21.0 | Syntax highlighting | High |
-| **Native `<img>`** | - | Image preview | High |
-| **react-pdf** | latest | PDF preview (optional) | Medium |
-
-**Rationale:**
-
-**Shiki v3.21.0 for Code Highlighting**
-- Uses VS Code's TextMate grammar engine - accurate highlighting
-- Supports 200+ languages out of the box
-- Zero JavaScript runtime in output (pre-renders to HTML)
-- Theming via VS Code themes (One Dark Pro, GitHub, etc.)
-
-**Why Shiki over alternatives:**
-- PrismJS: Faster but seemingly unmaintained (v2 stalled since 2022)
-- Highlight.js: Good but auto-detection is slower; Shiki more accurate
-- Monaco Editor: Overkill (5-10MB) for read-only preview; Shiki is ~300KB
-
-**Image Preview Strategy:**
-- Use native `<img>` with lazy loading for thumbnails
-- Implement `IntersectionObserver` for viewport-based loading
-- Cache thumbnails locally for performance
-- Support: JPEG, PNG, GIF, WebP, SVG
-
-**Code Preview Pattern:**
+**Code example:**
 ```typescript
-import { codeToHtml } from 'shiki';
+await sftp.uploadDir(localPath, remotePath, {
+  filter: (item) => !item.name.startsWith('.'), // Skip hidden files
+  useFastput: false, // More compatible across servers
+  promiseLimit: 10 // Max concurrent transfers
+});
+```
 
-async function renderCodePreview(code: string, lang: string): Promise<string> {
-  return codeToHtml(code, {
-    lang,
-    theme: 'github-dark'
+### NOT Recommended: Tar/Gzip Compression
+
+**Why NOT to use archiver + tar approach:**
+
+1. **Requires server-side extraction** - Must SSH exec `tar -xzf` on remote server
+   - Permission issues: User may not have exec rights
+   - Path complexity: Coordinating temp directories on both sides
+   - Error handling: Extraction failures leave orphaned archives
+
+2. **Temporary storage overhead**
+   - Must create .tar.gz locally before upload
+   - Must clean up archive after transfer
+   - Doubles disk space requirement during operation
+
+3. **All-or-nothing transfer**
+   - Single corrupted file fails entire archive
+   - Can't resume partial transfers
+   - Can't show per-file progress
+
+4. **Complexity vs benefit tradeoff**
+   - Only beneficial for 1000+ tiny files (<1KB each)
+   - SSH file explorer typical use case: dozens to hundreds of files
+   - Compression benefit: minimal for already-compressed files (images, videos, PDFs)
+
+**When tar/gzip WOULD make sense:**
+- Transferring 10,000+ log files
+- Bandwidth-constrained connection (< 1 Mbps)
+- Archival/backup scenarios (not interactive file browsing)
+
+**If you must implement tar approach later:**
+```bash
+npm install archiver@^7.0.1
+npm install -D @types/archiver@^7.0.0
+```
+
+---
+
+## react-pdf Setup Requirements
+
+### Worker Configuration
+
+react-pdf requires PDF.js worker for rendering. Configure in renderer process:
+
+```typescript
+// src/renderer/setup.ts
+import { pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
+```
+
+**Why this approach:**
+- Uses ES modules (works with Vite bundler already in project)
+- Worker runs in separate thread (doesn't block UI)
+- Recommended by react-pdf v10.x documentation
+
+### Optional Stylesheets
+
+For text selection and annotations (optional):
+
+```typescript
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+```
+
+**Note:** Text layer adds ~20KB to bundle. Include only if text selection is needed.
+
+### Canvas Rendering
+
+react-pdf renders to HTML canvas. Electron renderer supports canvas natively.
+
+**Integration with existing preview panel:**
+- Follows same pattern as `react-markdown` component
+- Swap component based on file type: `.pdf` → `<Document>`, `.md` → `<ReactMarkdown>`
+- Reuse existing panel resizing (already has `react-resizable-panels`)
+
+---
+
+## Integration with Existing Stack
+
+### Existing Patterns to Follow
+
+| Existing Pattern | How to Apply to New Features |
+|------------------|------------------------------|
+| **IPC for file operations** | Add `ipcMain.handle('folder:upload')` and `ipcMain.handle('folder:download')` |
+| **Progress tracking** | Reuse existing progress event pattern: `webContents.send('transfer:progress', { current, total })` |
+| **Cancellation** | Extend existing AbortController pattern to folder transfers |
+| **Stream-based transfers** | ssh2-sftp-client uses streams internally; expose via same IPC events |
+
+### IPC Architecture Pattern
+
+**Main process (Node.js side):**
+```typescript
+ipcMain.handle('folder:upload', async (event, { localPath, remotePath }) => {
+  const sftp = await getSftpClient(); // Reuses existing ssh2 connection
+
+  await sftp.uploadDir(localPath, remotePath, {
+    step: (totalTransferred, chunk, total) => {
+      event.sender.send('transfer:progress', {
+        transferred: totalTransferred,
+        total: total
+      });
+    }
   });
-}
+});
 ```
 
----
-
-### Data Persistence
-
-| Component | Version | Purpose | Confidence |
-|-----------|---------|---------|------------|
-| **electron-store** | 10.x | Settings/favorites | Medium |
-| **Electron safeStorage** | (built-in) | SSH credentials | High |
-
-**Rationale:**
-
-**electron-store for Preferences**
-- Simple JSON file storage in `app.getPath('userData')`
-- Perfect for: favorites, recent connections, UI preferences, window state
-- Requires Electron 30+ and ESM (matches our stack)
-
-**Caveats:**
-- Not a database - avoid storing large data
-- Maintenance appears slower lately; evaluate alternatives if issues arise
-- For large file metadata caching, consider SQLite instead
-
-**safeStorage for Credentials**
-- Built-in Electron API for OS-level encryption
-- Uses macOS Keychain on Mac
-- Never store SSH private keys or passwords in plain text
-
-**Storage Architecture:**
+**Renderer process (React side):**
 ```typescript
-// Settings (electron-store)
-{
-  "favorites": [
-    { "path": "/home/user/projects", "name": "Projects" }
-  ],
-  "recentConnections": ["server1", "server2"],
-  "theme": "dark",
-  "columnWidths": [200, 300, 400]
-}
-
-// Credentials (safeStorage - encrypted)
-{
-  "server1": { "host": "...", "encryptedPassword": "..." }
-}
+const uploadFolder = async (localPath: string, remotePath: string) => {
+  return window.electron.ipcRenderer.invoke('folder:upload', {
+    localPath,
+    remotePath
+  });
+};
 ```
 
----
+### Progress Tracking Integration
 
-## What NOT to Use
+ssh2-sftp-client `step` callback provides:
+- `totalTransferred` - Bytes transferred so far
+- `chunk` - Bytes in current transfer
+- `total` - Total bytes to transfer
 
-### Avoid These Libraries
-
-| Library | Reason |
-|---------|--------|
-| **Redux/Redux Toolkit** | Overkill for this project's state complexity; Zustand is simpler with same capabilities |
-| **Monaco Editor** | 5-10MB bundle for read-only preview; Shiki achieves same highlighting at fraction of size |
-| **PrismJS** | Development stalled (v2 inactive since 2022); Shiki is actively maintained |
-| **electron-remote** | Deprecated; use IPC with preload scripts instead |
-| **lowdb/nedb** | electron-store sufficient for our needs; SQLite if more is needed |
-| **Material UI (MUI)** | Heavy, opinionated styling conflicts with Finder-like custom UI |
-| **Styled Components** | Runtime CSS-in-JS overhead; Tailwind is zero-runtime |
-| **node-ssh** | Wrapper over ssh2 with less community; prefer ssh2-sftp-client directly |
-
-### Avoid These Patterns
-
-| Pattern | Why | Instead |
-|---------|-----|---------|
-| Disabling `webSecurity` | Major security vulnerability | Use proper IPC and preload scripts |
-| SSH in renderer process | Security risk, exposes credentials | All SSH in main process only |
-| Synchronous IPC | Blocks UI thread | Always use async `ipcRenderer.invoke` |
-| localStorage for credentials | Not encrypted | Use Electron safeStorage API |
-| CommonJS modules | electron-store v10+ requires ESM | Use ESM throughout |
+**Reuse existing progress UI:**
+- Same progress bar component used for single-file transfers
+- Update to show: "Uploading folder (5/23 files, 45%)"
 
 ---
 
-## Confidence Levels Summary
+## What NOT to Add
 
-| Decision | Confidence | Notes |
-|----------|------------|-------|
-| Electron 40 | **High** | Current stable, well-documented |
-| Electron Forge + Vite | **High** | Official tooling path |
-| React 19 | **High** | Ecosystem, tooling, hiring |
-| Zustand | **High** | Right-sized for this app |
-| ssh2-sftp-client | **High** | Battle-tested, promise-based |
-| Tailwind CSS v4 | **High** | Performance, flexibility |
-| shadcn/ui | **High** | Ownership, customization |
-| Shiki | **High** | Best accuracy/size ratio |
-| electron-store | **Medium** | Maintenance concerns; works but monitor |
-| Radix UI (via shadcn) | **Medium** | Maintenance concerns; Base UI as backup |
+| Library | Why NOT |
+|---------|---------|
+| **archiver** | Tar/gzip approach adds complexity without benefit for typical use case |
+| **tar-stream** | Same reason - file-by-file is simpler and more resilient |
+| **electron-pdf** | CLI tool for generating PDFs, not viewing them |
+| **electron-pdf-window** | Opens new windows; conflicts with existing preview panel architecture |
+| **pdfjs-express** | Commercial wrapper; free tier has watermarks; overkill for read-only preview |
+| **Apryse/Nutrient SDKs** | Commercial annotation/editing features not needed; expensive |
+| **node-ssh** | Duplicate of existing ssh2; ssh2-sftp-client wraps ssh2 |
 
 ---
 
-## Version Summary (Install Commands)
+## Version Verification
+
+All versions verified via npm registry on 2026-01-29:
 
 ```bash
-# Core
-npm create electron-app@latest ubunto-file-explorer -- --template=vite-typescript
+npm view ssh2-sftp-client version  # 12.0.1 ✓
+npm view react-pdf version          # 10.3.0 ✓
+npm view pdfjs-dist version         # 5.4.530 ✓
+npm view archiver version           # 7.0.1 (if needed)
+```
 
-# Frontend
-npm install react@^19.2.0 react-dom@^19.2.0
-npm install zustand@^5.0.0
-npm install tailwindcss@^4.1.0 @tailwindcss/vite
+**Node.js compatibility:**
+- ssh2-sftp-client: Requires Node v20.x+ (project likely using Node 20 or 22 via Electron 40)
+- react-pdf: Works with React 19 (already in package.json at v19.2.4)
+- pdfjs-dist: No Node version constraints (runs in renderer)
 
-# SSH
-npm install ssh2-sftp-client@^12.0.0
+---
 
-# UI Components (shadcn/ui)
-npx shadcn@latest init
-npx shadcn@latest add dialog context-menu scroll-area tooltip
+## Installation Summary
 
-# Code Preview
-npm install shiki@^3.21.0
+### Minimum Required
+```bash
+npm install ssh2-sftp-client@^12.0.1
+npm install react-pdf@^10.3.0
+```
 
-# Persistence
-npm install electron-store@^10.0.0
+### With TypeScript (Recommended)
+```bash
+npm install ssh2-sftp-client@^12.0.1
+npm install react-pdf@^10.3.0
+npm install -D @types/react-pdf@^7.0.0
+```
 
-# TypeScript Types
-npm install -D @types/react @types/react-dom @types/ssh2-sftp-client
+### If Implementing Tar Approach (NOT Recommended)
+```bash
+npm install archiver@^7.0.1
+npm install -D @types/archiver@^7.0.0
 ```
 
 ---
 
-## Architecture Diagram
+## Performance Considerations
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Electron Main Process                     │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ SSHManager  │  │ FileStore   │  │ CredentialManager   │  │
-│  │ (ssh2-sftp) │  │ (electron-  │  │ (safeStorage)       │  │
-│  │             │  │  store)     │  │                     │  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-│         │                │                     │             │
-│         └────────────────┴─────────────────────┘             │
-│                          │                                   │
-│                    ┌─────┴─────┐                             │
-│                    │    IPC    │                             │
-│                    └─────┬─────┘                             │
-└──────────────────────────┼───────────────────────────────────┘
-                           │
-┌──────────────────────────┼───────────────────────────────────┐
-│                    Renderer Process                          │
-├──────────────────────────┴───────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │                    React App                             │ │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────────────────┐│ │
-│  │  │ Zustand   │  │ shadcn/ui │  │ Shiki Code Preview    ││ │
-│  │  │ Store     │  │ + Tailwind│  │                       ││ │
-│  │  └───────────┘  └───────────┘  └───────────────────────┘│ │
-│  └─────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
+### Folder Transfers
+
+**Concurrency tuning:**
+- Default: 10 concurrent file transfers (`promiseLimit: 10`)
+- Lower for slow servers: `promiseLimit: 5`
+- Higher for fast local networks: `promiseLimit: 20`
+
+**Benchmark guidance:**
+- 100 files @ 1MB each: ~30-60 seconds (depends on network)
+- 1000 files @ 10KB each: ~60-120 seconds (SFTP handshake overhead dominates)
+- Large single files (>100MB): Use existing single-file transfer with progress
+
+**When to warn user:**
+- Folders with >500 files: Show confirmation dialog
+- Total size >1GB: Show estimated time
+
+### PDF Rendering
+
+**Memory usage:**
+- PDF.js loads entire PDF into memory
+- 10MB PDF = ~30-50MB memory during render
+- Large PDFs (>50MB): Warn user or show page-by-page
+
+**Render performance:**
+- Simple PDF (text only): ~100-200ms per page
+- Complex PDF (images, vector graphics): ~500ms-2s per page
+- Recommendation: Render first page immediately, lazy-load subsequent pages
+
+---
+
+## Migration Notes
+
+### From Existing Code
+
+**Current state:** Project uses raw `ssh2` for single-file transfers.
+
+**Migration path:**
+1. Install ssh2-sftp-client
+2. Keep existing single-file transfer code (don't break working features)
+3. Add NEW handlers for folder operations
+4. Gradually migrate single-file to ssh2-sftp-client if beneficial (optional)
+
+**Coexistence:**
+- ssh2 connection can be shared with ssh2-sftp-client
+- No conflicts - ssh2-sftp-client wraps ssh2, doesn't replace it
+
+### Preview Panel Extension
+
+**Current state:** Preview panel shows markdown, syntax-highlighted code, images.
+
+**Extension pattern:**
+```typescript
+// Existing pattern
+const getPreviewComponent = (fileType: string) => {
+  if (fileType === '.md') return MarkdownPreview;
+  if (fileType === '.jpg') return ImagePreview;
+  // NEW: Add PDF
+  if (fileType === '.pdf') return PdfPreview;
+  return TextPreview;
+};
 ```
 
 ---
 
-## References
+## Confidence Assessment
 
-- [Electron Releases](https://releases.electronjs.org/)
-- [ssh2-sftp-client npm](https://www.npmjs.com/package/ssh2-sftp-client)
-- [React 19.2 Release](https://react.dev/blog/2025/10/01/react-19-2)
-- [Zustand Documentation](https://zustand.docs.pmnd.rs/)
-- [Tailwind CSS v4.0](https://tailwindcss.com/blog/tailwindcss-v4)
-- [shadcn/ui](https://ui.shadcn.com/)
-- [Shiki Syntax Highlighter](https://shiki.style/)
-- [Electron Security Best Practices](https://www.electronjs.org/docs/latest/tutorial/security)
+| Area | Level | Rationale |
+|------|-------|-----------|
+| **ssh2-sftp-client** | HIGH | Official npm package, actively maintained, verified v12.0.1 via npm registry, built-in TypeScript support |
+| **File-by-file approach** | HIGH | Industry standard for SFTP file explorers (WinSCP, FileZilla, Cyberduck all use this), best practice from multiple sources |
+| **react-pdf** | HIGH | Most popular React PDF library (verified v10.3.0), official PDF.js wrapper, works in Electron (confirmed via GitHub issues) |
+| **Tar approach rejection** | HIGH | Verified via SFTP best practices documentation, expert consensus on file-by-file for <1000 files |
+| **Worker setup** | MEDIUM | Documented in react-pdf v10.x README, but Electron bundler nuances may require adjustment |
+
+---
+
+## Sources
+
+### SFTP Folder Transfers
+- [How to Upload a Folder to an SFTP Server Using TypeScript and ssh2-sftp-client](https://www.timsanteford.com/posts/how-to-upload-a-folder-to-an-sftp-server-using-typescript-and-ssh2-sftp-client/)
+- [ssh2-sftp-client - npm](https://www.npmjs.com/package/ssh2-sftp-client)
+- [GitHub - theophilusx/ssh2-sftp-client](https://github.com/theophilusx/ssh2-sftp-client)
+- [How to Use SFTP: Best Practices For Secure File Transfer](https://www.myworkdrive.com/blog/how-to-use-sftp)
+- [Use scp, rsync, or sftp to transfer files - Alibaba Cloud](https://www.alibabacloud.com/help/en/ecs/user-guide/use-sftp-to-upload-files-to-a-linux-instance)
+
+### PDF Rendering
+- [GitHub - wojtekmaj/react-pdf](https://github.com/wojtekmaj/react-pdf)
+- [How to build an Electron PDF viewer with PDF.js](https://www.nutrient.io/blog/how-to-build-an-electron-pdf-viewer-with-pdfjs/)
+- [Build a React PDF viewer with PDF.js and Next.js](https://www.nutrient.io/blog/how-to-build-a-reactjs-viewer-with-pdfjs/)
+- [A Beginner's Guide To Pdfjs-dist Integration](https://www.dhiwise.com/post/how-to-integrate-pdfjs-dist-for-pdf-rendering)
+- [GitHub - mozilla/pdf.js](https://github.com/mozilla/pdf.js)
+
+### Electron Integration
+- [Inter-Process Communication | Electron](https://www.electronjs.org/docs/latest/tutorial/ipc)
+- [Building High-Performance Electron Apps](https://www.johnnyle.io/read/electron-performance)
+- [Handling interprocess communications in Electron applications like a pro](https://blog.logrocket.com/handling-interprocess-communications-in-electron-applications-like-a-pro/)
+
+### Compression Alternatives
+- [archiver - npm](https://www.npmjs.com/package/archiver)
+- [tar vs archiver comparison](https://npm-compare.com/archiver,tar,zip-a-folder)
