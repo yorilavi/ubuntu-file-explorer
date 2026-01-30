@@ -403,14 +403,20 @@ function App(): React.JSX.Element {
   // Handle spacebar for lightbox and arrow keys when lightbox is open
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Spacebar opens lightbox if previewable file selected and lightbox not already open
-      if (e.code === 'Space' && !e.repeat && !lightboxOpen && selectedFile && !selectedFile.isDirectory) {
-        const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
-        // Use the module-level extension lists for consistency
-        if (IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext)) {
+      // Spacebar toggles lightbox (open/close)
+      if (e.code === 'Space' && !e.repeat) {
+        if (lightboxOpen) {
+          // Close lightbox
           e.preventDefault();
-          // Dispatch custom event for PreviewPanel to provide the content
-          window.dispatchEvent(new CustomEvent('open-lightbox'));
+          handleLightboxClose();
+        } else if (selectedFile && !selectedFile.isDirectory) {
+          // Open lightbox if previewable file selected
+          const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
+          if (IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext)) {
+            e.preventDefault();
+            // Dispatch custom event for PreviewPanel to provide the content
+            window.dispatchEvent(new CustomEvent('open-lightbox'));
+          }
         }
       }
 
@@ -428,7 +434,7 @@ function App(): React.JSX.Element {
     // Use capture phase to intercept before lightbox
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [selectedFile, lightboxOpen]);
+  }, [selectedFile, lightboxOpen, handleLightboxClose]);
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
 
