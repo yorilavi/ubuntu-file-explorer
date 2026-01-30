@@ -100,6 +100,25 @@ interface CodeChunkData {
   language: string;
 }
 
+// Folder upload types (duplicated for preload isolation)
+interface FolderUploadProgress {
+  operationId: string;
+  totalFiles: number;
+  completedFiles: number;
+  currentFile: string;
+  percent: number;
+  failedFiles: Array<{ path: string; error: string }>;
+}
+
+interface FolderUploadResult {
+  success: boolean;
+  uploadedCount?: number;
+  failedFiles?: Array<{ path: string; error: string }>;
+  operationId?: string;
+  cancelled?: boolean;
+  error?: string;
+}
+
 const electronAPI = {
   /**
    * Ping the main process to verify IPC is working.
@@ -333,6 +352,38 @@ const electronAPI = {
    */
   cancelOperation: (operationId: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('file-ops:cancel', operationId),
+
+  /**
+   * Upload a local folder to remote server.
+   * Shows folder picker dialog to choose folder.
+   */
+  uploadFolder: (
+    serverId: string,
+    remoteDir: string,
+    showHidden: boolean
+  ): Promise<FolderUploadResult> =>
+    ipcRenderer.invoke('file-ops:upload-folder', serverId, remoteDir, showHidden),
+
+  /**
+   * Subscribe to folder upload progress updates.
+   */
+  onFolderUploadProgress: (
+    callback: (progress: FolderUploadProgress) => void
+  ): (() => void) => {
+    const handler = (_event: unknown, progress: FolderUploadProgress) => {
+      callback(progress);
+    };
+    ipcRenderer.on('file-ops:folder-progress', handler);
+    return () => {
+      ipcRenderer.removeListener('file-ops:folder-progress', handler);
+    };
+  },
+
+  /**
+   * Cancel an active folder upload operation.
+   */
+  cancelFolderUpload: (operationId: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('file-ops:cancel-folder-upload', operationId),
 
   // Favorites Operations
   // ====================

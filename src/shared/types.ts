@@ -166,3 +166,39 @@ export interface CodeChunkData {
   totalSize: number;     // Total file size in bytes
   language: string;      // Syntax highlighting language
 }
+
+// Folder Upload Types
+// ===================
+
+/**
+ * Progress update during folder upload.
+ */
+export interface FolderUploadProgress {
+  /** Total number of files to upload */
+  totalFiles: number;
+  /** Number of files completed (success or fail) */
+  completedFiles: number;
+  /** Current file being uploaded */
+  currentFile: string;
+  /** Overall percentage (0-100) */
+  percent: number;
+  /** Files that failed with error messages */
+  failedFiles: Array<{ path: string; error: string }>;
+}
+
+/**
+ * Result of a folder upload operation.
+ */
+export interface FolderUploadResult {
+  success: boolean;
+  /** Total files uploaded successfully */
+  uploadedCount?: number;
+  /** Files that failed */
+  failedFiles?: Array<{ path: string; error: string }>;
+  /** Operation ID for cancellation */
+  operationId?: string;
+  /** Whether operation was cancelled */
+  cancelled?: boolean;
+  /** Error message if complete failure */
+  error?: string;
+}
