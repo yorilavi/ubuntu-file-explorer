@@ -278,6 +278,25 @@ function ColumnView({
     });
   }, [columnWidths]);
 
+  // Handle double-click on resize handle to reset column width
+  const handleResizeDoubleClick = useCallback((e: React.MouseEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent interference with drag
+
+    // Reset this column to default width
+    setColumnWidths(prev => {
+      const updated = [...prev];
+      updated[index] = DEFAULT_COLUMN_WIDTH;
+      return updated;
+    });
+
+    // Update saved widths ref and persist via IPC
+    const newWidths = [...savedWidthsRef.current];
+    newWidths[index] = DEFAULT_COLUMN_WIDTH;
+    savedWidthsRef.current = newWidths;
+    window.electronAPI.setColumnWidths(newWidths);
+  }, []);
+
   useEffect(() => {
     if (!resizing) return;
 
@@ -577,6 +596,7 @@ function ColumnView({
             <div
               className={`column-view__resize-handle ${resizing?.index === index ? 'column-view__resize-handle--active' : ''}`}
               onMouseDown={(e) => handleResizeStart(e, index)}
+              onDoubleClick={(e) => handleResizeDoubleClick(e, index)}
             />
           </React.Fragment>
         ))}
