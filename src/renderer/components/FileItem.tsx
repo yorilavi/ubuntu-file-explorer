@@ -4,6 +4,15 @@ import { toast } from 'sonner';
 import type { FileEntry } from '../../shared/types';
 import './FileItem.css';
 
+// Folder upload state tracked at component level
+interface FolderUploadState {
+  operationId: string | null;
+  totalFiles: number;
+  completedFiles: number;
+  currentFile: string;
+  failedFiles: Array<{ path: string; error: string }>;
+}
+
 interface FileItemProps {
   file: FileEntry;
   isSelected: boolean;
@@ -11,6 +20,7 @@ interface FileItemProps {
   isHidden?: boolean;
   serverId: string;
   columnIndex: number;
+  showHiddenFiles: boolean;
   onRefresh: () => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
@@ -30,6 +40,7 @@ function FileItem({
   isHidden,
   serverId,
   columnIndex: _columnIndex,
+  showHiddenFiles,
   onRefresh,
   onClick,
   onDoubleClick,
@@ -73,24 +84,37 @@ function FileItem({
   // Track active operation for cancellation
   const [activeOperationId, setActiveOperationId] = useState<string | null>(null);
 
-  // Escape key handler - cancel active operation
+  // Track folder upload state
+  const [folderUploadState, setFolderUploadState] = useState<FolderUploadState | null>(null);
+
+  // Escape key handler - cancel active operation or folder upload
   useEffect(() => {
-    if (!activeOperationId) return;
+    if (!activeOperationId && !folderUploadState?.operationId) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && activeOperationId) {
-        window.electronAPI.cancelOperation(activeOperationId);
-        setActiveOperationId(null);
-        if (activeToastRef.current) {
-          toast.info('Operation cancelled', { id: activeToastRef.current });
-          activeToastRef.current = null;
+      if (e.key === 'Escape') {
+        if (activeOperationId) {
+          window.electronAPI.cancelOperation(activeOperationId);
+          setActiveOperationId(null);
+          if (activeToastRef.current) {
+            toast.info('Operation cancelled', { id: activeToastRef.current });
+            activeToastRef.current = null;
+          }
+        }
+        if (folderUploadState?.operationId) {
+          window.electronAPI.cancelFolderUpload(folderUploadState.operationId);
+          setFolderUploadState(null);
+          if (activeToastRef.current) {
+            toast.info('Folder upload cancelled', { id: activeToastRef.current });
+            activeToastRef.current = null;
+          }
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeOperationId]);
+  }, [activeOperationId, folderUploadState?.operationId]);
 
   // Cancel the current active operation
   const handleCancelOperation = useCallback(() => {
@@ -103,6 +127,18 @@ function FileItem({
       }
     }
   }, [activeOperationId]);
+
+  // Cancel folder upload operation
+  const handleCancelFolderUpload = useCallback(() => {
+    if (folderUploadState?.operationId) {
+      window.electronAPI.cancelFolderUpload(folderUploadState.operationId);
+      setFolderUploadState(null);
+      if (activeToastRef.current) {
+        toast.info('Folder upload cancelled', { id: activeToastRef.current });
+        activeToastRef.current = null;
+      }
+    }
+  }, [folderUploadState?.operationId]);
 
   // File operation handlers
   const handleDownload = useCallback(async () => {
@@ -302,6 +338,132 @@ function FileItem({
     }
   }, [serverId, file.path, file.name, onFavoritesChanged]);
 
+  // Subscribe to folder upload progress
+  useEffect(() => {
+    if (!folderUploadState?.operationId) return;
+
+    const cleanup = window.electronAPI.onFolderUploadProgress((progress) => {
+      if (progress.operationId === folderUploadState.operationId) {
+        setFolderUploadState(prev => prev ? {
+          ...prev,
+          totalFiles: progress.totalFiles,
+          completedFiles: progress.completedFiles,
+          currentFile: progress.currentFile,
+          failedFiles: progress.failedFiles,
+        } : null);
+
+        // Update toast with progress
+        if (activeToastRef.current) {
+          const progressText = `Uploading ${progress.completedFiles} of ${progress.totalFiles} files`;
+          const currentText = progress.currentFile ? `\nCurrent: ${progress.currentFile}` : '';
+          toast.loading(progressText + currentText, {
+            id: activeToastRef.current,
+            action: {
+              label: 'Cancel',
+              onClick: handleCancelFolderUpload,
+            },
+          });
+        }
+      }
+    });
+
+    return cleanup;
+  }, [folderUploadState?.operationId, handleCancelFolderUpload]);
+
+  // Retry handler for failed files - re-uploads the entire folder
+  // Note: Since retry-specific API doesn't exist, we prompt user to retry full upload
+  const handleRetryFailedFiles = useCallback((failedFiles: Array<{ path: string; error: string }>) => {
+    // Show toast with failed files info and offer to retry full upload
+    toast.error(
+      `${failedFiles.length} files failed to upload`,
+      {
+        description: failedFiles.slice(0, 3).map(f => f.path.split('/').pop()).join(', ') +
+          (failedFiles.length > 3 ? ` and ${failedFiles.length - 3} more` : ''),
+        action: {
+          label: 'Retry Upload',
+          onClick: () => {
+            // Trigger a new folder upload
+            handleUploadFolder();
+          },
+        },
+        duration: 15000,
+      }
+    );
+  }, []);
+
+  // Handle folder upload
+  const handleUploadFolder = useCallback(async () => {
+    setContextMenu(null);
+    const toastId = toast.loading(`Selecting folder to upload to "${file.name}"...`, {
+      action: {
+        label: 'Cancel',
+        onClick: handleCancelFolderUpload,
+      },
+    });
+    activeToastRef.current = toastId;
+
+    try {
+      const result = await window.electronAPI.uploadFolder(
+        serverId,
+        file.path,
+        showHiddenFiles
+      );
+
+      // Track operation for cancellation
+      if (result.operationId) {
+        setFolderUploadState({
+          operationId: result.operationId,
+          totalFiles: 0,
+          completedFiles: 0,
+          currentFile: '',
+          failedFiles: [],
+        });
+      }
+
+      if (result.success) {
+        toast.success(`Uploaded ${result.uploadedCount} files`, { id: toastId });
+        onRefresh();
+      } else if (result.cancelled) {
+        toast.info('Folder upload cancelled', { id: toastId });
+      } else if (result.failedFiles && result.failedFiles.length > 0) {
+        // Partial success - some files failed, offer retry
+        const successCount = (result.uploadedCount || 0);
+        const failCount = result.failedFiles.length;
+        toast.warning(
+          `Uploaded ${successCount} files, ${failCount} failed`,
+          {
+            id: toastId,
+            description: result.failedFiles.slice(0, 3).map(f => f.path.split('/').pop()).join(', ') +
+              (failCount > 3 ? ` and ${failCount - 3} more` : ''),
+            action: {
+              label: 'Retry Failed',
+              onClick: () => handleRetryFailedFiles(result.failedFiles!),
+            },
+            duration: 15000,
+          }
+        );
+        onRefresh();
+      } else if (result.error) {
+        toast.error('Folder upload failed', {
+          id: toastId,
+          description: result.error,
+        });
+      } else {
+        // User cancelled folder picker
+        toast.dismiss(toastId);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Folder upload failed', {
+        id: toastId,
+        description: errorMsg,
+      });
+    } finally {
+      activeToastRef.current = null;
+      setFolderUploadState(null);
+    }
+  }, [serverId, file.path, file.name, showHiddenFiles, onRefresh, handleCancelFolderUpload, handleRetryFailedFiles]);
+
   const itemClasses = [
     'file-item',
     isSelected && 'file-item--selected',
@@ -367,7 +529,8 @@ function FileItem({
             <>
               <button onClick={handleAddToFavorites}>Add to Favorites</button>
               <div className="file-item__context-menu-separator" />
-              <button onClick={handleUpload}>Upload to folder...</button>
+              <button onClick={handleUpload}>Upload file...</button>
+              <button onClick={handleUploadFolder}>Upload Folder...</button>
               <button onClick={handleRenameStart}>Rename</button>
               <button onClick={handleDelete}>Delete</button>
             </>
