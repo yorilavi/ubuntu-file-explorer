@@ -13,6 +13,7 @@ interface ColumnProps {
   serverId: string;
   showHiddenFiles: boolean;
   onRefresh: () => void;
+  onRefreshChild?: () => void;
   onItemSelect: (columnIndex: number, itemIndex: number, multi?: boolean, range?: boolean) => void;
   onItemFocus: (columnIndex: number, itemIndex: number) => void;
   onNavigateInto: (columnIndex: number, itemIndex: number) => void;
@@ -33,6 +34,7 @@ function Column({
   serverId,
   showHiddenFiles,
   onRefresh,
+  onRefreshChild,
   onItemSelect,
   onItemFocus,
   onNavigateInto,
@@ -192,6 +194,7 @@ function Column({
                 columnIndex={columnIndex}
                 showHiddenFiles={showHiddenFiles}
                 onRefresh={onRefresh}
+                onRefreshChild={onRefreshChild}
                 onClick={(e) => handleItemClick(e, virtualRow.index)}
                 onDoubleClick={() => handleItemDoubleClick(virtualRow.index)}
                 onFavoritesChanged={onFavoritesChanged}

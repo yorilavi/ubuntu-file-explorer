@@ -22,6 +22,7 @@ interface FileItemProps {
   columnIndex: number;
   showHiddenFiles: boolean;
   onRefresh: () => void;
+  onRefreshChild?: () => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onFavoritesChanged?: () => void;
@@ -42,6 +43,7 @@ function FileItem({
   columnIndex: _columnIndex,
   showHiddenFiles,
   onRefresh,
+  onRefreshChild,
   onClick,
   onDoubleClick,
   onFavoritesChanged,
@@ -410,6 +412,7 @@ function FileItem({
       if (result.success) {
         toast.success(`Uploaded ${result.uploadedCount} files`, { id: toastId });
         onRefresh();
+        onRefreshChild?.(); // Refresh child column to show new folder contents
       } else if (result.cancelled) {
         toast.info('Folder upload cancelled', { id: toastId });
       } else if (result.failedFiles && result.failedFiles.length > 0) {
@@ -430,6 +433,7 @@ function FileItem({
           }
         );
         onRefresh();
+        onRefreshChild?.(); // Refresh child column to show new folder contents
       } else if (result.error) {
         toast.error('Folder upload failed', {
           id: toastId,
@@ -455,7 +459,7 @@ function FileItem({
       folderUploadActiveRef.current = false;
       setFolderUploadState(null);
     }
-  }, [serverId, file.path, file.name, showHiddenFiles, onRefresh, handleRetryFailedFiles]);
+  }, [serverId, file.path, file.name, showHiddenFiles, onRefresh, onRefreshChild, handleRetryFailedFiles]);
 
   const itemClasses = [
     'file-item',

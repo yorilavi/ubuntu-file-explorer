@@ -584,6 +584,7 @@ function ColumnView({
                 serverId={serverId}
                 showHiddenFiles={showHidden}
                 onRefresh={() => refreshColumn(index)}
+                onRefreshChild={columns[index + 1] ? () => refreshColumn(index + 1) : undefined}
                 onItemSelect={handleItemSelect}
                 onItemFocus={handleItemFocus}
                 onNavigateInto={handleNavigateInto}
