@@ -13,6 +13,31 @@ interface FolderUploadState {
   failedFiles: Array<{ path: string; error: string }>;
 }
 
+// Folder download state tracked at component level
+interface FolderDownloadState {
+  operationId: string | null;
+  totalFiles: number;
+  completedFiles: number;
+  totalBytes: number;
+  downloadedBytes: number;
+  currentFile: string;
+  failedFiles: Array<{ path: string; error: string }>;
+  remoteFolderPath: string;
+  localBasePath: string;
+}
+
+// Conflict strategy type
+type ConflictStrategy = 'rename' | 'overwrite' | 'skip';
+
+// Format bytes to human readable string
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 interface FileItemProps {
   file: FileEntry;
   isSelected: boolean;
@@ -89,10 +114,16 @@ function FileItem({
   // Track folder upload state
   const [folderUploadState, setFolderUploadState] = useState<FolderUploadState | null>(null);
 
+  // Track folder download state
+  const [folderDownloadState, setFolderDownloadState] = useState<FolderDownloadState | null>(null);
+
   // Ref to track if folder upload is in progress (for progress listener)
   const folderUploadActiveRef = useRef(false);
 
-  // Escape key handler - cancel active operation or folder upload
+  // Ref to track if folder download is in progress (for progress listener)
+  const folderDownloadActiveRef = useRef(false);
+
+  // Escape key handler - cancel active operation, folder upload, or folder download
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -114,12 +145,22 @@ function FileItem({
             activeToastRef.current = null;
           }
         }
+        // Check both state and ref for folder download cancellation
+        if (folderDownloadActiveRef.current && folderDownloadState?.operationId) {
+          window.electronAPI.cancelFolderDownload(folderDownloadState.operationId);
+          folderDownloadActiveRef.current = false;
+          setFolderDownloadState(null);
+          if (activeToastRef.current) {
+            toast.info('Folder download cancelled', { id: activeToastRef.current });
+            activeToastRef.current = null;
+          }
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeOperationId, folderUploadState?.operationId]);
+  }, [activeOperationId, folderUploadState?.operationId, folderDownloadState?.operationId]);
 
   // Cancel the current active operation
   const handleCancelOperation = useCallback(() => {
@@ -461,6 +502,178 @@ function FileItem({
     }
   }, [serverId, file.path, file.name, showHiddenFiles, onRefresh, onRefreshChild, handleRetryFailedFiles]);
 
+  // Ref to store cleanup function for folder download progress listener
+  const folderDownloadProgressCleanupRef = useRef<(() => void) | null>(null);
+
+  // Retry handler for failed downloads
+  const handleRetryFailedDownloads = useCallback(async (
+    remoteFolderPath: string,
+    localBasePath: string,
+    failedFiles: Array<{ path: string; error: string }>
+  ) => {
+    const toastId = toast.loading(`Retrying ${failedFiles.length} failed files...`);
+    activeToastRef.current = toastId;
+
+    try {
+      const result = await window.electronAPI.retryFailedDownloads(
+        serverId,
+        remoteFolderPath,
+        localBasePath,
+        failedFiles.map(f => f.path),
+        'rename' as ConflictStrategy // Default to rename for retries
+      );
+
+      if (result.success) {
+        toast.success(`Retry complete: ${result.downloadedCount} files downloaded`, { id: toastId });
+      } else if (result.failedFiles && result.failedFiles.length > 0) {
+        toast.error(
+          `${result.failedFiles.length} files still failed`,
+          {
+            id: toastId,
+            description: result.failedFiles.slice(0, 3).map(f => f.path).join(', ') +
+              (result.failedFiles.length > 3 ? ` and ${result.failedFiles.length - 3} more` : ''),
+            action: {
+              label: 'Retry Again',
+              onClick: () => handleRetryFailedDownloads(remoteFolderPath, localBasePath, result.failedFiles!),
+            },
+            duration: 15000,
+          }
+        );
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Retry failed', { id: toastId, description: errorMsg });
+    } finally {
+      activeToastRef.current = null;
+    }
+  }, [serverId]);
+
+  // Handle folder download
+  const handleDownloadFolder = useCallback(async () => {
+    setContextMenu(null);
+
+    // Default to 'rename' strategy for conflicts (Finder-style)
+    const conflictStrategy: ConflictStrategy = 'rename';
+
+    const toastId = toast.loading(`Downloading folder "${file.name}"...`);
+    activeToastRef.current = toastId;
+
+    // Mark download as active BEFORE the IPC call
+    folderDownloadActiveRef.current = true;
+
+    // Subscribe to progress updates BEFORE starting download
+    // This ensures we catch all progress events
+    folderDownloadProgressCleanupRef.current = window.electronAPI.onFolderDownloadProgress((progress) => {
+      if (!folderDownloadActiveRef.current) return;
+
+      // Update state for UI and cancellation
+      setFolderDownloadState(prev => ({
+        operationId: progress.operationId,
+        totalFiles: progress.totalFiles,
+        completedFiles: progress.completedFiles,
+        totalBytes: progress.totalBytes,
+        downloadedBytes: progress.downloadedBytes,
+        currentFile: progress.currentFile,
+        failedFiles: progress.failedFiles,
+        remoteFolderPath: prev?.remoteFolderPath || file.path,
+        localBasePath: prev?.localBasePath || '',
+      }));
+
+      // Update toast with progress - show both file count and size
+      if (activeToastRef.current) {
+        const fileProgress = `Downloading ${progress.completedFiles} of ${progress.totalFiles} files`;
+        const sizeProgress = progress.totalBytes > 0
+          ? ` • ${formatBytes(progress.downloadedBytes)} of ${formatBytes(progress.totalBytes)}`
+          : '';
+        const currentText = progress.currentFile ? `\n${progress.currentFile}` : '';
+        toast.loading(fileProgress + sizeProgress + currentText, {
+          id: activeToastRef.current,
+          action: {
+            label: 'Cancel',
+            onClick: () => {
+              if (progress.operationId) {
+                window.electronAPI.cancelFolderDownload(progress.operationId);
+                folderDownloadActiveRef.current = false;
+                setFolderDownloadState(null);
+                if (activeToastRef.current) {
+                  toast.info('Folder download cancelled', { id: activeToastRef.current });
+                  activeToastRef.current = null;
+                }
+              }
+            },
+          },
+        });
+      }
+    });
+
+    try {
+      const result = await window.electronAPI.downloadFolder(
+        serverId,
+        file.path,
+        conflictStrategy
+      );
+
+      // Update state with localPath for potential retry
+      if (result.operationId && result.localPath) {
+        setFolderDownloadState(prev => prev ? {
+          ...prev,
+          operationId: result.operationId!,
+          localBasePath: result.localPath!,
+        } : null);
+      }
+
+      if (result.success) {
+        toast.success(`Downloaded ${result.downloadedCount} files`, { id: toastId });
+      } else if (result.cancelled) {
+        toast.info('Folder download cancelled', { id: toastId });
+      } else if (result.failedFiles && result.failedFiles.length > 0) {
+        // Partial success - some files failed, offer retry
+        const successCount = result.downloadedCount || 0;
+        const failCount = result.failedFiles.length;
+        toast.warning(
+          `Downloaded ${successCount} files, ${failCount} failed`,
+          {
+            id: toastId,
+            description: result.failedFiles.slice(0, 3).map(f => f.path).join(', ') +
+              (failCount > 3 ? ` and ${failCount - 3} more` : ''),
+            action: {
+              label: 'Retry Failed',
+              onClick: () => handleRetryFailedDownloads(
+                file.path,
+                result.localPath || '',
+                result.failedFiles!
+              ),
+            },
+            duration: 15000, // Longer duration for retry option
+          }
+        );
+      } else if (result.error) {
+        toast.error('Folder download failed', {
+          id: toastId,
+          description: result.error,
+        });
+      } else {
+        // User cancelled folder picker
+        toast.dismiss(toastId);
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error('Folder download failed', {
+        id: toastId,
+        description: errorMsg,
+      });
+    } finally {
+      // Clean up progress listener
+      if (folderDownloadProgressCleanupRef.current) {
+        folderDownloadProgressCleanupRef.current();
+        folderDownloadProgressCleanupRef.current = null;
+      }
+      activeToastRef.current = null;
+      folderDownloadActiveRef.current = false;
+      setFolderDownloadState(null);
+    }
+  }, [serverId, file.path, file.name, handleRetryFailedDownloads]);
+
   const itemClasses = [
     'file-item',
     isSelected && 'file-item--selected',
@@ -528,6 +741,7 @@ function FileItem({
               <div className="file-item__context-menu-separator" />
               <button onClick={handleUpload}>Upload file...</button>
               <button onClick={handleUploadFolder}>Upload Folder...</button>
+              <button onClick={handleDownloadFolder}>Download Folder...</button>
               <button onClick={handleRenameStart}>Rename</button>
               <button onClick={handleDelete}>Delete</button>
             </>
