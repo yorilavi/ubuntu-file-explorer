@@ -2,7 +2,19 @@
 
 ## What This Is
 
-A desktop file explorer for browsing remote Ubuntu servers via SSH. It provides a macOS Finder-like experience with Miller column navigation, instant image and code previews with syntax highlighting, and per-server favorites for quick access to bookmarked folders. Built for personal use to make browsing remote servers as pleasant as browsing local files.
+A desktop file explorer for browsing remote Ubuntu servers via SSH. It provides a macOS Finder-like experience with Miller column navigation, instant image and code previews with syntax highlighting, markdown lightbox viewer, and per-server favorites for quick access to bookmarked folders. Built for personal use to make browsing remote servers as pleasant as browsing local files.
+
+## Current State
+
+**Shipped:** v1.1 Feature Completion (2026-01-30)
+
+The app is fully functional with all core features plus v1.1 enhancements:
+- SSH connection with key and password authentication
+- Miller column navigation with hidden files toggle
+- Image, code, and markdown preview with lightbox viewer
+- File operations (download, upload, rename, delete, move)
+- Large file streaming for 10,000+ line files
+- Per-server favorites
 
 ## Core Value
 
@@ -12,6 +24,7 @@ Browse remote servers visually with instant image and code previews — no more 
 
 ### Validated
 
+**v1.0 MVP (2026-01-28)**
 - ✓ Parse ~/.ssh/config to list available servers — v1.0
 - ✓ Add and save custom SSH connections — v1.0
 - ✓ Connect to servers with SSH key authentication — v1.0
@@ -32,18 +45,23 @@ Browse remote servers visually with instant image and code previews — no more 
 - ✓ Column and preview panel widths persist across app restarts — v1.0
 - ✓ File transfer progress toasts with cancel option — v1.0
 
+**v1.1 Feature Completion (2026-01-30)**
+- ✓ Hidden files toggle with Cmd+Shift+. keyboard shortcut — v1.1
+- ✓ Hidden files toggle state persists across sessions — v1.1
+- ✓ Password authentication with encrypted storage — v1.1
+- ✓ Move files to different folder via folder picker modal — v1.1
+- ✓ Markdown lightbox with GFM rendering and syntax highlighting — v1.1
+- ✓ Arrow key navigation in markdown lightbox — v1.1
+- ✓ Large code files (10,000+ lines) load without UI freeze — v1.1
+- ✓ Double-click resize handle to reset column/preview width — v1.1
+
 ### Active
 
-**Current Milestone: v1.1 Feature Completion**
+**Next Milestone Goals**
 
-Goal: Complete the remaining v1.0 backlog — file move UI, markdown preview, hidden files toggle, lazy loading, resize reset, and password auth.
-
-- [ ] Move files to different folder on server (backend ready, needs RemoteFolderPicker UI)
-- [ ] Markdown lightbox viewer (spacebar on .md opens rendered view)
-- [ ] Hidden files toggle (show/hide dotfiles)
-- [ ] Lazy loading for large code files (>500 lines load incrementally)
-- [ ] Double-click resize handle to reset to default width
-- [ ] Password authentication support
+Requirements to be defined in `/gsd:new-milestone`:
+- Folder upload (tar/gzip approach with server-side extraction)
+- Additional features based on user feedback
 
 ### Out of Scope
 
@@ -55,10 +73,11 @@ Goal: Complete the remaining v1.0 backlog — file move UI, markdown preview, hi
 - Terminal/shell access — use dedicated terminal for that
 - Folder synchronization — two-way sync is complex
 - Cloud storage (S3, GCS) — different auth models, scope creep
+- OAuth/SSO — enterprise feature, personal use focus
 
 ## Context
 
-Shipped v1.0 with 8,227 lines TypeScript/TSX/CSS in 48 source files.
+Shipped v1.1 with ~19,000 lines TypeScript/TSX/CSS in 100+ source files.
 
 **Tech stack:**
 - Electron 40 (nodeIntegration: false, contextIsolation: true, sandbox: true)
@@ -70,15 +89,16 @@ Shipped v1.0 with 8,227 lines TypeScript/TSX/CSS in 48 source files.
 - @tanstack/react-virtual for virtualized lists
 - Shiki for syntax highlighting
 - Sonner for toast notifications
+- react-markdown with remark-gfm for markdown rendering
 
-**User feedback themes from v1 testing:**
+**User feedback themes from testing:**
 - Column resize needed to be pixel-based (percentage sizing didn't work)
 - Preview panel expansion is useful for large images
 - Lightbox navigation is essential for browsing image directories
 - Width persistence eliminates repetitive resizing
+- Hidden files toggle matches expected macOS behavior
 
 **Known issues:**
-- Move file feature needs custom RemoteFolderPicker (native dialogs can't browse remote)
 - Folder upload needs tar/gzip approach with server-side extraction check
 
 ## Constraints
@@ -102,6 +122,10 @@ Shipped v1.0 with 8,227 lines TypeScript/TSX/CSS in 48 source files.
 | safeStorage for credentials | macOS Keychain integration | ✓ Good — secure by default |
 | Stream-based transfers | Progress callbacks via data event | ✓ Good — real-time progress |
 | AbortController for cancellation | Per-operation ID for clean cleanup | ✓ Good — ESC key works |
+| Default showHiddenFiles false | Matches macOS Finder default | ✓ Good — expected behavior |
+| Spacebar toggles lightbox | Matches macOS Quick Look | ✓ Good — native feel |
+| 500 line streaming threshold | Consistent with truncation limit | ✓ Good — smooth large files |
+| RemoteFolderPicker for move | Native dialogs can't browse remote | ✓ Good — full control |
 
 ---
-*Last updated: 2026-01-28 after starting v1.1 milestone*
+*Last updated: 2026-01-30 after v1.1 milestone*
