@@ -17,7 +17,13 @@ import {
   cancelFolderUpload,
   generateFolderUploadId,
 } from '../ssh/folder-upload-service';
-import type { FolderUploadProgress } from '../ssh/types';
+import {
+  downloadFolder,
+  cancelFolderDownload,
+  retryFailedDownloads,
+  generateFolderDownloadId,
+} from '../ssh/folder-download-service';
+import type { FolderUploadProgress, FolderDownloadProgress, ConflictStrategy } from '../ssh/types';
 
 /**
  * Send progress update to renderer and update dock/taskbar progress bar.
@@ -288,6 +294,133 @@ export function registerFileOperationsHandlers(mainWindow: BrowserWindow): void 
       const cancelled = cancelFolderUpload(operationId);
       mainWindow.setProgressBar(-1);
       return { success: cancelled };
+    }
+  );
+
+  // Folder download handler - shows folder picker then downloads recursively with progress
+  ipcMain.handle(
+    'file-ops:download-folder',
+    async (
+      _event,
+      serverId: string,
+      remotePath: string,
+      conflictStrategy: ConflictStrategy
+    ) => {
+      // Show folder picker dialog for destination
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select destination folder',
+        properties: ['openDirectory', 'createDirectory'],
+        buttonLabel: 'Download Here',
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false };
+      }
+
+      const localDir = result.filePaths[0];
+      const operationId = generateFolderDownloadId();
+
+      try {
+        const downloadResult = await downloadFolder(
+          serverId,
+          remotePath,
+          localDir,
+          conflictStrategy,
+          operationId,
+          (progress: FolderDownloadProgress) => {
+            // Send progress to renderer
+            mainWindow.webContents.send('file-ops:folder-download-progress', {
+              operationId,
+              ...progress,
+            });
+            // Update dock progress bar
+            const dockProgress = progress.totalFiles > 0
+              ? progress.completedFiles / progress.totalFiles
+              : 0;
+            mainWindow.setProgressBar(dockProgress);
+          }
+        );
+
+        // Clear progress bar
+        mainWindow.setProgressBar(-1);
+
+        return {
+          success: downloadResult.success,
+          downloadedCount: downloadResult.downloadedCount,
+          failedFiles: downloadResult.failedFiles,
+          operationId,
+          cancelled: downloadResult.cancelled,
+          localPath: localDir,
+        };
+      } catch (err) {
+        mainWindow.setProgressBar(-1);
+        const errorMsg = err instanceof Error ? err.message : 'Folder download failed';
+        if (errorMsg === 'Operation cancelled') {
+          return { success: false, cancelled: true, operationId };
+        }
+        console.error(`[file-operations-handlers] Folder download error:`, err);
+        return { success: false, error: errorMsg, operationId };
+      }
+    }
+  );
+
+  // Cancel folder download handler
+  ipcMain.handle(
+    'file-ops:cancel-folder-download',
+    (_event, operationId: string) => {
+      const cancelled = cancelFolderDownload(operationId);
+      mainWindow.setProgressBar(-1);
+      return { success: cancelled };
+    }
+  );
+
+  // Retry failed downloads handler
+  ipcMain.handle(
+    'file-ops:retry-failed-downloads',
+    async (
+      _event,
+      serverId: string,
+      remoteFolderPath: string,
+      localBasePath: string,
+      failedFiles: string[],
+      conflictStrategy: ConflictStrategy
+    ) => {
+      const operationId = generateFolderDownloadId();
+
+      try {
+        const retryResult = await retryFailedDownloads(
+          serverId,
+          remoteFolderPath,
+          localBasePath,
+          failedFiles,
+          conflictStrategy,
+          (progress: FolderDownloadProgress) => {
+            mainWindow.webContents.send('file-ops:folder-download-progress', {
+              operationId,
+              ...progress,
+            });
+            const dockProgress = progress.totalFiles > 0
+              ? progress.completedFiles / progress.totalFiles
+              : 0;
+            mainWindow.setProgressBar(dockProgress);
+          }
+        );
+
+        mainWindow.setProgressBar(-1);
+
+        return {
+          success: retryResult.success,
+          downloadedCount: retryResult.downloadedCount,
+          failedFiles: retryResult.failedFiles,
+          operationId,
+          cancelled: retryResult.cancelled,
+        };
+      } catch (err) {
+        mainWindow.setProgressBar(-1);
+        const errorMsg = err instanceof Error ? err.message : 'Retry failed';
+        console.error(`[file-operations-handlers] Retry download error:`, err);
+        return { success: false, error: errorMsg, operationId };
+      }
     }
   );
 }
