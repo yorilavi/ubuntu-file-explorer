@@ -11,6 +11,9 @@ import HiddenFilesToggle from './components/HiddenFilesToggle';
 import { ToastProvider } from './components/ToastProvider';
 import { RemoteFolderPicker } from './components/RemoteFolderPicker';
 
+// Default preview panel width for reset
+const DEFAULT_PREVIEW_WIDTH = 300;
+
 // File extension categories for lightbox preview
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
 const MARKDOWN_EXTS = ['md', 'mdx'];
@@ -130,6 +133,16 @@ function App(): React.JSX.Element {
     e.preventDefault();
     setPreviewResizing({ startX: e.clientX, startWidth: previewWidth });
   }, [previewWidth]);
+
+  // Handle double-click on preview resize handle to reset panel width
+  const handlePreviewDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent interference with drag
+
+    // Reset to default width and persist
+    setPreviewWidth(DEFAULT_PREVIEW_WIDTH);
+    window.electronAPI.setPreviewPanelWidth(DEFAULT_PREVIEW_WIDTH);
+  }, []);
 
   // Subscribe to connection state changes
   useEffect(() => {
@@ -516,6 +529,7 @@ function App(): React.JSX.Element {
                   <div
                     className={`browser-main__resize-handle ${previewResizing ? 'browser-main__resize-handle--active' : ''}`}
                     onMouseDown={handlePreviewResizeStart}
+                    onDoubleClick={handlePreviewDoubleClick}
                   />
                   <div className="browser-preview" style={{ width: previewWidth }}>
                     <PreviewPanel
