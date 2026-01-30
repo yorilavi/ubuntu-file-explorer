@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** v1.2 Folder Operations - executing phase 12
+**Current focus:** v1.2 Folder Operations - executing phase 13
 
 ## Current Position
 
-Phase: 12 of 14 (Folder Upload)
-Plan: 03 of 03
-Status: Phase complete
-Last activity: 2026-01-30 - Completed 12-03-PLAN.md
+Phase: 13 of 14 (Folder Download)
+Plan: 01 of 03
+Status: In progress
+Last activity: 2026-01-30 - Completed 13-01-PLAN.md
 
-Progress: [##########################░░░░] v1.1 Complete + Phase 12 complete (3/9 v1.2 plans)
+Progress: [###########################░░░] v1.1 Complete + Phase 12 complete + 13-01 (4/9 v1.2 plans)
 
 ## Milestone Summary
 
@@ -23,12 +23,12 @@ Progress: [##########################░░░░] v1.1 Complete + Phase 12 comp
 Goal: Enable full folder transfer in both directions plus PDF preview.
 
 Roadmap:
-- Phase 12: Folder Upload (7 requirements) - COMPLETE ✅
-- Phase 13: Folder Download (6 requirements)
+- Phase 12: Folder Upload (7 requirements) - COMPLETE
+- Phase 13: Folder Download (6 requirements) - IN PROGRESS (Plan 01 complete)
 - Phase 14: PDF Preview (6 requirements)
-- Total: 19 requirements, 7 complete (37%)
+- Total: 19 requirements, 8 complete (42%)
 
-Next: Plan Phase 13 (Folder Download)
+Next: Execute 13-02-PLAN.md (IPC handlers)
 
 ---
 
@@ -52,18 +52,18 @@ Stats:
 ## Performance Metrics
 
 **Velocity (cumulative):**
-- Total plans completed: 37 (22 v1.0 + 10 v1.1 + 5 v1.2)
-- Total phases: 12 complete
+- Total plans completed: 38 (22 v1.0 + 10 v1.1 + 6 v1.2)
+- Total phases: 12 complete, 1 in progress
 - Total milestones: 2 complete, 1 in progress
 
-**v1.2 Phase 12 Execution:**
-- Duration: 1 day (2026-01-30)
-- Plans: 3
-- Phases: 1 complete
+**v1.2 Phase 13 Execution:**
+- Duration: In progress
+- Plans: 1/3 complete
+- Phases: 0 complete
 
 ## Accumulated Context
 
-### Decisions (v1.1)
+### Decisions (v1.1+)
 
 | Decision | Phase | Rationale |
 |----------|-------|-----------|
@@ -97,6 +97,10 @@ Stats:
 | Use 'close' event for SFTP WriteStream | 12-03 | ssh2 streams don't reliably emit 'finish' |
 | 15-second toast for retry button | 12-03 | Gives users time to review failed files |
 | Show current file in progress toast | 12-03 | Detailed visual feedback during upload |
+| Mirror folder-upload-service patterns | 13-01 | Consistency between upload and download services |
+| Finder-style rename for conflicts | 13-01 | "file (1).ext" pattern for conflict resolution |
+| Track file count and byte count | 13-01 | Detailed progress for UI feedback |
+| Clean up partial files on cancel/error | 13-01 | Prevents leaving corrupt partial downloads |
 
 ### Technical Notes
 
@@ -113,12 +117,11 @@ Phase 12 Complete:
 - Plan 02: IPC handlers and preload API exposed
 - Plan 03: UI integration with context menu, progress tracking, and retry
 
-Phase 12 delivered full folder upload feature:
-- Upload local folders recursively to remote servers
-- Real-time progress tracking with cancel functionality
-- Automatic retry for failed files
-- Hidden files filtering (.DS_Store when toggle off)
-- Empty directory preservation
+Phase 13 In Progress:
+- Plan 01: Backend folder download service (COMPLETE)
+  - Types: FolderDownloadProgress, FolderDownloadResult, RemoteFileEntry, ConflictStrategy
+  - Service: downloadFolder, cancelFolderDownload, retryFailedDownloads
+  - Patterns: recursive enumeration, streaming download, conflict resolution
 
 ### Blockers/Concerns
 
@@ -127,8 +130,8 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed Phase 12 (Folder Upload)
-Resume file: None - ready for Phase 13 planning
+Stopped at: Completed 13-01-PLAN.md
+Resume file: None - ready for 13-02-PLAN.md
 
 ---
 *Last updated: 2026-01-30*
