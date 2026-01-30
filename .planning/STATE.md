@@ -9,26 +9,26 @@ See: .planning/PROJECT.md (updated 2026-01-30)
 
 ## Current Position
 
-Phase: 12 (ready to plan)
-Plan: —
-Status: Roadmap created, ready for phase planning
-Last activity: 2026-01-30 — v1.2 roadmap created
+Phase: 12 of 14 (Folder Upload)
+Plan: 01 of 03
+Status: In progress
+Last activity: 2026-01-30 - Completed 12-01-PLAN.md
 
-Progress: [########################] v1.1 Complete (11 phases shipped) → v1.2 Phase 12 ready
+Progress: [########################░░░░░░] v1.1 Complete + Phase 12 Plan 01 done (1/9 v1.2 plans)
 
 ## Milestone Summary
 
-**v1.2 Folder Operations** — PLANNING
+**v1.2 Folder Operations** — IN PROGRESS
 
 Goal: Enable full folder transfer in both directions plus PDF preview.
 
 Roadmap:
-- Phase 12: Folder Upload (7 requirements)
+- Phase 12: Folder Upload (7 requirements) - Plan 01 complete
 - Phase 13: Folder Download (6 requirements)
 - Phase 14: PDF Preview (6 requirements)
 - Total: 19 requirements, 100% coverage
 
-Next: `/gsd:plan-phase 12`
+Next: Execute 12-02-PLAN.md
 
 ---
 
@@ -52,9 +52,9 @@ Stats:
 ## Performance Metrics
 
 **Velocity (cumulative):**
-- Total plans completed: 32 (22 v1.0 + 10 v1.1)
-- Total phases: 11
-- Total milestones: 2
+- Total plans completed: 33 (22 v1.0 + 10 v1.1 + 1 v1.2)
+- Total phases: 11 complete, 12 in progress
+- Total milestones: 2 complete, 1 in progress
 
 **v1.1 Execution:**
 - Duration: 3 days (2026-01-28 → 2026-01-30)
@@ -88,6 +88,9 @@ Stats:
 | Default preview width 300px | 11-02 | Matches initial preview panel width |
 | Streaming threshold 500 lines | 11-01 | Matches existing MAX_CODE_LINES |
 | 50KB initial, 100KB subsequent chunks | 11-01 | Fast initial render, efficient throughput |
+| Filter hidden files via segment check | 12-01 | Catches .DS_Store and ._* in any path segment |
+| Sequential file upload with progress | 12-01 | Simpler than parallel, reliable progress tracking |
+| Depth-sorted directory creation | 12-01 | Ensures parents exist before children |
 
 ### Technical Notes
 
@@ -106,8 +109,8 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: v1.2 roadmap created
-Resume with: `/gsd:plan-phase 12`
+Stopped at: Completed 12-01-PLAN.md
+Resume file: .planning/phases/12-folder-upload/12-02-PLAN.md
 
 ---
 *Last updated: 2026-01-30*
