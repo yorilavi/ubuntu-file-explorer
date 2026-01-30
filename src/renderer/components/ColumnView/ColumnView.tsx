@@ -16,6 +16,7 @@ interface ColumnViewProps {
   onRefreshColumn?: (refreshFn: () => void) => void;  // Callback to expose refresh function
   onFavoritesChanged?: () => void;  // Called when favorites are modified
   onMoveToClick?: (file: FileEntry) => void;  // Called when "Move to..." is clicked on a file
+  onFilesLoaded?: (files: FileEntry[]) => void;  // Called when files are loaded in active column
 }
 
 const DEFAULT_COLUMN_WIDTH = 220;
@@ -218,6 +219,7 @@ function ColumnView({
   onRefreshColumn,
   onFavoritesChanged,
   onMoveToClick,
+  onFilesLoaded,
 }: ColumnViewProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -415,6 +417,14 @@ function ColumnView({
     const currentPath = columns[activeColumnIndex]?.path || '/';
     onPathChange?.(currentPath);
   }, [activeColumnIndex, columns, onPathChange]);
+
+  // Notify parent when files are loaded in active column
+  useEffect(() => {
+    const activeColumn = columns[activeColumnIndex];
+    if (activeColumn && activeColumn.entries.length > 0 && !activeColumn.loading && onFilesLoaded) {
+      onFilesLoaded(activeColumn.entries);
+    }
+  }, [columns, activeColumnIndex, onFilesLoaded]);
 
   // Auto-scroll to keep active column visible
   useEffect(() => {

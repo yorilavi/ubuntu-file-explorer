@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import '../shared/types'; // Import for Window interface extension
 import type { ConnectionState, FileEntry } from '../shared/types';
@@ -6,10 +6,21 @@ import ServerSidebar from './components/ServerSidebar';
 import ColumnView from './components/ColumnView';
 import PathBar from './components/PathBar';
 import PreviewPanel from './components/PreviewPanel';
-import LightboxView from './components/PreviewPanel/Lightbox';
+import LightboxView, { LightboxSlide } from './components/PreviewPanel/Lightbox';
 import HiddenFilesToggle from './components/HiddenFilesToggle';
 import { ToastProvider } from './components/ToastProvider';
 import { RemoteFolderPicker } from './components/RemoteFolderPicker';
+
+/**
+ * Check if a file is previewable (image or markdown).
+ */
+function isPreviewable(file: FileEntry): boolean {
+  if (file.isDirectory) return false;
+  const ext = file.name.toLowerCase().split('.').pop() || '';
+  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
+  const markdownExts = ['md', 'mdx'];
+  return imageExts.includes(ext) || markdownExts.includes(ext);
+}
 
 /**
  * Render connection status message for display during connection process.
@@ -36,6 +47,11 @@ function App(): React.JSX.Element {
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
+  // Previewable files navigation state
+  const [previewableFiles, setPreviewableFiles] = useState<FileEntry[]>([]);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+  const [markdownContent, setMarkdownContent] = useState<string | null>(null);
 
   // Move file state
   const [moveTarget, setMoveTarget] = useState<FileEntry | null>(null);
@@ -212,12 +228,27 @@ function App(): React.JSX.Element {
   const handleLightboxClose = useCallback(() => {
     setLightboxOpen(false);
     setLightboxSrc(null);
+    setMarkdownContent(null);
   }, []);
 
   // Update lightbox when navigating to a new image while lightbox is open
   const handleImagePreviewReady = useCallback((dataUrl: string) => {
     if (lightboxOpen) {
       setLightboxSrc(dataUrl);
+      setMarkdownContent(null); // Clear markdown when switching to image
+    }
+  }, [lightboxOpen]);
+
+  // Handle markdown preview ready - open lightbox with markdown content
+  const handleMarkdownPreviewReady = useCallback((content: string) => {
+    if (lightboxOpen) {
+      setMarkdownContent(content);
+      setLightboxSrc(null); // Clear image when switching to markdown
+    } else {
+      // Opening lightbox for markdown
+      setMarkdownContent(content);
+      setLightboxSrc(null);
+      setLightboxOpen(true);
     }
   }, [lightboxOpen]);
 
@@ -277,6 +308,22 @@ function App(): React.JSX.Element {
     refreshColumnRef.current = refreshFn;
   }, []);
 
+  // Handle files loaded from ColumnView to track previewable files
+  const handleFilesLoaded = useCallback((files: FileEntry[]) => {
+    const previewable = files.filter(isPreviewable);
+    setPreviewableFiles(previewable);
+  }, []);
+
+  // Update currentPreviewIndex when selectedFile changes
+  useEffect(() => {
+    if (selectedFile && previewableFiles.length > 0) {
+      const index = previewableFiles.findIndex(f => f.path === selectedFile.path);
+      if (index !== -1) {
+        setCurrentPreviewIndex(index);
+      }
+    }
+  }, [selectedFile, previewableFiles]);
+
   // Toggle hidden files visibility and persist preference
   const handleToggleHidden = useCallback(() => {
     setShowHidden((prev) => {
@@ -313,18 +360,19 @@ function App(): React.JSX.Element {
   // Handle spacebar for lightbox and arrow keys when lightbox is open
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Spacebar opens lightbox if image selected and lightbox not already open
+      // Spacebar opens lightbox if previewable file selected and lightbox not already open
       if (e.code === 'Space' && !e.repeat && !lightboxOpen && selectedFile && !selectedFile.isDirectory) {
         const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
         const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
-        if (imageExts.includes(ext)) {
+        const markdownExts = ['md', 'mdx'];
+        if (imageExts.includes(ext) || markdownExts.includes(ext)) {
           e.preventDefault();
-          // Dispatch custom event for PreviewPanel to provide the image data URL
+          // Dispatch custom event for PreviewPanel to provide the content
           window.dispatchEvent(new CustomEvent('open-lightbox'));
         }
       }
 
-      // When lightbox is open, intercept arrow keys for file navigation
+      // When lightbox is open, intercept arrow keys for previewable file navigation
       if (lightboxOpen && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
         e.preventDefault();
         e.stopPropagation();
@@ -341,6 +389,29 @@ function App(): React.JSX.Element {
   }, [selectedFile, lightboxOpen]);
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
+
+  // Build slides array for lightbox - supports both images and markdown
+  const lightboxSlides = useMemo((): LightboxSlide[] => {
+    if (!selectedFile) return [];
+
+    const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
+    const isMarkdown = ext === 'md' || ext === 'mdx';
+
+    if (isMarkdown && markdownContent) {
+      return [{
+        type: 'markdown' as const,
+        content: markdownContent,
+        filename: selectedFile.name,
+        basePath: selectedFile.path,
+      }];
+    } else if (lightboxSrc) {
+      return [{
+        type: 'image' as const,
+        src: lightboxSrc,
+      }];
+    }
+    return [];
+  }, [selectedFile, markdownContent, lightboxSrc]);
 
   return (
     <>
@@ -384,6 +455,7 @@ function App(): React.JSX.Element {
                       onFavoritesChanged={handleFavoritesChanged}
                       onMoveToClick={handleMoveToClick}
                       onRefreshColumn={handleRefreshColumnCallback}
+                      onFilesLoaded={handleFilesLoaded}
                     />
                   </div>
                   <div
@@ -396,6 +468,7 @@ function App(): React.JSX.Element {
                       selectedFile={selectedFile}
                       onImageClick={handleImageClick}
                       onImagePreviewReady={handleImagePreviewReady}
+                      onMarkdownPreviewReady={handleMarkdownPreviewReady}
                     />
                   </div>
                 </div>
@@ -416,11 +489,14 @@ function App(): React.JSX.Element {
       <ToastProvider />
 
       {/* Lightbox overlay */}
-      {lightboxSrc && (
+      {lightboxOpen && lightboxSlides.length > 0 && (
         <LightboxView
-          src={lightboxSrc}
+          slides={lightboxSlides}
+          currentIndex={0}
           open={lightboxOpen}
           onClose={handleLightboxClose}
+          totalPreviewable={previewableFiles.length}
+          currentPreviewPosition={currentPreviewIndex + 1}
         />
       )}
 

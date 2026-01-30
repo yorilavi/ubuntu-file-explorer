@@ -27,6 +27,10 @@ interface LightboxViewProps {
   onIndexChange?: (index: number) => void;
   onNavigate?: (path: string) => void;
 
+  // Position indicator props (for previewable files navigation)
+  totalPreviewable?: number;  // Total previewable files in directory
+  currentPreviewPosition?: number;  // Current position (1-based for display)
+
   // Common props
   open: boolean;
   onClose: () => void;
@@ -72,6 +76,8 @@ function LightboxView({
   onClose,
   onNavigate,
   onIndexChange,
+  totalPreviewable,
+  currentPreviewPosition,
 }: LightboxViewProps): React.JSX.Element | null {
   // Listen for open-lightbox custom event (triggered by spacebar)
   const handleOpenLightbox = useCallback(() => {
@@ -115,62 +121,88 @@ function LightboxView({
   // Determine if we should show navigation buttons
   const showNavigation = lightboxSlides.length > 1;
 
+  // Position indicator - show when total > 1
+  const showPositionIndicator = totalPreviewable && totalPreviewable > 1 && currentPreviewPosition;
+
   if (!open || lightboxSlides.length === 0) return null;
 
   return (
-    <Lightbox
-      open={open}
-      close={onClose}
-      slides={lightboxSlides}
-      index={currentIndex}
-      on={{
-        view: ({ index }) => {
-          if (onIndexChange && index !== currentIndex) {
-            onIndexChange(index);
-          }
-        },
-      }}
-      plugins={[Zoom]}
-      render={{
-        slide: ({ slide }) => {
-          // Handle custom markdown slides
-          const extendedSlide = slide as ExtendedSlide;
-          if (extendedSlide.customType === 'markdown') {
-            return (
-              <MarkdownSlide
-                content={extendedSlide.content || ''}
-                filename={extendedSlide.filename || 'Markdown'}
-                basePath={extendedSlide.basePath || '/'}
-                onNavigate={onNavigate}
-              />
-            );
-          }
-          // Return undefined for default image rendering
-          return undefined;
-        },
-        // Show prev/next buttons only when multiple slides
-        buttonPrev: showNavigation ? undefined : () => null,
-        buttonNext: showNavigation ? undefined : () => null,
-      }}
-      zoom={{
-        maxZoomPixelRatio: 3,
-        zoomInMultiplier: 2,
-        doubleTapDelay: 300,
-        doubleClickMaxStops: 2,
-        keyboardMoveDistance: 50,
-        wheelZoomDistanceFactor: 100,
-        scrollToZoom: true,
-      }}
-      carousel={{
-        finite: true,
-      }}
-      controller={{
-        closeOnBackdropClick: true,
-      }}
-      styles={{
-        container: { backgroundColor: 'rgba(0, 0, 0, 0.9)' },
-      }}
-    />
+    <>
+      <Lightbox
+        open={open}
+        close={onClose}
+        slides={lightboxSlides}
+        index={currentIndex}
+        on={{
+          view: ({ index }) => {
+            if (onIndexChange && index !== currentIndex) {
+              onIndexChange(index);
+            }
+          },
+        }}
+        plugins={[Zoom]}
+        render={{
+          slide: ({ slide }) => {
+            // Handle custom markdown slides
+            const extendedSlide = slide as ExtendedSlide;
+            if (extendedSlide.customType === 'markdown') {
+              return (
+                <MarkdownSlide
+                  content={extendedSlide.content || ''}
+                  filename={extendedSlide.filename || 'Markdown'}
+                  basePath={extendedSlide.basePath || '/'}
+                  onNavigate={onNavigate}
+                />
+              );
+            }
+            // Return undefined for default image rendering
+            return undefined;
+          },
+          // Show prev/next buttons only when multiple slides
+          buttonPrev: showNavigation ? undefined : () => null,
+          buttonNext: showNavigation ? undefined : () => null,
+        }}
+        zoom={{
+          maxZoomPixelRatio: 3,
+          zoomInMultiplier: 2,
+          doubleTapDelay: 300,
+          doubleClickMaxStops: 2,
+          keyboardMoveDistance: 50,
+          wheelZoomDistanceFactor: 100,
+          scrollToZoom: true,
+        }}
+        carousel={{
+          finite: true,
+        }}
+        controller={{
+          closeOnBackdropClick: true,
+        }}
+        styles={{
+          container: { backgroundColor: 'rgba(0, 0, 0, 0.9)' },
+        }}
+      />
+      {/* Position indicator - displayed outside lightbox at bottom center */}
+      {showPositionIndicator && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            fontSize: '14px',
+            fontWeight: 500,
+            zIndex: 10001,  // Above lightbox
+            pointerEvents: 'none',
+          }}
+        >
+          {currentPreviewPosition} of {totalPreviewable}
+        </div>
+      )}
+    </>
   );
 }
 
