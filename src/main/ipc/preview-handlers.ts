@@ -141,6 +141,7 @@ async function extractImageMetadata(
 /**
  * Process text/code file for preview.
  * Returns preview data and whether the file should be streamed.
+ * Note: Markdown files are never streamed because lightbox needs full content.
  */
 function processCodeFile(
   buffer: Buffer,
@@ -148,7 +149,10 @@ function processCodeFile(
 ): { preview: PreviewData & { type: 'code' }; shouldStream: boolean } {
   const content = buffer.toString('utf-8');
   const lines = content.split('\n');
-  const shouldStream = lines.length > LARGE_FILE_THRESHOLD;
+
+  // Don't stream markdown - lightbox needs full content for rendering
+  const isMarkdown = language === 'markdown';
+  const shouldStream = !isMarkdown && lines.length > LARGE_FILE_THRESHOLD;
 
   if (shouldStream) {
     // Return minimal preview - streaming will provide full content

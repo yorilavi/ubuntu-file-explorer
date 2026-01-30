@@ -268,6 +268,15 @@
   padding: 12px !important;
 }
 
+.preview-panel__code-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted, #888);
+  font-size: 14px;
+}
+
 /* Folder preview */
 .preview-panel__folder {
   display: flex;

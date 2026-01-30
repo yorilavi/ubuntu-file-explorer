@@ -97,6 +97,9 @@ function CodePreview({
   const displayTruncated = truncated && !isStreaming;
   const showVirtualized = isStreaming && streamLines.length > 0;
 
+  // Large file waiting for streaming (empty content, high line count)
+  const isWaitingForStream = !isStreaming && !content && lineCount > 500;
+
   return (
     <div className="preview-panel__code">
       {/* Toolbar */}
@@ -133,6 +136,10 @@ function CodePreview({
             loadingComplete={streamComplete}
             showLineNumbers={showLineNumbers}
           />
+        ) : isWaitingForStream ? (
+          <div className="preview-panel__code-waiting">
+            Loading large file ({lineCount.toLocaleString()} lines)...
+          </div>
         ) : (
           <SyntaxHighlighter
             language={language}
