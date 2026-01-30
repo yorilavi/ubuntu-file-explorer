@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 ## Current Position
 
-Phase: 10 - Markdown Lightbox (IN PROGRESS)
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-01-30 - Completed 10-01-PLAN.md
+Phase: 10 - Markdown Lightbox (COMPLETE)
+Plan: 2 of 2 complete
+Status: Phase complete, pending verification
+Last activity: 2026-01-30 - Completed 10-02-PLAN.md
 
-Progress: [#########.................] v1.1 Phase 10 Plan 1 Complete (7 of ~11 plans)
+Progress: [##########................] v1.1 Phase 10 Complete (8 of ~11 plans)
 
 ## Milestone Goal
 
@@ -22,7 +22,7 @@ Complete v1.0 deferred features:
 - Hidden files toggle with persistence (Phase 7) - COMPLETE
 - Password authentication support (Phase 8) - COMPLETE
 - Move file UI with RemoteFolderPicker modal (Phase 9) - COMPLETE
-- Markdown lightbox viewer (Phase 10) - IN PROGRESS
+- Markdown lightbox viewer (Phase 10) - COMPLETE
 - Lazy loading for large code files + resize handle reset (Phase 11)
 
 ## Phase 10 Summary
@@ -31,14 +31,18 @@ Complete v1.0 deferred features:
 
 **Plan Status:**
 - Plan 01: COMPLETE - Markdown rendering infrastructure
-- Plan 02: PENDING - Integration with PreviewPanel and spacebar handler
+- Plan 02: COMPLETE - Integration with PreviewPanel and spacebar handler
 
-**Delivered (Plan 01):**
+**Delivered:**
 - react-markdown, remark-gfm, github-markdown-css dependencies
 - MarkdownRenderer component with GFM support and oneDark syntax highlighting
 - MarkdownSlide lightbox wrapper with fixed header and scrollable content
-- Extended Lightbox supporting both legacy single-image and new slides array
+- CodeSlide component for code file preview (extended scope)
+- Extended Lightbox supporting image, markdown, and code slide types
 - openExternal IPC for opening links in system browser
+- Spacebar toggle to open/close lightbox
+- Arrow key navigation between previewable files
+- Position indicator showing current file position
 
 ## Previous Milestone
 
@@ -57,8 +61,8 @@ Complete v1.0 deferred features:
 - Total execution time: 1 hour 23 min
 
 **v1.1 Progress:**
-- Plans completed: 7 (07-01, 07-02, 08-01, 08-02, 09-01, 09-02, 10-01)
-- Duration: 24 min total (3 min + 4 min + 3 min + 3 min + 4 min + 3 min + 4 min)
+- Plans completed: 8 (07-01, 07-02, 08-01, 08-02, 09-01, 09-02, 10-01, 10-02)
+- Duration: 36 min total
 
 ## Accumulated Context
 
@@ -80,14 +84,17 @@ Complete v1.0 deferred features:
 | Backward compatible Lightbox interface | 10-01 | Supports both legacy src prop and new slides array |
 | ExtendedSlide with customType discriminator | 10-01 | Avoids TypeScript conflicts with library types |
 | URL validation in openExternal | 10-01 | Only http/https allowed for security |
+| Spacebar toggles lightbox | 10-02 | Consistent with macOS Quick Look UX |
+| Disable scrollToZoom in lightbox | 10-02 | Allows content scrolling in markdown/code slides |
+| Extended code file support | 10-02 | User requested .py support during verification |
 
 ### Technical Notes
 
 - Hidden files: Cmd+Shift+. shortcut matches macOS Finder behavior - IMPLEMENTED
 - Password auth: Complete - eye toggle, save checkbox, stored password handling
 - Move file: Complete - context menu, folder picker modal, move IPC, undo toast
-- Markdown: Infrastructure complete (MarkdownRenderer, MarkdownSlide, Lightbox extended)
-- Lazy loading: Implement viewport-based content loading for large files
+- Markdown/Code lightbox: Complete - spacebar toggle, arrow navigation, position indicator
+- Lazy loading: Implement viewport-based content loading for large files (Phase 11)
 
 ### Blockers/Concerns
 
@@ -95,9 +102,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-30 01:10 UTC
-Stopped at: Completed 10-01-PLAN.md (Markdown rendering infrastructure)
-Resume with: Phase 10 Plan 02 (Markdown lightbox integration)
+Last session: 2026-01-30 01:45 UTC
+Stopped at: Completed 10-02-PLAN.md (Markdown lightbox integration)
+Resume with: Phase 10 verification, then Phase 11
 
 ---
 *Last updated: 2026-01-30*
