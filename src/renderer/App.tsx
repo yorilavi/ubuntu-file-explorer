@@ -11,15 +11,35 @@ import HiddenFilesToggle from './components/HiddenFilesToggle';
 import { ToastProvider } from './components/ToastProvider';
 import { RemoteFolderPicker } from './components/RemoteFolderPicker';
 
+// File extension categories for lightbox preview
+const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
+const MARKDOWN_EXTS = ['md', 'mdx'];
+const CODE_EXTS = [
+  'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',  // JavaScript/TypeScript
+  'py', 'pyw',                               // Python
+  'rb', 'rake',                              // Ruby
+  'go',                                      // Go
+  'rs',                                      // Rust
+  'java', 'kt', 'kts', 'scala',             // JVM languages
+  'c', 'cpp', 'cc', 'cxx', 'h', 'hpp',      // C/C++
+  'cs',                                      // C#
+  'swift',                                   // Swift
+  'php',                                     // PHP
+  'sh', 'bash', 'zsh', 'fish',              // Shell
+  'sql',                                     // SQL
+  'css', 'scss', 'sass', 'less',            // Stylesheets
+  'html', 'htm', 'xml', 'xhtml',            // Markup
+  'json', 'yaml', 'yml', 'toml',            // Config
+  'lua', 'vim', 'dockerfile',               // Other
+];
+
 /**
- * Check if a file is previewable (image or markdown).
+ * Check if a file is previewable in lightbox (image, markdown, or code).
  */
 function isPreviewable(file: FileEntry): boolean {
   if (file.isDirectory) return false;
   const ext = file.name.toLowerCase().split('.').pop() || '';
-  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
-  const markdownExts = ['md', 'mdx'];
-  return imageExts.includes(ext) || markdownExts.includes(ext);
+  return IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext);
 }
 
 /**
@@ -52,6 +72,8 @@ function App(): React.JSX.Element {
   const [previewableFiles, setPreviewableFiles] = useState<FileEntry[]>([]);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
   const [markdownContent, setMarkdownContent] = useState<string | null>(null);
+  const [codeContent, setCodeContent] = useState<string | null>(null);
+  const [codeLanguage, setCodeLanguage] = useState<string>('text');
 
   // Move file state
   const [moveTarget, setMoveTarget] = useState<FileEntry | null>(null);
@@ -229,13 +251,15 @@ function App(): React.JSX.Element {
     setLightboxOpen(false);
     setLightboxSrc(null);
     setMarkdownContent(null);
+    setCodeContent(null);
   }, []);
 
   // Update lightbox when navigating to a new image while lightbox is open
   const handleImagePreviewReady = useCallback((dataUrl: string) => {
     if (lightboxOpen) {
       setLightboxSrc(dataUrl);
-      setMarkdownContent(null); // Clear markdown when switching to image
+      setMarkdownContent(null);
+      setCodeContent(null);
     }
   }, [lightboxOpen]);
 
@@ -243,11 +267,30 @@ function App(): React.JSX.Element {
   const handleMarkdownPreviewReady = useCallback((content: string) => {
     if (lightboxOpen) {
       setMarkdownContent(content);
-      setLightboxSrc(null); // Clear image when switching to markdown
+      setLightboxSrc(null);
+      setCodeContent(null);
     } else {
       // Opening lightbox for markdown
       setMarkdownContent(content);
       setLightboxSrc(null);
+      setCodeContent(null);
+      setLightboxOpen(true);
+    }
+  }, [lightboxOpen]);
+
+  // Handle code preview ready - open lightbox with code content
+  const handleCodePreviewReady = useCallback((content: string, language: string) => {
+    if (lightboxOpen) {
+      setCodeContent(content);
+      setCodeLanguage(language);
+      setLightboxSrc(null);
+      setMarkdownContent(null);
+    } else {
+      // Opening lightbox for code
+      setCodeContent(content);
+      setCodeLanguage(language);
+      setLightboxSrc(null);
+      setMarkdownContent(null);
       setLightboxOpen(true);
     }
   }, [lightboxOpen]);
@@ -363,9 +406,8 @@ function App(): React.JSX.Element {
       // Spacebar opens lightbox if previewable file selected and lightbox not already open
       if (e.code === 'Space' && !e.repeat && !lightboxOpen && selectedFile && !selectedFile.isDirectory) {
         const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
-        const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
-        const markdownExts = ['md', 'mdx'];
-        if (imageExts.includes(ext) || markdownExts.includes(ext)) {
+        // Use the module-level extension lists for consistency
+        if (IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext)) {
           e.preventDefault();
           // Dispatch custom event for PreviewPanel to provide the content
           window.dispatchEvent(new CustomEvent('open-lightbox'));
@@ -390,12 +432,12 @@ function App(): React.JSX.Element {
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
 
-  // Build slides array for lightbox - supports both images and markdown
+  // Build slides array for lightbox - supports images, markdown, and code
   const lightboxSlides = useMemo((): LightboxSlide[] => {
     if (!selectedFile) return [];
 
     const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
-    const isMarkdown = ext === 'md' || ext === 'mdx';
+    const isMarkdown = MARKDOWN_EXTS.includes(ext);
 
     if (isMarkdown && markdownContent) {
       return [{
@@ -404,6 +446,13 @@ function App(): React.JSX.Element {
         filename: selectedFile.name,
         basePath: selectedFile.path,
       }];
+    } else if (codeContent) {
+      return [{
+        type: 'code' as const,
+        content: codeContent,
+        filename: selectedFile.name,
+        language: codeLanguage,
+      }];
     } else if (lightboxSrc) {
       return [{
         type: 'image' as const,
@@ -411,7 +460,7 @@ function App(): React.JSX.Element {
       }];
     }
     return [];
-  }, [selectedFile, markdownContent, lightboxSrc]);
+  }, [selectedFile, markdownContent, codeContent, codeLanguage, lightboxSrc]);
 
   return (
     <>
@@ -470,6 +519,7 @@ function App(): React.JSX.Element {
                       onImageClick={handleImageClick}
                       onImagePreviewReady={handleImagePreviewReady}
                       onMarkdownPreviewReady={handleMarkdownPreviewReady}
+                      onCodePreviewReady={handleCodePreviewReady}
                     />
                   </div>
                 </div>

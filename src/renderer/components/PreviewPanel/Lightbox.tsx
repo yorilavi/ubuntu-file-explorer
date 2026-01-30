@@ -6,14 +6,16 @@ import Lightbox, { Slide } from 'yet-another-react-lightbox';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import { MarkdownSlide } from './MarkdownSlide';
+import { CodeSlide } from './CodeSlide';
 
 // Slide types for the lightbox
 export interface LightboxSlide {
-  type: 'image' | 'markdown';
+  type: 'image' | 'markdown' | 'code';
   src?: string;           // For image slides
-  content?: string;       // For markdown slides
-  filename?: string;      // For markdown header
+  content?: string;       // For markdown/code slides
+  filename?: string;      // For markdown/code header
   basePath?: string;      // For markdown relative links
+  language?: string;      // For code syntax highlighting
 }
 
 // Props interface supporting both legacy single-image and new slides array
@@ -36,12 +38,13 @@ interface LightboxViewProps {
   onClose: () => void;
 }
 
-// Extended slide type that includes our custom markdown properties
+// Extended slide type that includes our custom markdown/code properties
 interface ExtendedSlide extends Slide {
-  customType?: 'markdown';
+  customType?: 'markdown' | 'code';
   content?: string;
   filename?: string;
   basePath?: string;
+  language?: string;
 }
 
 /**
@@ -104,6 +107,15 @@ function LightboxView({
         if (slide.type === 'image') {
           return { src: slide.src || '' };
         }
+        if (slide.type === 'code') {
+          return {
+            src: '',  // Required by the library but unused for code
+            customType: 'code',
+            content: slide.content,
+            filename: slide.filename,
+            language: slide.language,
+          };
+        }
         // For markdown slides, we use custom properties that we'll handle in render.slide
         return {
           src: '',  // Required by the library but unused for markdown
@@ -143,8 +155,8 @@ function LightboxView({
         plugins={[Zoom]}
         render={{
           slide: ({ slide }) => {
-            // Handle custom markdown slides
             const extendedSlide = slide as ExtendedSlide;
+            // Handle custom markdown slides
             if (extendedSlide.customType === 'markdown') {
               return (
                 <MarkdownSlide
@@ -152,6 +164,16 @@ function LightboxView({
                   filename={extendedSlide.filename || 'Markdown'}
                   basePath={extendedSlide.basePath || '/'}
                   onNavigate={onNavigate}
+                />
+              );
+            }
+            // Handle custom code slides
+            if (extendedSlide.customType === 'code') {
+              return (
+                <CodeSlide
+                  content={extendedSlide.content || ''}
+                  filename={extendedSlide.filename || 'Code'}
+                  language={extendedSlide.language || 'text'}
                 />
               );
             }

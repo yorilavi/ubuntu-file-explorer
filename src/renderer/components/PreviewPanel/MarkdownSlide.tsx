@@ -25,8 +25,13 @@ export function MarkdownSlide({
   basePath,
   onNavigate,
 }: MarkdownSlideProps): React.JSX.Element {
+  // Stop wheel event propagation to prevent lightbox zoom from intercepting scroll
+  const handleWheel = (e: React.WheelEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div className="markdown-slide">
+    <div className="markdown-slide" onWheel={handleWheel}>
       <div className="markdown-slide__header">
         <span className="markdown-slide__filename">{filename}</span>
       </div>

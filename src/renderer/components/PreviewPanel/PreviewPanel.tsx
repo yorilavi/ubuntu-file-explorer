@@ -15,6 +15,7 @@ interface PreviewPanelProps {
   onImageClick?: (dataUrl: string) => void;  // For lightbox
   onImagePreviewReady?: (dataUrl: string) => void;  // Called when new image preview loads
   onMarkdownPreviewReady?: (content: string) => void;  // Called when markdown preview loads
+  onCodePreviewReady?: (content: string, language: string) => void;  // Called when code preview loads
 }
 
 /**
@@ -132,6 +133,7 @@ function PreviewPanel({
   onImageClick,
   onImagePreviewReady,
   onMarkdownPreviewReady,
+  onCodePreviewReady,
 }: PreviewPanelProps): React.JSX.Element {
   const { preview, loading, progress } = usePreview(serverId, selectedFile);
 
@@ -146,16 +148,23 @@ function PreviewPanel({
     }
   }, [preview, onImagePreviewReady]);
 
-  // Update markdown content when navigating while lightbox is already open
+  // Helper to check if file is markdown
+  const isMarkdownFile = useCallback((filename: string) => {
+    const ext = filename.toLowerCase().split('.').pop();
+    return ext === 'md' || ext === 'mdx';
+  }, []);
+
+  // Update markdown/code content when navigating while lightbox is already open
   // (Spacebar opening is handled separately by handleOpenLightbox)
   useEffect(() => {
-    if (lightboxOpen && preview?.type === 'code' && selectedFile && onMarkdownPreviewReady) {
-      const ext = selectedFile.name.toLowerCase().split('.').pop();
-      if (ext === 'md' || ext === 'mdx') {
+    if (lightboxOpen && preview?.type === 'code' && selectedFile) {
+      if (isMarkdownFile(selectedFile.name) && onMarkdownPreviewReady) {
         onMarkdownPreviewReady(preview.content);
+      } else if (onCodePreviewReady) {
+        onCodePreviewReady(preview.content, preview.language);
       }
     }
-  }, [lightboxOpen, preview, selectedFile, onMarkdownPreviewReady]);
+  }, [lightboxOpen, preview, selectedFile, isMarkdownFile, onMarkdownPreviewReady, onCodePreviewReady]);
 
   // Handle spacebar event to open lightbox
   const handleOpenLightbox = useCallback(() => {
@@ -165,14 +174,15 @@ function PreviewPanel({
       onImageClick(currentPreview.dataUrl);
       return;
     }
-    // Markdown - check file extension since preview type is 'code'
+    // Code files (including markdown)
     if (currentPreview?.type === 'code' && selectedFile) {
-      const ext = selectedFile.name.toLowerCase().split('.').pop();
-      if ((ext === 'md' || ext === 'mdx') && onMarkdownPreviewReady) {
+      if (isMarkdownFile(selectedFile.name) && onMarkdownPreviewReady) {
         onMarkdownPreviewReady(currentPreview.content);
+      } else if (onCodePreviewReady) {
+        onCodePreviewReady(currentPreview.content, currentPreview.language);
       }
     }
-  }, [onImageClick, onMarkdownPreviewReady, selectedFile]);
+  }, [onImageClick, onMarkdownPreviewReady, onCodePreviewReady, selectedFile, isMarkdownFile]);
 
   useEffect(() => {
     window.addEventListener('open-lightbox', handleOpenLightbox);
