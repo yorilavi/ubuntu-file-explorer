@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 ## Current Position
 
-Phase: 9 - Move File Operations (IN PROGRESS)
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-01-29 - Completed 09-01-PLAN.md
+Phase: 9 - Move File Operations (COMPLETE)
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-01-30 - Completed 09-02-PLAN.md
 
-Progress: [#######...................] v1.1 Phase 9 Plan 1 of 2 (In Progress)
+Progress: [########..................] v1.1 Phase 9 Complete (6 of ~11 plans)
 
 ## Milestone Goal
 
 Complete v1.0 deferred features:
 - Hidden files toggle with persistence (Phase 7) - COMPLETE
 - Password authentication support (Phase 8) - COMPLETE
-- Move file UI with RemoteFolderPicker modal (Phase 9) - IN PROGRESS
+- Move file UI with RemoteFolderPicker modal (Phase 9) - COMPLETE
 - Markdown lightbox viewer (Phase 10)
 - Lazy loading for large code files + resize handle reset (Phase 11)
 
@@ -31,14 +31,16 @@ Complete v1.0 deferred features:
 
 **Plan Status:**
 - Plan 01: COMPLETE - RemoteFolderPicker modal component
-- Plan 02: PENDING - Integration with FileItem context menu
+- Plan 02: COMPLETE - Integration with FileItem context menu
 
-**Delivered (Plan 01):**
+**Delivered:**
 - FolderTreeItem component with lazy loading via listDirectory IPC
 - FolderTree container managing expanded paths
 - RemoteFolderPicker modal with breadcrumb navigation
 - Selection state with "Move Here" button
 - BEM styles matching existing dark theme
+- "Move to..." context menu option for files
+- Full move workflow with 5-second undo toast
 
 ## Previous Milestone
 
@@ -57,8 +59,8 @@ Complete v1.0 deferred features:
 - Total execution time: 1 hour 23 min
 
 **v1.1 Progress:**
-- Plans completed: 5 (07-01, 07-02, 08-01, 08-02, 09-01)
-- Duration: 17 min total (3 min + 4 min + 3 min + 3 min + 4 min)
+- Plans completed: 6 (07-01, 07-02, 08-01, 08-02, 09-01, 09-02)
+- Duration: 20 min total (3 min + 4 min + 3 min + 3 min + 4 min + 3 min)
 
 ## Accumulated Context
 
@@ -75,12 +77,14 @@ Complete v1.0 deferred features:
 | 16px indentation per tree depth level | 09-01 | Clear visual hierarchy in folder tree |
 | Auto-expand to source file's parent | 09-01 | User sees current location on modal open |
 | Source folder marked with badge, not selectable | 09-01 | Prevents moving file to same location |
+| 5-second undo window for move operations | 09-02 | Matches common patterns like Gmail undo |
+| Refresh active column after move/undo | 09-02 | Keep view current after file operations |
 
 ### Technical Notes
 
 - Hidden files: Cmd+Shift+. shortcut matches macOS Finder behavior - IMPLEMENTED
 - Password auth: Complete - eye toggle, save checkbox, stored password handling
-- Move file: RemoteFolderPicker UI complete, needs context menu integration
+- Move file: Complete - context menu, folder picker modal, move IPC, undo toast
 - Markdown: Lightbox component exists for images, extend for markdown rendering
 - Lazy loading: Implement viewport-based content loading for large files
 
@@ -90,9 +94,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-29 23:59 UTC
-Stopped at: Completed 09-01-PLAN.md (RemoteFolderPicker modal)
-Resume with: Phase 9 Plan 02 (Move integration) when ready
+Last session: 2026-01-30 00:03 UTC
+Stopped at: Completed 09-02-PLAN.md (Move file integration)
+Resume with: Phase 10 (Markdown lightbox viewer) when ready
 
 ---
-*Last updated: 2026-01-29*
+*Last updated: 2026-01-30*
