@@ -1,7 +1,7 @@
 // Folder download service for recursive SFTP downloads
 // Provides remote folder enumeration, progress tracking, and cancellation
 
-import { mkdir, unlink } from 'fs/promises';
+import { mkdir, unlink, rm } from 'fs/promises';
 import { createWriteStream, existsSync } from 'fs';
 import path from 'path';
 import { getSFTPWrapper, listDirectory } from './sftp-service';
@@ -104,6 +104,25 @@ export async function getConflictSafePath(localPath: string): Promise<string> {
 }
 
 /**
+ * Clean up a downloaded folder on cancellation.
+ * Removes the entire folder structure that was created during download.
+ *
+ * @param localBasePath - The local folder path to remove
+ */
+async function cleanupDownloadedFolder(localBasePath: string): Promise<void> {
+  try {
+    if (existsSync(localBasePath)) {
+      console.log(`[folder-download] Cleaning up cancelled download: ${localBasePath}`);
+      await rm(localBasePath, { recursive: true, force: true });
+      console.log(`[folder-download] Cleanup complete: ${localBasePath}`);
+    }
+  } catch (err) {
+    // Log but don't throw - cleanup is best effort
+    console.error(`[folder-download] Cleanup failed for ${localBasePath}:`, err);
+  }
+}
+
+/**
  * Download a remote folder to local filesystem recursively.
  *
  * @param serverId - The server ID
@@ -162,6 +181,8 @@ export async function downloadFolder(
     // Create subdirectories
     for (const dir of directories) {
       if (controller.signal.aborted) {
+        // Clean up the entire downloaded folder on cancellation
+        await cleanupDownloadedFolder(localBasePath);
         return {
           success: false,
           downloadedCount: completedFiles,
@@ -177,6 +198,8 @@ export async function downloadFolder(
     // 3. Download files sequentially
     for (const file of files) {
       if (controller.signal.aborted) {
+        // Clean up the entire downloaded folder on cancellation
+        await cleanupDownloadedFolder(localBasePath);
         return {
           success: false,
           downloadedCount: completedFiles,
@@ -232,6 +255,8 @@ export async function downloadFolder(
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
         if (errorMsg === 'Operation cancelled') {
+          // Clean up the entire downloaded folder on cancellation
+          await cleanupDownloadedFolder(localBasePath);
           return {
             success: false,
             downloadedCount: completedFiles,
