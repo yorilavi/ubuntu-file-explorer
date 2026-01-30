@@ -5,14 +5,17 @@ import { ipcMain, BrowserWindow } from 'electron';
 import type { Stats } from 'ssh2';
 import { getSFTPWrapper } from '../ssh/sftp-service';
 import { getCachedFile, cacheFile, isCacheStale } from '../cache/preview-cache';
-import type { PreviewData, FileTypeInfo } from '../../shared/types';
+import type { PreviewData, FileTypeInfo, CodeChunkData } from '../../shared/types';
 import exifr from 'exifr';
 
 // File size limit per CONTEXT.md
 const MAX_PREVIEW_SIZE = 50 * 1024 * 1024; // 50MB
 
-// Max lines for code preview per CONTEXT.md
-const MAX_CODE_LINES = 500;
+// Streaming configuration for large files
+// Files over this threshold stream progressively instead of truncating
+const LARGE_FILE_THRESHOLD = 500; // lines (matches previous MAX_CODE_LINES)
+const INITIAL_CHUNK_BYTES = 50 * 1024; // 50KB for ~500 lines initial content
+const CHUNK_BYTES = 100 * 1024; // 100KB for subsequent chunks
 
 /**
  * Detect file type from extension.
@@ -137,25 +140,148 @@ async function extractImageMetadata(
 
 /**
  * Process text/code file for preview.
+ * Returns preview data and whether the file should be streamed.
  */
 function processCodeFile(
   buffer: Buffer,
   language: string
-): PreviewData & { type: 'code' } {
+): { preview: PreviewData & { type: 'code' }; shouldStream: boolean } {
   const content = buffer.toString('utf-8');
   const lines = content.split('\n');
-  const truncated = lines.length > MAX_CODE_LINES;
-  const displayContent = truncated
-    ? lines.slice(0, MAX_CODE_LINES).join('\n')
-    : content;
+  const shouldStream = lines.length > LARGE_FILE_THRESHOLD;
+
+  if (shouldStream) {
+    // Return minimal preview - streaming will provide full content
+    return {
+      preview: {
+        type: 'code',
+        content: '',
+        language,
+        lineCount: lines.length,
+        truncated: false, // Not truncated - will be streamed
+      },
+      shouldStream: true,
+    };
+  }
 
   return {
-    type: 'code',
-    content: displayContent,
-    language,
-    lineCount: lines.length,
-    truncated,
+    preview: {
+      type: 'code',
+      content,
+      language,
+      lineCount: lines.length,
+      truncated: false,
+    },
+    shouldStream: false,
   };
+}
+
+/**
+ * Stream a large code file in chunks via IPC.
+ * Handles UTF-8 boundary corruption by tracking partial lines.
+ */
+async function streamLargeCodeFile(
+  mainWindow: BrowserWindow,
+  sftp: ReturnType<typeof getSFTPWrapper> extends Promise<infer T> ? T : never,
+  filePath: string,
+  totalSize: number,
+  language: string
+): Promise<void> {
+  if (!sftp) return;
+
+  let chunkIndex = 0;
+  let bytesRead = 0;
+  let partialLine = '';
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+
+  // Helper to send chunk via IPC
+  const sendChunk = (chunk: string, isInitial: boolean, isComplete: boolean) => {
+    const data: CodeChunkData = {
+      filePath,
+      chunk,
+      chunkIndex: chunkIndex++,
+      isInitial,
+      isComplete,
+      totalSize,
+      language,
+    };
+    mainWindow.webContents.send('preview:code-chunk', data);
+  };
+
+  // Read file in chunks
+  const readChunk = (start: number, end: number): Promise<Buffer> => {
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      const stream = sftp.createReadStream(filePath, { start, end });
+
+      stream.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      stream.on('end', () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      stream.on('error', reject);
+    });
+  };
+
+  // Send initial chunk (50KB)
+  const initialEnd = Math.min(INITIAL_CHUNK_BYTES - 1, totalSize - 1);
+  const initialBuffer = await readChunk(0, initialEnd);
+  bytesRead = initialBuffer.length;
+
+  // Decode with potential partial character at end
+  let text = decoder.decode(initialBuffer, { stream: true });
+
+  // Handle line boundary - find last complete line
+  const lastNewline = text.lastIndexOf('\n');
+  if (lastNewline >= 0 && bytesRead < totalSize) {
+    partialLine = text.slice(lastNewline + 1);
+    text = text.slice(0, lastNewline + 1);
+  }
+
+  const isComplete = bytesRead >= totalSize;
+  sendChunk(text, true, isComplete);
+
+  if (isComplete) return;
+
+  // Continue reading remaining chunks with delay
+  while (bytesRead < totalSize) {
+    // Small delay to allow UI to render
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    const start = bytesRead;
+    const end = Math.min(bytesRead + CHUNK_BYTES - 1, totalSize - 1);
+    const chunkBuffer = await readChunk(start, end);
+    bytesRead += chunkBuffer.length;
+
+    // Decode chunk
+    let chunkText = decoder.decode(chunkBuffer, { stream: bytesRead < totalSize });
+
+    // Prepend partial line from previous chunk
+    if (partialLine) {
+      chunkText = partialLine + chunkText;
+      partialLine = '';
+    }
+
+    // Handle line boundary for next iteration
+    const lastNl = chunkText.lastIndexOf('\n');
+    if (lastNl >= 0 && bytesRead < totalSize) {
+      partialLine = chunkText.slice(lastNl + 1);
+      chunkText = chunkText.slice(0, lastNl + 1);
+    }
+
+    const done = bytesRead >= totalSize;
+
+    // Include any remaining partial line in final chunk
+    if (done && partialLine) {
+      chunkText += partialLine;
+      partialLine = '';
+    }
+
+    sendChunk(chunkText, false, done);
+  }
 }
 
 /**
@@ -206,7 +332,13 @@ export function registerPreviewHandlers(mainWindow: BrowserWindow): void {
             if (fileType.category === 'image') {
               return extractImageMetadata(cached.data, cached.size, fileType.mimeType);
             } else {
-              return processCodeFile(cached.data, fileType.language || 'text');
+              const { preview, shouldStream } = processCodeFile(cached.data, fileType.language || 'text');
+              if (shouldStream) {
+                // Start streaming in background, return preview with line count
+                streamLargeCodeFile(mainWindow, sftp, filePath, cached.size, fileType.language || 'text')
+                  .catch(err => console.error(`[preview-handlers] Streaming error:`, err));
+              }
+              return preview;
             }
           }
         }
@@ -246,7 +378,14 @@ export function registerPreviewHandlers(mainWindow: BrowserWindow): void {
         if (fileType.category === 'image') {
           return extractImageMetadata(buffer, stats.size, fileType.mimeType);
         } else {
-          return processCodeFile(buffer, fileType.language || 'text');
+          const { preview, shouldStream } = processCodeFile(buffer, fileType.language || 'text');
+          if (shouldStream) {
+            // Start streaming in background, return preview with line count
+            console.log(`[preview-handlers] Large file detected (${preview.lineCount} lines), streaming: ${filePath}`);
+            streamLargeCodeFile(mainWindow, sftp, filePath, stats.size, fileType.language || 'text')
+              .catch(err => console.error(`[preview-handlers] Streaming error:`, err));
+          }
+          return preview;
         }
       } catch (err) {
         console.error(`[preview-handlers] Error reading ${filePath}:`, err);

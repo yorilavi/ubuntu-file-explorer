@@ -149,3 +149,20 @@ export interface FileOperationResult {
   path?: string;      // New path for rename/move, or local path for download
   error?: string;
 }
+
+// Streaming Code Preview Types
+// ============================
+
+/**
+ * Data sent for each chunk of a large code file.
+ * Used for progressive loading of files > 500 lines.
+ */
+export interface CodeChunkData {
+  filePath: string;      // Full remote path of the file
+  chunk: string;         // Text content of this chunk
+  chunkIndex: number;    // 0-indexed chunk number
+  isInitial: boolean;    // True for the first chunk
+  isComplete: boolean;   // True for the final chunk
+  totalSize: number;     // Total file size in bytes
+  language: string;      // Syntax highlighting language
+}

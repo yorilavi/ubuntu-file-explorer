@@ -89,6 +89,17 @@ interface FileOperationResult {
   cancelled?: boolean;
 }
 
+// Code chunk data for streaming large files (duplicated for preload isolation)
+interface CodeChunkData {
+  filePath: string;
+  chunk: string;
+  chunkIndex: number;
+  isInitial: boolean;
+  isComplete: boolean;
+  totalSize: number;
+  language: string;
+}
+
 const electronAPI = {
   /**
    * Ping the main process to verify IPC is working.
@@ -218,6 +229,20 @@ const electronAPI = {
     ipcRenderer.on('preview:progress', handler);
     return () => {
       ipcRenderer.removeListener('preview:progress', handler);
+    };
+  },
+
+  /**
+   * Subscribe to code chunk updates for large file streaming.
+   * Returns an unsubscribe function.
+   */
+  onCodeChunk: (
+    callback: (data: CodeChunkData) => void
+  ): (() => void) => {
+    const handler = (_event: unknown, data: CodeChunkData) => callback(data);
+    ipcRenderer.on('preview:code-chunk', handler);
+    return () => {
+      ipcRenderer.removeListener('preview:code-chunk', handler);
     };
   },
 
