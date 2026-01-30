@@ -12,6 +12,12 @@ import {
   cancelOperation,
   generateOperationId,
 } from '../ssh/file-operations-service';
+import {
+  uploadFolder,
+  cancelFolderUpload,
+  generateFolderUploadId,
+} from '../ssh/folder-upload-service';
+import type { FolderUploadProgress } from '../ssh/types';
 
 /**
  * Send progress update to renderer and update dock/taskbar progress bar.
@@ -209,6 +215,77 @@ export function registerFileOperationsHandlers(mainWindow: BrowserWindow): void 
     (_event, operationId: string) => {
       const cancelled = cancelOperation(operationId);
       // Clear progress bar when cancelling
+      mainWindow.setProgressBar(-1);
+      return { success: cancelled };
+    }
+  );
+
+  // Folder upload handler - shows folder picker then uploads recursively with progress
+  ipcMain.handle(
+    'file-ops:upload-folder',
+    async (_event, serverId: string, remoteDir: string, showHidden: boolean) => {
+      // Show folder picker dialog
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Select folder to upload',
+        properties: ['openDirectory'],
+        buttonLabel: 'Upload',
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false };
+      }
+
+      const localPath = result.filePaths[0];
+      const operationId = generateFolderUploadId();
+
+      try {
+        const uploadResult = await uploadFolder(
+          serverId,
+          localPath,
+          remoteDir,
+          showHidden,
+          operationId,
+          (progress: FolderUploadProgress) => {
+            // Send progress to renderer
+            mainWindow.webContents.send('file-ops:folder-progress', {
+              operationId,
+              ...progress,
+            });
+            // Update dock progress bar
+            const dockProgress = progress.totalFiles > 0
+              ? progress.completedFiles / progress.totalFiles
+              : 0;
+            mainWindow.setProgressBar(dockProgress);
+          }
+        );
+
+        // Clear progress bar
+        mainWindow.setProgressBar(-1);
+
+        return {
+          success: uploadResult.success,
+          uploadedCount: uploadResult.uploadedCount,
+          failedFiles: uploadResult.failedFiles,
+          operationId,
+          cancelled: uploadResult.cancelled,
+        };
+      } catch (err) {
+        mainWindow.setProgressBar(-1);
+        const errorMsg = err instanceof Error ? err.message : 'Folder upload failed';
+        if (errorMsg === 'Operation cancelled') {
+          return { success: false, cancelled: true, operationId };
+        }
+        console.error(`[file-operations-handlers] Folder upload error:`, err);
+        return { success: false, error: errorMsg, operationId };
+      }
+    }
+  );
+
+  // Cancel folder upload handler
+  ipcMain.handle(
+    'file-ops:cancel-folder-upload',
+    (_event, operationId: string) => {
+      const cancelled = cancelFolderUpload(operationId);
       mainWindow.setProgressBar(-1);
       return { success: cancelled };
     }
