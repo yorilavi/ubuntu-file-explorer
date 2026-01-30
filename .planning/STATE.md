@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-30)
 ## Current Position
 
 Phase: 12 of 14 (Folder Upload)
-Plan: 02 of 03
-Status: In progress
-Last activity: 2026-01-30 - Completed 12-02-PLAN.md
+Plan: 03 of 03
+Status: Phase complete
+Last activity: 2026-01-30 - Completed 12-03-PLAN.md
 
-Progress: [#########################░░░░░] v1.1 Complete + Phase 12 Plans 01-02 done (2/9 v1.2 plans)
+Progress: [##########################░░░░] v1.1 Complete + Phase 12 complete (3/9 v1.2 plans)
 
 ## Milestone Summary
 
@@ -23,12 +23,12 @@ Progress: [#########################░░░░░] v1.1 Complete + Phase 12 Pl
 Goal: Enable full folder transfer in both directions plus PDF preview.
 
 Roadmap:
-- Phase 12: Folder Upload (7 requirements) - Plans 01-02 complete
+- Phase 12: Folder Upload (7 requirements) - COMPLETE ✅
 - Phase 13: Folder Download (6 requirements)
 - Phase 14: PDF Preview (6 requirements)
-- Total: 19 requirements, 100% coverage
+- Total: 19 requirements, 7 complete (37%)
 
-Next: Execute 12-03-PLAN.md
+Next: Plan Phase 13 (Folder Download)
 
 ---
 
@@ -52,14 +52,14 @@ Stats:
 ## Performance Metrics
 
 **Velocity (cumulative):**
-- Total plans completed: 34 (22 v1.0 + 10 v1.1 + 2 v1.2)
-- Total phases: 11 complete, 12 in progress
+- Total plans completed: 37 (22 v1.0 + 10 v1.1 + 5 v1.2)
+- Total phases: 12 complete
 - Total milestones: 2 complete, 1 in progress
 
-**v1.1 Execution:**
-- Duration: 3 days (2026-01-28 → 2026-01-30)
-- Plans: 10
-- Phases: 5
+**v1.2 Phase 12 Execution:**
+- Duration: 1 day (2026-01-30)
+- Plans: 3
+- Phases: 1 complete
 
 ## Accumulated Context
 
@@ -93,6 +93,10 @@ Stats:
 | Depth-sorted directory creation | 12-01 | Ensures parents exist before children |
 | Dock progress bar during folder upload | 12-02 | Visual feedback in macOS dock |
 | Progress includes operationId | 12-02 | Enables tracking of multiple concurrent uploads |
+| Subscribe to progress before IPC call | 12-03 | Prevents race condition missing early events |
+| Use 'close' event for SFTP WriteStream | 12-03 | ssh2 streams don't reliably emit 'finish' |
+| 15-second toast for retry button | 12-03 | Gives users time to review failed files |
+| Show current file in progress toast | 12-03 | Detailed visual feedback during upload |
 
 ### Technical Notes
 
@@ -104,9 +108,17 @@ All v1.1 features implemented and verified:
 - Large file streaming with virtualization
 - Resize handle double-click reset
 
-Phase 12 Progress:
+Phase 12 Complete:
 - Plan 01: Backend service with folder enumeration and streaming upload
 - Plan 02: IPC handlers and preload API exposed
+- Plan 03: UI integration with context menu, progress tracking, and retry
+
+Phase 12 delivered full folder upload feature:
+- Upload local folders recursively to remote servers
+- Real-time progress tracking with cancel functionality
+- Automatic retry for failed files
+- Hidden files filtering (.DS_Store when toggle off)
+- Empty directory preservation
 
 ### Blockers/Concerns
 
@@ -115,8 +127,8 @@ None.
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 12-02-PLAN.md
-Resume file: .planning/phases/12-folder-upload/12-03-PLAN.md
+Stopped at: Completed Phase 12 (Folder Upload)
+Resume file: None - ready for Phase 13 planning
 
 ---
 *Last updated: 2026-01-30*
