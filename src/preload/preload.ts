@@ -119,6 +119,31 @@ interface FolderUploadResult {
   error?: string;
 }
 
+// Conflict strategy type
+type ConflictStrategy = 'rename' | 'overwrite' | 'skip';
+
+// Folder download types (duplicated for preload isolation)
+interface FolderDownloadProgress {
+  operationId: string;
+  totalFiles: number;
+  completedFiles: number;
+  currentFile: string;
+  percent: number;
+  totalBytes: number;
+  downloadedBytes: number;
+  failedFiles: Array<{ path: string; error: string }>;
+}
+
+interface FolderDownloadResult {
+  success: boolean;
+  downloadedCount?: number;
+  failedFiles?: Array<{ path: string; error: string }>;
+  operationId?: string;
+  cancelled?: boolean;
+  error?: string;
+  localPath?: string;
+}
+
 const electronAPI = {
   /**
    * Ping the main process to verify IPC is working.
@@ -384,6 +409,57 @@ const electronAPI = {
    */
   cancelFolderUpload: (operationId: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('file-ops:cancel-folder-upload', operationId),
+
+  /**
+   * Download a remote folder to local filesystem.
+   * Shows folder picker dialog to choose destination.
+   */
+  downloadFolder: (
+    serverId: string,
+    remotePath: string,
+    conflictStrategy: ConflictStrategy
+  ): Promise<FolderDownloadResult> =>
+    ipcRenderer.invoke('file-ops:download-folder', serverId, remotePath, conflictStrategy),
+
+  /**
+   * Subscribe to folder download progress updates.
+   */
+  onFolderDownloadProgress: (
+    callback: (progress: FolderDownloadProgress) => void
+  ): (() => void) => {
+    const handler = (_event: unknown, progress: FolderDownloadProgress) => {
+      callback(progress);
+    };
+    ipcRenderer.on('file-ops:folder-download-progress', handler);
+    return () => {
+      ipcRenderer.removeListener('file-ops:folder-download-progress', handler);
+    };
+  },
+
+  /**
+   * Cancel an active folder download operation.
+   */
+  cancelFolderDownload: (operationId: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke('file-ops:cancel-folder-download', operationId),
+
+  /**
+   * Retry downloading specific failed files.
+   */
+  retryFailedDownloads: (
+    serverId: string,
+    remoteFolderPath: string,
+    localBasePath: string,
+    failedFiles: string[],
+    conflictStrategy: ConflictStrategy
+  ): Promise<FolderDownloadResult> =>
+    ipcRenderer.invoke(
+      'file-ops:retry-failed-downloads',
+      serverId,
+      remoteFolderPath,
+      localBasePath,
+      failedFiles,
+      conflictStrategy
+    ),
 
   // Favorites Operations
   // ====================

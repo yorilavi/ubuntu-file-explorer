@@ -202,3 +202,50 @@ export interface FolderUploadResult {
   /** Error message if complete failure */
   error?: string;
 }
+
+// Folder Download Types
+// =====================
+
+/**
+ * Conflict resolution strategy for downloads.
+ */
+export type ConflictStrategy = 'rename' | 'overwrite' | 'skip';
+
+/**
+ * Progress update during folder download.
+ */
+export interface FolderDownloadProgress {
+  /** Total number of files to download */
+  totalFiles: number;
+  /** Number of files completed (success or fail) */
+  completedFiles: number;
+  /** Current file being downloaded */
+  currentFile: string;
+  /** Overall percentage (0-100) */
+  percent: number;
+  /** Total bytes to download */
+  totalBytes: number;
+  /** Bytes downloaded so far */
+  downloadedBytes: number;
+  /** Files that failed with error messages */
+  failedFiles: Array<{ path: string; error: string }>;
+}
+
+/**
+ * Result of a folder download operation.
+ */
+export interface FolderDownloadResult {
+  success: boolean;
+  /** Total files downloaded successfully */
+  downloadedCount?: number;
+  /** Files that failed */
+  failedFiles?: Array<{ path: string; error: string }>;
+  /** Operation ID for cancellation */
+  operationId?: string;
+  /** Whether operation was cancelled */
+  cancelled?: boolean;
+  /** Error message if complete failure */
+  error?: string;
+  /** Local path where folder was downloaded */
+  localPath?: string;
+}
