@@ -57,11 +57,14 @@ Browse remote servers visually with instant image and code previews — no more 
 
 ### Active
 
-**Next Milestone Goals**
+**Current Milestone: v1.2 Folder Operations**
 
-Requirements to be defined in `/gsd:new-milestone`:
-- Folder upload (tar/gzip approach with server-side extraction)
-- Additional features based on user feedback
+Goal: Enable full folder transfer in both directions plus PDF preview.
+
+Target features:
+- Upload local folders to remote server
+- Download remote folders to local Mac
+- PDF file preview in preview panel
 
 ### Out of Scope
 
@@ -128,4 +131,4 @@ Shipped v1.1 with ~19,000 lines TypeScript/TSX/CSS in 100+ source files.
 | RemoteFolderPicker for move | Native dialogs can't browse remote | ✓ Good — full control |
 
 ---
-*Last updated: 2026-01-30 after v1.1 milestone*
+*Last updated: 2026-01-30 after starting v1.2 milestone*
