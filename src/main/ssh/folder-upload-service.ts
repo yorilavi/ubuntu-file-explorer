@@ -242,7 +242,9 @@ async function uploadSingleFile(
       reject(err);
     });
 
-    writeStream.on('finish', () => {
+    // Note: ssh2 SFTP WriteStream emits 'close' but not always 'finish'
+    // We resolve on 'close' to ensure upload completed
+    writeStream.on('close', () => {
       signal.removeEventListener('abort', onAbort);
       resolve();
     });

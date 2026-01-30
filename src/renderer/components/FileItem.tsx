@@ -87,10 +87,11 @@ function FileItem({
   // Track folder upload state
   const [folderUploadState, setFolderUploadState] = useState<FolderUploadState | null>(null);
 
+  // Ref to track if folder upload is in progress (for progress listener)
+  const folderUploadActiveRef = useRef(false);
+
   // Escape key handler - cancel active operation or folder upload
   useEffect(() => {
-    if (!activeOperationId && !folderUploadState?.operationId) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (activeOperationId) {
@@ -101,8 +102,10 @@ function FileItem({
             activeToastRef.current = null;
           }
         }
-        if (folderUploadState?.operationId) {
+        // Check both state and ref for folder upload cancellation
+        if (folderUploadActiveRef.current && folderUploadState?.operationId) {
           window.electronAPI.cancelFolderUpload(folderUploadState.operationId);
+          folderUploadActiveRef.current = false;
           setFolderUploadState(null);
           if (activeToastRef.current) {
             toast.info('Folder upload cancelled', { id: activeToastRef.current });
@@ -127,18 +130,6 @@ function FileItem({
       }
     }
   }, [activeOperationId]);
-
-  // Cancel folder upload operation
-  const handleCancelFolderUpload = useCallback(() => {
-    if (folderUploadState?.operationId) {
-      window.electronAPI.cancelFolderUpload(folderUploadState.operationId);
-      setFolderUploadState(null);
-      if (activeToastRef.current) {
-        toast.info('Folder upload cancelled', { id: activeToastRef.current });
-        activeToastRef.current = null;
-      }
-    }
-  }, [folderUploadState?.operationId]);
 
   // File operation handlers
   const handleDownload = useCallback(async () => {
@@ -338,37 +329,8 @@ function FileItem({
     }
   }, [serverId, file.path, file.name, onFavoritesChanged]);
 
-  // Subscribe to folder upload progress
-  useEffect(() => {
-    if (!folderUploadState?.operationId) return;
-
-    const cleanup = window.electronAPI.onFolderUploadProgress((progress) => {
-      if (progress.operationId === folderUploadState.operationId) {
-        setFolderUploadState(prev => prev ? {
-          ...prev,
-          totalFiles: progress.totalFiles,
-          completedFiles: progress.completedFiles,
-          currentFile: progress.currentFile,
-          failedFiles: progress.failedFiles,
-        } : null);
-
-        // Update toast with progress
-        if (activeToastRef.current) {
-          const progressText = `Uploading ${progress.completedFiles} of ${progress.totalFiles} files`;
-          const currentText = progress.currentFile ? `\nCurrent: ${progress.currentFile}` : '';
-          toast.loading(progressText + currentText, {
-            id: activeToastRef.current,
-            action: {
-              label: 'Cancel',
-              onClick: handleCancelFolderUpload,
-            },
-          });
-        }
-      }
-    });
-
-    return cleanup;
-  }, [folderUploadState?.operationId, handleCancelFolderUpload]);
+  // Ref to store cleanup function for folder upload progress listener
+  const folderProgressCleanupRef = useRef<(() => void) | null>(null);
 
   // Retry handler for failed files - re-uploads the entire folder
   // Note: Since retry-specific API doesn't exist, we prompt user to retry full upload
@@ -394,13 +356,49 @@ function FileItem({
   // Handle folder upload
   const handleUploadFolder = useCallback(async () => {
     setContextMenu(null);
-    const toastId = toast.loading(`Selecting folder to upload to "${file.name}"...`, {
-      action: {
-        label: 'Cancel',
-        onClick: handleCancelFolderUpload,
-      },
-    });
+    const toastId = toast.loading(`Selecting folder to upload to "${file.name}"...`);
     activeToastRef.current = toastId;
+
+    // Mark upload as active BEFORE the IPC call
+    folderUploadActiveRef.current = true;
+
+    // Subscribe to progress updates BEFORE starting upload
+    // This ensures we catch all progress events
+    folderProgressCleanupRef.current = window.electronAPI.onFolderUploadProgress((progress) => {
+      if (!folderUploadActiveRef.current) return;
+
+      // Update state for UI
+      setFolderUploadState({
+        operationId: progress.operationId,
+        totalFiles: progress.totalFiles,
+        completedFiles: progress.completedFiles,
+        currentFile: progress.currentFile,
+        failedFiles: progress.failedFiles,
+      });
+
+      // Update toast with progress
+      if (activeToastRef.current) {
+        const progressText = `Uploading ${progress.completedFiles} of ${progress.totalFiles} files`;
+        const currentText = progress.currentFile ? ` - ${progress.currentFile}` : '';
+        toast.loading(progressText + currentText, {
+          id: activeToastRef.current,
+          action: {
+            label: 'Cancel',
+            onClick: () => {
+              if (progress.operationId) {
+                window.electronAPI.cancelFolderUpload(progress.operationId);
+                folderUploadActiveRef.current = false;
+                setFolderUploadState(null);
+                if (activeToastRef.current) {
+                  toast.info('Folder upload cancelled', { id: activeToastRef.current });
+                  activeToastRef.current = null;
+                }
+              }
+            },
+          },
+        });
+      }
+    });
 
     try {
       const result = await window.electronAPI.uploadFolder(
@@ -408,17 +406,6 @@ function FileItem({
         file.path,
         showHiddenFiles
       );
-
-      // Track operation for cancellation
-      if (result.operationId) {
-        setFolderUploadState({
-          operationId: result.operationId,
-          totalFiles: 0,
-          completedFiles: 0,
-          currentFile: '',
-          failedFiles: [],
-        });
-      }
 
       if (result.success) {
         toast.success(`Uploaded ${result.uploadedCount} files`, { id: toastId });
@@ -459,10 +446,16 @@ function FileItem({
         description: errorMsg,
       });
     } finally {
+      // Clean up progress listener
+      if (folderProgressCleanupRef.current) {
+        folderProgressCleanupRef.current();
+        folderProgressCleanupRef.current = null;
+      }
       activeToastRef.current = null;
+      folderUploadActiveRef.current = false;
       setFolderUploadState(null);
     }
-  }, [serverId, file.path, file.name, showHiddenFiles, onRefresh, handleCancelFolderUpload, handleRetryFailedFiles]);
+  }, [serverId, file.path, file.name, showHiddenFiles, onRefresh, handleRetryFailedFiles]);
 
   const itemClasses = [
     'file-item',
