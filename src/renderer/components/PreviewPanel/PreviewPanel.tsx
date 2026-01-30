@@ -32,7 +32,8 @@ function formatSize(bytes: number): string {
  */
 function renderPreviewContent(
   preview: PreviewData,
-  onImageClick?: (dataUrl: string) => void
+  onImageClick?: (dataUrl: string) => void,
+  filePath?: string
 ): React.JSX.Element {
   switch (preview.type) {
     case 'image':
@@ -53,6 +54,7 @@ function renderPreviewContent(
           language={preview.language}
           lineCount={preview.lineCount}
           truncated={preview.truncated}
+          filePath={filePath}
         />
       );
 
@@ -225,7 +227,7 @@ function PreviewPanel({
         </span>
       </div>
       <div className="preview-panel__content">
-        {preview ? renderPreviewContent(preview, onImageClick) : null}
+        {preview ? renderPreviewContent(preview, onImageClick, selectedFile?.path) : null}
       </div>
     </div>
   );

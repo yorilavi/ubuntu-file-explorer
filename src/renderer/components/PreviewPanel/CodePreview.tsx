@@ -1,26 +1,31 @@
 // Code preview with syntax highlighting
 // Theme follows macOS dark/light mode
+// Supports streaming for large files (>500 lines)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import VirtualizedCodePreview from './VirtualizedCodePreview';
 
 interface CodePreviewProps {
   content: string;
   language: string;
   lineCount: number;
   truncated: boolean;
+  filePath?: string; // Remote file path for streaming
 }
 
 /**
  * Code preview with syntax highlighting.
  * Theme automatically switches based on macOS dark/light mode.
+ * Large files (>500 lines) use virtualized rendering with streaming.
  */
 function CodePreview({
   content,
   language,
   lineCount,
   truncated,
+  filePath,
 }: CodePreviewProps): React.JSX.Element {
   // Track system dark mode preference
   const [isDark, setIsDark] = useState(
@@ -30,6 +35,16 @@ function CodePreview({
   // Line numbers off by default per CONTEXT.md
   const [showLineNumbers, setShowLineNumbers] = useState(false);
 
+  // Streaming state for large files
+  const [streamLines, setStreamLines] = useState<string[]>([]);
+  const [streamComplete, setStreamComplete] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamLanguage, setStreamLanguage] = useState(language);
+
+  // Track current file path for stream filtering
+  const currentFilePathRef = useRef(filePath);
+  currentFilePathRef.current = filePath;
+
   // Listen for theme changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -38,13 +53,58 @@ function CodePreview({
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
+  // Subscribe to code chunk streaming
+  useEffect(() => {
+    // Reset streaming state when file changes
+    setStreamLines([]);
+    setStreamComplete(false);
+    setIsStreaming(false);
+
+    // Subscribe to code chunks
+    const unsubscribe = window.electronAPI.onCodeChunk((data) => {
+      // Only process chunks for current file
+      if (data.filePath !== currentFilePathRef.current) {
+        return;
+      }
+
+      if (data.isInitial) {
+        // First chunk - initialize streaming
+        setIsStreaming(true);
+        setStreamLanguage(data.language);
+        // Split chunk into lines, filtering empty trailing line from split
+        const lines = data.chunk.split('\n');
+        setStreamLines(lines);
+      } else {
+        // Subsequent chunks - append lines
+        setStreamLines((prev) => {
+          const newLines = data.chunk.split('\n');
+          // Handle potential partial line from previous chunk
+          // The last line of prev might be incomplete if chunk didn't end with \n
+          return [...prev, ...newLines];
+        });
+      }
+
+      if (data.isComplete) {
+        setStreamComplete(true);
+      }
+    });
+
+    return unsubscribe;
+  }, [filePath]);
+
+  // Determine what to display
+  const displayLineCount = isStreaming ? streamLines.length : lineCount;
+  const displayTruncated = truncated && !isStreaming;
+  const showVirtualized = isStreaming && streamLines.length > 0;
+
   return (
     <div className="preview-panel__code">
       {/* Toolbar */}
       <div className="preview-panel__code-toolbar">
         <span className="preview-panel__code-info">
-          {language} - {lineCount.toLocaleString()} lines
-          {truncated && ' (truncated)'}
+          {isStreaming ? streamLanguage : language} - {displayLineCount.toLocaleString()} lines
+          {displayTruncated && ' (truncated)'}
+          {isStreaming && !streamComplete && ' (loading...)'}
         </span>
         <label className="preview-panel__code-toggle">
           <input
@@ -56,30 +116,40 @@ function CodePreview({
         </label>
       </div>
 
-      {/* Truncation notice */}
-      {truncated && (
+      {/* Truncation notice - only for non-streamed files */}
+      {displayTruncated && (
         <div className="preview-panel__code-notice">
           Showing first 500 of {lineCount.toLocaleString()} lines
         </div>
       )}
 
-      {/* Syntax highlighted code */}
+      {/* Code content - virtualized for large files, regular for small */}
       <div className="preview-panel__code-content">
-        <SyntaxHighlighter
-          language={language}
-          style={isDark ? oneDark : oneLight}
-          showLineNumbers={showLineNumbers}
-          wrapLongLines={true}
-          customStyle={{
-            margin: 0,
-            borderRadius: 0,
-            fontSize: '13px',
-            lineHeight: 1.5,
-            background: 'transparent',
-          }}
-        >
-          {content}
-        </SyntaxHighlighter>
+        {showVirtualized ? (
+          <VirtualizedCodePreview
+            lines={streamLines}
+            language={streamLanguage}
+            totalLines={displayLineCount}
+            loadingComplete={streamComplete}
+            showLineNumbers={showLineNumbers}
+          />
+        ) : (
+          <SyntaxHighlighter
+            language={language}
+            style={isDark ? oneDark : oneLight}
+            showLineNumbers={showLineNumbers}
+            wrapLongLines={true}
+            customStyle={{
+              margin: 0,
+              borderRadius: 0,
+              fontSize: '13px',
+              lineHeight: 1.5,
+              background: 'transparent',
+            }}
+          >
+            {content}
+          </SyntaxHighlighter>
+        )}
       </div>
     </div>
   );
