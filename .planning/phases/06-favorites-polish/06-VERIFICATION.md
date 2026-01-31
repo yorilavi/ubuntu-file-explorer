@@ -49,13 +49,13 @@ human_verification:
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer/src/main/storage/favorites-store.ts` | Per-server favorites CRUD | ✓ VERIFIED | 83 lines, exports getFavorites/addFavorite/removeFavorite/reorderFavorites, uses electron-conf, no stubs |
-| `/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer/src/main/ipc/favorites-handlers.ts` | IPC handlers for favorites | ✓ VERIFIED | 58 lines, exports registerFavoritesHandlers, 4 IPC channels registered, no stubs |
-| `/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer/src/renderer/hooks/useFavorites.ts` | React hook for favorites CRUD | ✓ VERIFIED | 67 lines, exports useFavorites hook with all CRUD operations, optimistic updates, loading state, no stubs |
-| `/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer/src/renderer/components/FavoriteItem.tsx` | Draggable favorite item | ✓ VERIFIED | 70 lines, uses @dnd-kit/sortable, drag handle, remove button, navigation callback, no stubs |
-| `/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer/src/renderer/components/ToastProvider.tsx` | Toast notification provider | ✓ VERIFIED | 26 lines, wraps sonner Toaster, bottom-right position, 4s duration, rich colors enabled |
-| `/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer/src/renderer/components/ServerSidebar.tsx` | Sidebar with favorites display | ✓ VERIFIED | 283 lines, collapsible sections, DnD context, favorites list rendering under connected server |
-| `/Users/yori/Library/CloudStorage/GoogleDrive-yori.lavi@gmail.com/My Drive/yori/dev/Ubunto-file-explorer/src/renderer/components/FileItem.tsx` | Context menu with favorites option | ✓ VERIFIED | Substantial file with "Add to Favorites" button, toast notifications for all operations (26 toast calls), progress tracking, cancellation support |
+| `src/main/storage/favorites-store.ts` | Per-server favorites CRUD | ✓ VERIFIED | 83 lines, exports getFavorites/addFavorite/removeFavorite/reorderFavorites, uses electron-conf, no stubs |
+| `src/main/ipc/favorites-handlers.ts` | IPC handlers for favorites | ✓ VERIFIED | 58 lines, exports registerFavoritesHandlers, 4 IPC channels registered, no stubs |
+| `src/renderer/hooks/useFavorites.ts` | React hook for favorites CRUD | ✓ VERIFIED | 67 lines, exports useFavorites hook with all CRUD operations, optimistic updates, loading state, no stubs |
+| `src/renderer/components/FavoriteItem.tsx` | Draggable favorite item | ✓ VERIFIED | 70 lines, uses @dnd-kit/sortable, drag handle, remove button, navigation callback, no stubs |
+| `src/renderer/components/ToastProvider.tsx` | Toast notification provider | ✓ VERIFIED | 26 lines, wraps sonner Toaster, bottom-right position, 4s duration, rich colors enabled |
+| `src/renderer/components/ServerSidebar.tsx` | Sidebar with favorites display | ✓ VERIFIED | 283 lines, collapsible sections, DnD context, favorites list rendering under connected server |
+| `src/renderer/components/FileItem.tsx` | Context menu with favorites option | ✓ VERIFIED | Substantial file with "Add to Favorites" button, toast notifications for all operations (26 toast calls), progress tracking, cancellation support |
 
 ### Key Link Verification
 

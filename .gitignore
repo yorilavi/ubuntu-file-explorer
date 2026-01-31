@@ -90,3 +90,17 @@ typings/
 
 # Electron-Forge
 out/
+dist/
+
+# Build artifacts
+*.dmg
+*.zip
+*.exe
+*.deb
+*.rpm
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
