@@ -116,6 +116,7 @@ export type PreviewData =
   | { type: 'code'; content: string; language: string; lineCount: number; truncated: boolean }
   | { type: 'folder'; name: string; itemCount: number; totalSize: number }
   | { type: 'binary'; name: string; fileSize: number; mimeType: string }
+  | { type: 'pdf'; dataUrl: string; pageCount: number; fileSize: number; isLarge: boolean }
   | { type: 'too-large'; name: string; fileSize: number }
   | { type: 'error'; message: string }
   | { type: 'loading'; progress: number };
