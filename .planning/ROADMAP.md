@@ -81,9 +81,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — Backend PDF type detection and preview data generation
-- [ ] 14-02-PLAN.md — PDFPreview component with page navigation and zoom
-- [ ] 14-03-PLAN.md — PDFSlide lightbox integration with state preservation
+- [x] 14-01-PLAN.md — Backend PDF type detection and preview data generation
+- [x] 14-02-PLAN.md — PDFPreview component with page navigation and zoom
+- [x] 14-03-PLAN.md — PDFSlide lightbox integration with state preservation
 
 **Requirements:**
 - PDF-01: User can preview PDF files in the preview panel
@@ -108,9 +108,9 @@ Plans:
 |-------|------|--------|--------------|-------|
 | 12 | Folder Upload | Complete | FLDR-01, FLDR-02, FLDR-03, FLDR-04, FLDR-05, FLDR-06, FLDR-07 | 3/3 |
 | 13 | Folder Download | Complete | FLDR-08, FLDR-09, FLDR-10, FLDR-11, FLDR-12, FLDR-13 | 3/3 |
-| 14 | PDF Preview | Planned | PDF-01, PDF-02, PDF-03, PDF-04, PDF-05, PDF-06 | 0/3 |
+| 14 | PDF Preview | Complete | PDF-01, PDF-02, PDF-03, PDF-04, PDF-05, PDF-06 | 3/3 |
 
-**Overall:** 2/3 phases complete (67%)
+**Overall:** 3/3 phases complete (100%)
 
 ---
 
@@ -166,4 +166,5 @@ Plans:
 ---
 
 *Roadmap created: 2026-01-30*
+*Milestone completed: 2026-01-31*
 *Milestone: v1.2 Folder Operations*
