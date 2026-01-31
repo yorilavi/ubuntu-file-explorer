@@ -78,11 +78,12 @@ Plans:
 
 **Dependencies:** None (integrates with existing preview panel from v1.0)
 
-**Plans:** TBD (to be created during phase planning)
+**Plans:** 3 plans
 
 Plans:
-- [ ] 14-01-PLAN.md - TBD
-- [ ] 14-02-PLAN.md - TBD
+- [ ] 14-01-PLAN.md — Backend PDF type detection and preview data generation
+- [ ] 14-02-PLAN.md — PDFPreview component with page navigation and zoom
+- [ ] 14-03-PLAN.md — PDFSlide lightbox integration with state preservation
 
 **Requirements:**
 - PDF-01: User can preview PDF files in the preview panel
@@ -105,9 +106,9 @@ Plans:
 
 | Phase | Name | Status | Requirements | Plans |
 |-------|------|--------|--------------|-------|
-| 12 | Folder Upload | Complete ✅ | FLDR-01, FLDR-02, FLDR-03, FLDR-04, FLDR-05, FLDR-06, FLDR-07 | 3/3 |
-| 13 | Folder Download | Complete ✅ | FLDR-08, FLDR-09, FLDR-10, FLDR-11, FLDR-12, FLDR-13 | 3/3 |
-| 14 | PDF Preview | Not Started | PDF-01, PDF-02, PDF-03, PDF-04, PDF-05, PDF-06 | 0/TBD |
+| 12 | Folder Upload | Complete | FLDR-01, FLDR-02, FLDR-03, FLDR-04, FLDR-05, FLDR-06, FLDR-07 | 3/3 |
+| 13 | Folder Download | Complete | FLDR-08, FLDR-09, FLDR-10, FLDR-11, FLDR-12, FLDR-13 | 3/3 |
+| 14 | PDF Preview | Planned | PDF-01, PDF-02, PDF-03, PDF-04, PDF-05, PDF-06 | 0/3 |
 
 **Overall:** 2/3 phases complete (67%)
 
@@ -152,10 +153,11 @@ Plans:
 - Use path.posix.join for remote paths (always forward slashes)
 
 **PDF Preview:**
-- Evaluate react-pdf v10.3.0 vs Chromium's built-in PDFium
-- Reuse lightbox infrastructure from v1.0-v1.1 (ImageLightbox component)
-- PDF zoom controls follow same pattern as image zoom (fit width, fit height, actual size)
-- Page navigation follows markdown lightbox arrow key pattern
+- Use react-pdf v10.x with pdfjs-dist worker
+- Worker config must be in same file as Document/Page usage
+- Adjacent page preloading (current +/- 2) for smooth navigation
+- Large PDF warning for 100+ pages
+- Lightbox preserves panel state (page, zoom)
 
 **Dependencies:**
 - Phase 13 can reference folder traversal patterns from Phase 12
