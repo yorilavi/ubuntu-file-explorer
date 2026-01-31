@@ -6,6 +6,7 @@ import type { FileEntry, PreviewData } from '../../../shared/types';
 import { usePreview } from '../../hooks/usePreview';
 import ImagePreview from './ImagePreview';
 import CodePreview from './CodePreview';
+import PDFPreview from './PDFPreview';
 import './PreviewPanel.css';
 
 interface PreviewPanelProps {
@@ -16,6 +17,15 @@ interface PreviewPanelProps {
   onImagePreviewReady?: (dataUrl: string) => void;  // Called when new image preview loads
   onMarkdownPreviewReady?: (content: string) => void;  // Called when markdown preview loads
   onCodePreviewReady?: (content: string, language: string) => void;  // Called when code preview loads
+  onPDFPreviewReady?: (dataUrl: string, numPages: number, currentPage: number, scale: number) => void;  // Called when PDF preview loads
+}
+
+// PDF state for spacebar/lightbox handling
+interface PDFState {
+  dataUrl: string;
+  numPages: number;
+  currentPage: number;
+  scale: number;
 }
 
 /**
@@ -34,7 +44,9 @@ function renderPreviewContent(
   preview: PreviewData,
   onImageClick?: (dataUrl: string) => void,
   filePath?: string,
-  onStreamedContentReady?: (content: string, language: string) => void
+  onStreamedContentReady?: (content: string, language: string) => void,
+  onPDFClick?: () => void,
+  onPDFLoadSuccess?: (numPages: number, currentPage: number, scale: number) => void
 ): React.JSX.Element {
   switch (preview.type) {
     case 'image':
@@ -45,6 +57,16 @@ function renderPreviewContent(
           fileSize={preview.fileSize}
           mimeType={preview.mimeType}
           onImageClick={() => onImageClick?.(preview.dataUrl)}
+        />
+      );
+
+    case 'pdf':
+      return (
+        <PDFPreview
+          dataUrl={preview.dataUrl}
+          fileSize={preview.fileSize}
+          onPDFClick={onPDFClick}
+          onPDFLoadSuccess={onPDFLoadSuccess}
         />
       );
 
@@ -138,6 +160,7 @@ function PreviewPanel({
   onImagePreviewReady,
   onMarkdownPreviewReady,
   onCodePreviewReady,
+  onPDFPreviewReady,
 }: PreviewPanelProps): React.JSX.Element {
   const { preview, loading, progress } = usePreview(serverId, selectedFile);
 
@@ -148,14 +171,45 @@ function PreviewPanel({
   // Store streamed content for large files (used by lightbox)
   const streamedContentRef = useRef<{ content: string; language: string } | null>(null);
 
-  // Reset streamed content when file changes
+  // Store PDF state for spacebar handling
+  const pdfStateRef = useRef<PDFState | null>(null);
+
+  // Reset streamed content and PDF state when file changes
   useEffect(() => {
     streamedContentRef.current = null;
+    pdfStateRef.current = null;
   }, [selectedFile?.path]);
 
   // Handle streamed content ready from CodePreview
   const handleStreamedContentReady = useCallback((content: string, language: string) => {
     streamedContentRef.current = { content, language };
+  }, []);
+
+  // Handle PDF click for lightbox
+  const handlePDFClick = useCallback(() => {
+    const currentPreview = previewRef.current;
+    if (currentPreview?.type === 'pdf' && onPDFPreviewReady) {
+      const state = pdfStateRef.current;
+      onPDFPreviewReady(
+        currentPreview.dataUrl,
+        state?.numPages || 0,
+        state?.currentPage || 1,
+        state?.scale || 1
+      );
+    }
+  }, [onPDFPreviewReady]);
+
+  // Handle PDF load success to track state
+  const handlePDFLoadSuccess = useCallback((numPages: number, currentPage: number, scale: number) => {
+    const currentPreview = previewRef.current;
+    if (currentPreview?.type === 'pdf') {
+      pdfStateRef.current = {
+        dataUrl: currentPreview.dataUrl,
+        numPages,
+        currentPage,
+        scale,
+      };
+    }
   }, []);
 
   // Notify parent when a new image preview is ready
@@ -195,6 +249,17 @@ function PreviewPanel({
       onImageClick(currentPreview.dataUrl);
       return;
     }
+    // PDF
+    if (currentPreview?.type === 'pdf' && onPDFPreviewReady) {
+      const state = pdfStateRef.current;
+      onPDFPreviewReady(
+        currentPreview.dataUrl,
+        state?.numPages || 0,
+        state?.currentPage || 1,
+        state?.scale || 1
+      );
+      return;
+    }
     // Code files (including markdown)
     if (currentPreview?.type === 'code' && selectedFile) {
       // For large files, preview.content is empty - use streamed content instead
@@ -207,7 +272,7 @@ function PreviewPanel({
         onCodePreviewReady(contentToUse, languageToUse);
       }
     }
-  }, [onImageClick, onMarkdownPreviewReady, onCodePreviewReady, selectedFile, isMarkdownFile]);
+  }, [onImageClick, onPDFPreviewReady, onMarkdownPreviewReady, onCodePreviewReady, selectedFile, isMarkdownFile]);
 
   useEffect(() => {
     window.addEventListener('open-lightbox', handleOpenLightbox);
@@ -250,7 +315,14 @@ function PreviewPanel({
         </span>
       </div>
       <div className="preview-panel__content">
-        {preview ? renderPreviewContent(preview, onImageClick, selectedFile?.path, handleStreamedContentReady) : null}
+        {preview ? renderPreviewContent(
+          preview,
+          onImageClick,
+          selectedFile?.path,
+          handleStreamedContentReady,
+          handlePDFClick,
+          handlePDFLoadSuccess
+        ) : null}
       </div>
     </div>
   );
