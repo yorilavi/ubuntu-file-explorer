@@ -17,6 +17,7 @@ const DEFAULT_PREVIEW_WIDTH = 300;
 // File extension categories for lightbox preview
 const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
 const MARKDOWN_EXTS = ['md', 'mdx'];
+const PDF_EXTS = ['pdf'];
 const CODE_EXTS = [
   'js', 'jsx', 'ts', 'tsx', 'mjs', 'cjs',  // JavaScript/TypeScript
   'py', 'pyw',                               // Python
@@ -37,12 +38,12 @@ const CODE_EXTS = [
 ];
 
 /**
- * Check if a file is previewable in lightbox (image, markdown, or code).
+ * Check if a file is previewable in lightbox (image, markdown, code, or pdf).
  */
 function isPreviewable(file: FileEntry): boolean {
   if (file.isDirectory) return false;
   const ext = file.name.toLowerCase().split('.').pop() || '';
-  return IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext);
+  return IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext) || PDF_EXTS.includes(ext);
 }
 
 /**
@@ -77,6 +78,12 @@ function App(): React.JSX.Element {
   const [markdownContent, setMarkdownContent] = useState<string | null>(null);
   const [codeContent, setCodeContent] = useState<string | null>(null);
   const [codeLanguage, setCodeLanguage] = useState<string>('text');
+  const [pdfLightboxData, setPdfLightboxData] = useState<{
+    dataUrl: string;
+    numPages: number;
+    currentPage: number;
+    scale: number;
+  } | null>(null);
 
   // Move file state
   const [moveTarget, setMoveTarget] = useState<FileEntry | null>(null);
@@ -271,6 +278,7 @@ function App(): React.JSX.Element {
     setLightboxSrc(null);
     setMarkdownContent(null);
     setCodeContent(null);
+    setPdfLightboxData(null);
   }, []);
 
   // Update lightbox when navigating to a new image while lightbox is open
@@ -279,6 +287,7 @@ function App(): React.JSX.Element {
       setLightboxSrc(dataUrl);
       setMarkdownContent(null);
       setCodeContent(null);
+      setPdfLightboxData(null);
     }
   }, [lightboxOpen]);
 
@@ -288,11 +297,13 @@ function App(): React.JSX.Element {
       setMarkdownContent(content);
       setLightboxSrc(null);
       setCodeContent(null);
+      setPdfLightboxData(null);
     } else {
       // Opening lightbox for markdown
       setMarkdownContent(content);
       setLightboxSrc(null);
       setCodeContent(null);
+      setPdfLightboxData(null);
       setLightboxOpen(true);
     }
   }, [lightboxOpen]);
@@ -304,12 +315,31 @@ function App(): React.JSX.Element {
       setCodeLanguage(language);
       setLightboxSrc(null);
       setMarkdownContent(null);
+      setPdfLightboxData(null);
     } else {
       // Opening lightbox for code
       setCodeContent(content);
       setCodeLanguage(language);
       setLightboxSrc(null);
       setMarkdownContent(null);
+      setPdfLightboxData(null);
+      setLightboxOpen(true);
+    }
+  }, [lightboxOpen]);
+
+  // Handle PDF preview ready - open lightbox with PDF content
+  const handlePDFPreviewReady = useCallback((dataUrl: string, numPages: number, currentPage: number, scale: number) => {
+    if (lightboxOpen) {
+      setPdfLightboxData({ dataUrl, numPages, currentPage, scale });
+      setLightboxSrc(null);
+      setMarkdownContent(null);
+      setCodeContent(null);
+    } else {
+      // Opening lightbox for PDF
+      setPdfLightboxData({ dataUrl, numPages, currentPage, scale });
+      setLightboxSrc(null);
+      setMarkdownContent(null);
+      setCodeContent(null);
       setLightboxOpen(true);
     }
   }, [lightboxOpen]);
@@ -431,7 +461,7 @@ function App(): React.JSX.Element {
         } else if (selectedFile && !selectedFile.isDirectory) {
           // Open lightbox if previewable file selected
           const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
-          if (IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext)) {
+          if (IMAGE_EXTS.includes(ext) || MARKDOWN_EXTS.includes(ext) || CODE_EXTS.includes(ext) || PDF_EXTS.includes(ext)) {
             e.preventDefault();
             // Dispatch custom event for PreviewPanel to provide the content
             window.dispatchEvent(new CustomEvent('open-lightbox'));
@@ -457,14 +487,22 @@ function App(): React.JSX.Element {
 
   const currentState = selectedServer ? connectionStates[selectedServer] : undefined;
 
-  // Build slides array for lightbox - supports images, markdown, and code
+  // Build slides array for lightbox - supports images, markdown, code, and pdf
   const lightboxSlides = useMemo((): LightboxSlide[] => {
     if (!selectedFile) return [];
 
     const ext = selectedFile.name.toLowerCase().split('.').pop() || '';
     const isMarkdown = MARKDOWN_EXTS.includes(ext);
 
-    if (isMarkdown && markdownContent) {
+    if (pdfLightboxData) {
+      return [{
+        type: 'pdf' as const,
+        dataUrl: pdfLightboxData.dataUrl,
+        filename: selectedFile.name,
+        initialPage: pdfLightboxData.currentPage,
+        initialScale: pdfLightboxData.scale,
+      }];
+    } else if (isMarkdown && markdownContent) {
       return [{
         type: 'markdown' as const,
         content: markdownContent,
@@ -485,7 +523,7 @@ function App(): React.JSX.Element {
       }];
     }
     return [];
-  }, [selectedFile, markdownContent, codeContent, codeLanguage, lightboxSrc]);
+  }, [selectedFile, pdfLightboxData, markdownContent, codeContent, codeLanguage, lightboxSrc]);
 
   return (
     <>
@@ -546,6 +584,7 @@ function App(): React.JSX.Element {
                       onImagePreviewReady={handleImagePreviewReady}
                       onMarkdownPreviewReady={handleMarkdownPreviewReady}
                       onCodePreviewReady={handleCodePreviewReady}
+                      onPDFPreviewReady={handlePDFPreviewReady}
                     />
                   </div>
                 </div>

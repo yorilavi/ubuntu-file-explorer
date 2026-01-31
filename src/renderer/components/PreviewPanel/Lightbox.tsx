@@ -7,15 +7,19 @@ import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import { MarkdownSlide } from './MarkdownSlide';
 import { CodeSlide } from './CodeSlide';
+import { PDFSlide } from './PDFSlide';
 
 // Slide types for the lightbox
 export interface LightboxSlide {
-  type: 'image' | 'markdown' | 'code';
+  type: 'image' | 'markdown' | 'code' | 'pdf';
   src?: string;           // For image slides
   content?: string;       // For markdown/code slides
-  filename?: string;      // For markdown/code header
+  dataUrl?: string;       // For pdf slides
+  filename?: string;      // For markdown/code/pdf header
   basePath?: string;      // For markdown relative links
   language?: string;      // For code syntax highlighting
+  initialPage?: number;   // For pdf initial page
+  initialScale?: number;  // For pdf initial zoom
 }
 
 // Props interface supporting both legacy single-image and new slides array
@@ -38,13 +42,16 @@ interface LightboxViewProps {
   onClose: () => void;
 }
 
-// Extended slide type that includes our custom markdown/code properties
+// Extended slide type that includes our custom markdown/code/pdf properties
 interface ExtendedSlide extends Slide {
-  customType?: 'markdown' | 'code';
+  customType?: 'markdown' | 'code' | 'pdf';
   content?: string;
   filename?: string;
   basePath?: string;
   language?: string;
+  dataUrl?: string;
+  initialPage?: number;
+  initialScale?: number;
 }
 
 /**
@@ -116,6 +123,16 @@ function LightboxView({
             language: slide.language,
           };
         }
+        if (slide.type === 'pdf') {
+          return {
+            src: '',  // Required by the library but unused for pdf
+            customType: 'pdf',
+            dataUrl: slide.dataUrl,
+            filename: slide.filename,
+            initialPage: slide.initialPage,
+            initialScale: slide.initialScale,
+          };
+        }
         // For markdown slides, we use custom properties that we'll handle in render.slide
         return {
           src: '',  // Required by the library but unused for markdown
@@ -174,6 +191,17 @@ function LightboxView({
                   content={extendedSlide.content || ''}
                   filename={extendedSlide.filename || 'Code'}
                   language={extendedSlide.language || 'text'}
+                />
+              );
+            }
+            // Handle custom pdf slides
+            if (extendedSlide.customType === 'pdf') {
+              return (
+                <PDFSlide
+                  dataUrl={extendedSlide.dataUrl || ''}
+                  filename={extendedSlide.filename || 'PDF'}
+                  initialPage={extendedSlide.initialPage}
+                  initialScale={extendedSlide.initialScale}
                 />
               );
             }
