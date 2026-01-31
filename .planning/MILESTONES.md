@@ -1,5 +1,33 @@
 # Project Milestones: Ubuntu File Explorer
 
+## v1.2 Folder Operations (Shipped: 2026-01-30)
+
+**Delivered:** Bidirectional folder transfer with recursive upload/download, progress tracking, cancel/retry, and PDF preview with page navigation and zoom.
+
+**Phases completed:** 12-14 (9 plans total)
+
+**Key accomplishments:**
+
+- Folder upload with recursive directory creation, progress tracking, and .DS_Store filtering
+- Folder download with Finder-style conflict resolution and full cleanup on cancel
+- PDF preview in preview panel with page navigation and zoom controls
+- PDF fullscreen lightbox with state preservation from preview panel
+- Cancel/retry pattern consistent across upload and download operations
+- Progress toast shows file count, current file, and byte size
+
+**Stats:**
+
+- 46 files created/modified
+- 10,324 lines added (47 removed)
+- 3 phases, 9 plans, 19 requirements
+- 1 day (2026-01-30)
+
+**Git range:** `feat(12-01)` → `docs(phase-14)`
+
+**What's next:** v1.3 enhancements TBD
+
+---
+
 ## v1.1 Feature Completion (Shipped: 2026-01-30)
 
 **Delivered:** Complete v1.0 backlog with move file UI, markdown lightbox, hidden files toggle, lazy loading, resize reset, and password authentication.

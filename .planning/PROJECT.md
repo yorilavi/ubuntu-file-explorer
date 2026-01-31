@@ -2,17 +2,18 @@
 
 ## What This Is
 
-A desktop file explorer for browsing remote Ubuntu servers via SSH. It provides a macOS Finder-like experience with Miller column navigation, instant image and code previews with syntax highlighting, markdown lightbox viewer, and per-server favorites for quick access to bookmarked folders. Built for personal use to make browsing remote servers as pleasant as browsing local files.
+A desktop file explorer for browsing remote Ubuntu servers via SSH. It provides a macOS Finder-like experience with Miller column navigation, instant image/code/PDF previews with syntax highlighting, markdown lightbox viewer, bidirectional folder transfer, and per-server favorites for quick access to bookmarked folders. Built for personal use to make browsing remote servers as pleasant as browsing local files.
 
 ## Current State
 
-**Shipped:** v1.1 Feature Completion (2026-01-30)
+**Shipped:** v1.2 Folder Operations (2026-01-30)
 
-The app is fully functional with all core features plus v1.1 enhancements:
+The app is fully functional with all core features plus v1.2 enhancements:
 - SSH connection with key and password authentication
 - Miller column navigation with hidden files toggle
-- Image, code, and markdown preview with lightbox viewer
+- Image, code, markdown, and PDF preview with lightbox viewer
 - File operations (download, upload, rename, delete, move)
+- Folder upload/download with progress tracking and retry
 - Large file streaming for 10,000+ line files
 - Per-server favorites
 
@@ -55,21 +56,24 @@ Browse remote servers visually with instant image and code previews — no more 
 - ✓ Large code files (10,000+ lines) load without UI freeze — v1.1
 - ✓ Double-click resize handle to reset column/preview width — v1.1
 
+**v1.2 Folder Operations (2026-01-30)**
+- ✓ Upload local folders to remote server recursively — v1.2
+- ✓ Download remote folders to local Mac recursively — v1.2
+- ✓ Folder transfer progress with file count and current file — v1.2
+- ✓ Cancel folder transfer with cleanup — v1.2
+- ✓ Retry failed folder transfers — v1.2
+- ✓ .DS_Store filtering during folder upload — v1.2
+- ✓ PDF preview in preview panel with page navigation — v1.2
+- ✓ PDF zoom controls (fit width, fit page, percentages) — v1.2
+- ✓ PDF fullscreen lightbox with state preservation — v1.2
+
 ### Active
 
-**Current Milestone: v1.2 Folder Operations**
-
-Goal: Enable full folder transfer in both directions plus PDF preview.
-
-Target features:
-- Upload local folders to remote server
-- Download remote folders to local Mac
-- PDF file preview in preview panel
+(No active milestone — ready for v1.3 planning)
 
 ### Out of Scope
 
 - Video playback — complexity not worth it, streaming over SSH is hard
-- PDF preview — can add later if needed
 - Mobile app — desktop only
 - Windows/Linux builds — macOS focus for now
 - File editing in-app — this is a browser, not an editor
@@ -80,7 +84,7 @@ Target features:
 
 ## Context
 
-Shipped v1.1 with ~19,000 lines TypeScript/TSX/CSS in 100+ source files.
+Shipped v1.2 with ~29,000 lines TypeScript/TSX/CSS in 130+ source files.
 
 **Tech stack:**
 - Electron 40 (nodeIntegration: false, contextIsolation: true, sandbox: true)
@@ -93,6 +97,7 @@ Shipped v1.1 with ~19,000 lines TypeScript/TSX/CSS in 100+ source files.
 - Shiki for syntax highlighting
 - Sonner for toast notifications
 - react-markdown with remark-gfm for markdown rendering
+- react-pdf for PDF preview
 
 **User feedback themes from testing:**
 - Column resize needed to be pixel-based (percentage sizing didn't work)
@@ -102,7 +107,7 @@ Shipped v1.1 with ~19,000 lines TypeScript/TSX/CSS in 100+ source files.
 - Hidden files toggle matches expected macOS behavior
 
 **Known issues:**
-- Folder upload needs tar/gzip approach with server-side extraction check
+- None currently identified
 
 ## Constraints
 
@@ -129,6 +134,11 @@ Shipped v1.1 with ~19,000 lines TypeScript/TSX/CSS in 100+ source files.
 | Spacebar toggles lightbox | Matches macOS Quick Look | ✓ Good — native feel |
 | 500 line streaming threshold | Consistent with truncation limit | ✓ Good — smooth large files |
 | RemoteFolderPicker for move | Native dialogs can't browse remote | ✓ Good — full control |
+| Sequential folder upload | Simpler than parallel, reliable progress | ✓ Good — predictable behavior |
+| Finder-style conflict resolution | Non-destructive rename with suffix | ✓ Good — safe default |
+| 'close' event for SFTP streams | 'finish' not reliably emitted by ssh2 | ✓ Good — fixed hanging uploads |
+| Adjacent page preloading for PDF | Current +/- 2 pages for smooth nav | ✓ Good — fast navigation |
+| 100+ page threshold for large PDF | Balance UX and performance warning | ✓ Good — user informed |
 
 ---
-*Last updated: 2026-01-30 after starting v1.2 milestone*
+*Last updated: 2026-01-30 after v1.2 milestone*
