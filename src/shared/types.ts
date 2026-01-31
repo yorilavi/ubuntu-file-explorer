@@ -125,7 +125,7 @@ export type PreviewData =
  * File type detection result.
  */
 export interface FileTypeInfo {
-  category: 'image' | 'code' | 'text' | 'binary';
+  category: 'image' | 'code' | 'text' | 'binary' | 'pdf';
   language?: string;  // For code files
   mimeType: string;
 }

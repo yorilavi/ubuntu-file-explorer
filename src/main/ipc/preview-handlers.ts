@@ -86,6 +86,11 @@ function detectFileType(filename: string): FileTypeInfo {
     return { category: 'text', language: 'text', mimeType: 'text/plain' };
   }
 
+  // PDF extension
+  if (ext === 'pdf') {
+    return { category: 'pdf', mimeType: 'application/pdf' };
+  }
+
   // Default to binary
   return { category: 'binary', mimeType: 'application/octet-stream' };
 }
@@ -335,6 +340,15 @@ export function registerPreviewHandlers(mainWindow: BrowserWindow): void {
             // Process cached data
             if (fileType.category === 'image') {
               return extractImageMetadata(cached.data, cached.size, fileType.mimeType);
+            } else if (fileType.category === 'pdf') {
+              const dataUrl = `data:application/pdf;base64,${cached.data.toString('base64')}`;
+              return {
+                type: 'pdf',
+                dataUrl,
+                pageCount: 0, // Will be determined by renderer with react-pdf
+                fileSize: cached.size,
+                isLarge: false, // Will be determined by renderer after loading
+              } as PreviewData;
             } else {
               const { preview, shouldStream } = processCodeFile(cached.data, fileType.language || 'text');
               if (shouldStream) {
@@ -381,6 +395,15 @@ export function registerPreviewHandlers(mainWindow: BrowserWindow): void {
         // Process based on file type
         if (fileType.category === 'image') {
           return extractImageMetadata(buffer, stats.size, fileType.mimeType);
+        } else if (fileType.category === 'pdf') {
+          const dataUrl = `data:application/pdf;base64,${buffer.toString('base64')}`;
+          return {
+            type: 'pdf',
+            dataUrl,
+            pageCount: 0, // Will be determined by renderer with react-pdf
+            fileSize: stats.size,
+            isLarge: false, // Will be determined by renderer after loading
+          } as PreviewData;
         } else {
           const { preview, shouldStream } = processCodeFile(buffer, fileType.language || 'text');
           if (shouldStream) {
