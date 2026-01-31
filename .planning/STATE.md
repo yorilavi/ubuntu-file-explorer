@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** v1.2 Folder Operations - Phase 13 complete, ready for Phase 14
+**Current focus:** v1.2 Folder Operations - Phase 14 in progress
 
 ## Current Position
 
-Phase: 13 of 14 (Folder Download) - COMPLETE
-Plan: 03 of 03
-Status: Phase complete
-Last activity: 2026-01-30 - Completed 13-03-PLAN.md
+Phase: 14 of 14 (PDF Preview) - IN PROGRESS
+Plan: 01 of 03
+Status: In progress
+Last activity: 2026-01-31 - Completed 14-01-PLAN.md
 
-Progress: [#############################░] v1.1 Complete + Phase 12-13 complete (6/9 v1.2 plans)
+Progress: [##############################] v1.1 Complete + Phase 12-13 complete + 14-01 (7/9 v1.2 plans)
 
 ## Milestone Summary
 
@@ -25,10 +25,10 @@ Goal: Enable full folder transfer in both directions plus PDF preview.
 Roadmap:
 - Phase 12: Folder Upload (7 requirements) - COMPLETE
 - Phase 13: Folder Download (6 requirements) - COMPLETE
-- Phase 14: PDF Preview (6 requirements)
-- Total: 19 requirements, 13 complete (68%)
+- Phase 14: PDF Preview (6 requirements) - 1/3 plans complete
+- Total: 19 requirements, 14 complete (74%)
 
-Next: Execute Phase 14 (PDF Preview)
+Next: Execute Phase 14 Plan 02 (PDF Renderer Component)
 
 ---
 
@@ -52,14 +52,14 @@ Stats:
 ## Performance Metrics
 
 **Velocity (cumulative):**
-- Total plans completed: 40 (22 v1.0 + 10 v1.1 + 8 v1.2)
-- Total phases: 13 complete, 0 in progress
+- Total plans completed: 41 (22 v1.0 + 10 v1.1 + 9 v1.2)
+- Total phases: 13 complete, 1 in progress
 - Total milestones: 2 complete, 1 in progress
 
-**v1.2 Phase 13 Execution:**
-- Duration: Complete
-- Plans: 3/3 complete
-- Phases: 1 complete (Phase 13)
+**v1.2 Phase 14 Execution:**
+- Duration: In progress
+- Plans: 1/3 complete
+- Plan 01: 4 min
 
 ## Accumulated Context
 
@@ -107,6 +107,8 @@ Stats:
 | Default to 'rename' conflict strategy | 13-03 | Finder-style behavior, non-destructive |
 | Show both file count and byte size | 13-03 | More informative progress display |
 | Clean up entire folder on cancel | 13-03 | Prevents leaving partial downloads on disk |
+| pageCount defaults to 0 from backend | 14-01 | Renderer determines with react-pdf |
+| isLarge defaults to false from backend | 14-01 | Renderer checks pageCount > 100 |
 
 ### Technical Notes
 
@@ -138,15 +140,21 @@ Phase 13 Complete:
   - Cancel via ESC or button with full cleanup
   - Retry Failed button for partial failures
 
+Phase 14 In Progress:
+- Plan 01: Backend types and detection (COMPLETE)
+  - PDF type in PreviewData union
+  - PDF category in FileTypeInfo
+  - PDF detection and preview handler
+
 ### Blockers/Concerns
 
 None.
 
 ## Session Continuity
 
-Last session: 2026-01-30
-Stopped at: Completed 13-03-PLAN.md (Phase 13 complete)
-Resume file: None - ready for Phase 14
+Last session: 2026-01-31
+Stopped at: Completed 14-01-PLAN.md
+Resume file: None - ready for 14-02-PLAN.md
 
 ---
-*Last updated: 2026-01-30*
+*Last updated: 2026-01-31*
