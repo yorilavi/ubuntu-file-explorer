@@ -65,12 +65,11 @@ Plans:
   3. Folders always appear above files in any sort order
   4. User can navigate files with up/down arrow keys and open folders/files with Enter, matching the responsiveness of Miller column navigation
   5. User can right-click any file row for the full context menu (rename, delete, move, download, upload) and selecting a file shows its preview in the preview panel
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 16-01: ListHeader and ListRow components with CSS Grid layout
-- [ ] 16-02: ListView container with sorting, virtualization, and keyboard navigation
-- [ ] 16-03: Context menu and preview panel integration
+- [ ] 16-01-PLAN.md -- ListHeader and ListRow components with CSS Grid layout, sort types, and context menu integration
+- [ ] 16-02-PLAN.md -- ListView container with sorting, virtualization, keyboard navigation, and full callback wiring
 
 ### Phase 17: View Mode Integration
 **Goal**: Users can switch between Miller column view and list view at will, with their preference remembered and their navigation state preserved across switches
@@ -94,7 +93,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 15. Shared Utilities & Metadata | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
-| 16. List View Core | v1.3 | 0/3 | Not started | - |
+| 16. List View Core | v1.3 | 0/2 | Not started | - |
 | 17. View Mode Integration | v1.3 | 0/2 | Not started | - |
 
 ---
