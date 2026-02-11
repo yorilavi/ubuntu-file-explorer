@@ -5,7 +5,7 @@
 - v1.0 MVP - Phases 1-6 (shipped 2026-01-28)
 - v1.1 Feature Completion - Phases 7-11 (shipped 2026-01-30)
 - v1.2 Folder Operations - Phases 12-14 (shipped 2026-01-30)
-- **v1.3 Metadata & List View** - Phases 15-17 (in progress)
+- **v1.3 Metadata & List View** - Phases 15-17 (shipped 2026-02-11)
 
 ## Phases
 
@@ -36,7 +36,7 @@ Phases 12-14, 9 plans. See .planning/milestones/ for details.
 
 - [x] **Phase 15: Shared Utilities & Metadata** - Extract shared code from FileItem and prove metadata formatting (completed 2026-02-10)
 - [x] **Phase 16: List View Core** - Build the complete list view with columns, sorting, virtualization, and interaction (completed 2026-02-10)
-- [ ] **Phase 17: View Mode Integration** - Wire list view into the app with toggle, persistence, and state preservation
+- [x] **Phase 17: View Mode Integration** - Wire list view into the app with toggle, persistence, and state preservation (completed 2026-02-11)
 
 ## Phase Details
 
@@ -83,8 +83,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md -- ViewModeToggle component and viewMode persistence layer (store, IPC handlers, preload)
-- [ ] 17-02-PLAN.md -- App.tsx wiring with conditional rendering, keyboard shortcuts, and state preservation
+- [x] 17-01-PLAN.md -- ViewModeToggle component and viewMode persistence layer (store, IPC handlers, preload)
+- [x] 17-02-PLAN.md -- App.tsx wiring with conditional rendering, keyboard shortcuts, and state preservation
 
 ## Progress
 
@@ -94,8 +94,8 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 15. Shared Utilities & Metadata | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
 | 16. List View Core | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
-| 17. View Mode Integration | v1.3 | 0/2 | Not started | - |
+| 17. View Mode Integration | v1.3 | 2/2 | ✓ Complete | 2026-02-11 |
 
 ---
 *Created: 2026-02-10*
-*Last updated: 2026-02-11*
+*Last updated: 2026-02-10*
