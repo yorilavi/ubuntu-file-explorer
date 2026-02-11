@@ -5,6 +5,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
+import { formatSize } from '../../utils/formatters';
 import './PDFPreview.css';
 
 // CRITICAL: Worker config must be in same file as Document/Page usage (per RESEARCH.md)
@@ -24,12 +25,6 @@ type ZoomMode = 'fit-width' | 'fit-page' | 'actual' | number;
 
 const ZOOM_LEVELS = [0.5, 0.75, 1.0, 1.5, 2.0] as const;
 const LARGE_PDF_THRESHOLD = 100;
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function PDFPreview({
   dataUrl,

@@ -1,47 +1,12 @@
 import React from 'react';
 import type { FileEntry } from '../../shared/types';
+import { formatSize, formatDate, formatPermissions } from '../utils/formatters';
 
 interface FileRowProps {
   file: FileEntry;
   isSelected: boolean;
   onClick: () => void;
   onDoubleClick: () => void;
-}
-
-/**
- * Format file size to human-readable string.
- */
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-}
-
-/**
- * Format date to localized string.
- */
-function formatDate(date: Date): string {
-  // Handle serialized dates from IPC (come as strings)
-  const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
-/**
- * Convert octal mode string to permission string (e.g., '0755' -> 'rwxr-xr-x').
- */
-function formatPermissions(mode: string): string {
-  const modeNum = parseInt(mode, 8);
-  const perms = ['---', '--x', '-w-', '-wx', 'r--', 'r-x', 'rw-', 'rwx'];
-  return (
-    perms[(modeNum >> 6) & 7] + perms[(modeNum >> 3) & 7] + perms[modeNum & 7]
-  );
 }
 
 /**

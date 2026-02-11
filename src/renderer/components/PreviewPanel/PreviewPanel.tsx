@@ -4,6 +4,7 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import type { FileEntry, PreviewData } from '../../../shared/types';
 import { usePreview } from '../../hooks/usePreview';
+import { formatSize } from '../../utils/formatters';
 import ImagePreview from './ImagePreview';
 import CodePreview from './CodePreview';
 import PDFPreview from './PDFPreview';
@@ -26,15 +27,6 @@ interface PDFState {
   numPages: number;
   currentPage: number;
   scale: number;
-}
-
-/**
- * Format file size for display.
- */
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /**

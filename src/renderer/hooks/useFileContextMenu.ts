@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import type { FileEntry, ConflictStrategy } from '../../shared/types';
+import { formatSize } from '../utils/formatters';
 
 // Folder upload state tracked at hook level
 interface FolderUploadState {
@@ -24,15 +25,6 @@ interface FolderDownloadState {
   localBasePath: string;
 }
 
-// Format bytes to human readable string
-// Note: Plan 15-02 will replace this with a shared utility
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
 
 export interface UseFileContextMenuProps {
   file: FileEntry;
@@ -622,7 +614,7 @@ export function useFileContextMenu({
       if (activeToastRef.current) {
         const fileProgress = `Downloading ${progress.completedFiles} of ${progress.totalFiles} files`;
         const sizeProgress = progress.totalBytes > 0
-          ? ` • ${formatBytes(progress.downloadedBytes)} of ${formatBytes(progress.totalBytes)}`
+          ? ` • ${formatSize(progress.downloadedBytes)} of ${formatSize(progress.totalBytes)}`
           : '';
         const currentText = progress.currentFile ? `\n${progress.currentFile}` : '';
         toast.loading(fileProgress + sizeProgress + currentText, {
