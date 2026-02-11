@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Phase 16 - List View Core
+**Current focus:** Phase 17 - View Mode Integration
 
 ## Current Position
 
-Phase: 16 of 17 (List View Core) -- COMPLETE
-Plan: 2 of 2 in current phase (all plans complete)
-Status: Phase Complete
-Last activity: 2026-02-11 — Completed 16-02 ListView container
+Phase: 17 of 17 (View Mode Integration)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-02-11 — Completed 17-01 ViewModeToggle & IPC persistence
 
-Progress: [██████░░░░] 57% (4/7 plans)
+Progress: [███████░░░] 71% (5/7 plans)
 
 ## Performance Metrics
 
@@ -24,7 +24,7 @@ Progress: [██████░░░░] 57% (4/7 plans)
 - Total milestones: 3 complete (v1.0, v1.1, v1.2)
 
 **v1.3 Velocity:**
-- Plans completed: 4
+- Plans completed: 5
 - Phases completed: 2/3 (Phase 15, 16 complete)
 
 | Phase | Plan | Duration | Tasks | Files |
@@ -33,6 +33,7 @@ Progress: [██████░░░░] 57% (4/7 plans)
 | 15-02 | Shared formatters & file kinds | 3min | 2 | 7 |
 | 16-01 | List view presentational components | 2min | 2 | 4 |
 | 16-02 | ListView container | 2min | 2 | 3 |
+| 17-01 | ViewModeToggle & IPC persistence | 1min | 2 | 5 |
 
 ## Accumulated Context
 
@@ -56,6 +57,9 @@ Recent decisions affecting current work:
 - [16-02]: 500ms type-ahead timeout (vs 800ms in useColumnNavigation) for faster search reset
 - [16-02]: sortEntries defined outside component as pure function for testability
 - [16-02]: ListView callback interface mirrors ColumnView (minus columnIndex on onFileSelect)
+- [17-01]: ViewModeToggle icon shows CURRENT mode, tooltip describes target mode with shortcut
+- [17-01]: No active/highlighted CSS state on view toggle (both modes equally valid)
+- [17-01]: viewMode defaults to 'columns' preserving existing Miller columns behavior
 
 ### Technical Notes
 
@@ -71,7 +75,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 16-02-PLAN.md (ListView container -- Phase 16 complete)
+Stopped at: Completed 17-01-PLAN.md (ViewModeToggle & IPC persistence)
 Resume file: None
 
 ---
