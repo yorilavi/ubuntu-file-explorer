@@ -10,6 +10,7 @@ interface UIPreferencesSchema {
   columnWidths: number[];      // Saved column widths by index
   previewPanelWidth: number;   // Preview panel width in pixels
   showHiddenFiles: boolean;    // Whether to show dotfiles/hidden files
+  viewMode: 'columns' | 'list'; // Active view mode (Miller columns or list)
 }
 
 // Initialize Conf with typed schema
@@ -19,6 +20,7 @@ const conf = new Conf<UIPreferencesSchema>({
     columnWidths: [],
     previewPanelWidth: 300,
     showHiddenFiles: false,  // Hidden by default (matches macOS Finder behavior)
+    viewMode: 'columns',     // Default to Miller columns (existing behavior)
   },
 });
 
@@ -62,4 +64,18 @@ export function getShowHiddenFiles(): boolean {
  */
 export function setShowHiddenFiles(show: boolean): void {
   conf.set('showHiddenFiles', show);
+}
+
+/**
+ * Get view mode preference.
+ */
+export function getViewMode(): 'columns' | 'list' {
+  return conf.get('viewMode') ?? 'columns';
+}
+
+/**
+ * Save view mode preference.
+ */
+export function setViewMode(mode: 'columns' | 'list'): void {
+  conf.set('viewMode', mode);
 }
