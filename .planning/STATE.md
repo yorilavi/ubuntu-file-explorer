@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-Phase: 15 of 17 (Shared Utilities & Metadata)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-02-11 — Completed 15-01 context menu hook extraction
+Phase: 15 of 17 (Shared Utilities & Metadata) -- COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-11 — Completed 15-02 shared formatters & file kinds
 
-Progress: [█░░░░░░░░░] 14% (1/7 plans)
+Progress: [██░░░░░░░░] 29% (2/7 plans)
 
 ## Performance Metrics
 
@@ -24,12 +24,13 @@ Progress: [█░░░░░░░░░] 14% (1/7 plans)
 - Total milestones: 3 complete (v1.0, v1.1, v1.2)
 
 **v1.3 Velocity:**
-- Plans completed: 1
-- Phases completed: 0/3
+- Plans completed: 2
+- Phases completed: 1/3 (Phase 15 complete)
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 15-01 | Context menu hook | 4min | 2 | 2 |
+| 15-02 | Shared formatters & file kinds | 3min | 2 | 7 |
 
 ## Accumulated Context
 
@@ -44,6 +45,9 @@ Recent decisions affecting current work:
 - [15-01]: ConflictStrategy imported from shared/types (not redefined in hook)
 - [15-01]: Ref-based pattern for circular callback dependencies (retry <-> operation handlers)
 - [15-01]: formatBytes kept temporarily in hook for 15-02 extraction
+- [15-02]: Threshold-based formatSize (not Math.log) for clarity
+- [15-02]: formatDate accepts Date | string | undefined for IPC compatibility
+- [15-02]: getFileKind uses lastIndexOf for multi-dot filename handling
 
 ### Technical Notes
 
@@ -59,7 +63,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 15-01-PLAN.md (context menu hook extraction)
+Stopped at: Completed 15-02-PLAN.md (shared formatters & file kinds) -- Phase 15 complete
 Resume file: None
 
 ---
