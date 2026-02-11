@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Phase 15 - Shared Utilities & Metadata
+**Current focus:** Phase 16 - List View Core
 
 ## Current Position
 
-Phase: 15 of 17 (Shared Utilities & Metadata) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-02-11 — Completed 15-02 shared formatters & file kinds
+Phase: 16 of 17 (List View Core)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-02-11 — Completed 16-01 list view presentational components
 
-Progress: [██░░░░░░░░] 29% (2/7 plans)
+Progress: [████░░░░░░] 43% (3/7 plans)
 
 ## Performance Metrics
 
@@ -24,13 +24,14 @@ Progress: [██░░░░░░░░] 29% (2/7 plans)
 - Total milestones: 3 complete (v1.0, v1.1, v1.2)
 
 **v1.3 Velocity:**
-- Plans completed: 2
+- Plans completed: 3
 - Phases completed: 1/3 (Phase 15 complete)
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
 | 15-01 | Context menu hook | 4min | 2 | 2 |
 | 15-02 | Shared formatters & file kinds | 3min | 2 | 7 |
+| 16-01 | List view presentational components | 2min | 2 | 4 |
 
 ## Accumulated Context
 
@@ -48,6 +49,9 @@ Recent decisions affecting current work:
 - [15-02]: Threshold-based formatSize (not Math.log) for clarity
 - [15-02]: formatDate accepts Date | string | undefined for IPC compatibility
 - [15-02]: getFileKind uses lastIndexOf for multi-dot filename handling
+- [16-01]: Reuse file-item__icon and file-item__context-menu CSS classes for visual consistency across views
+- [16-01]: 32px row height for list view (vs 28px Miller columns) for metadata readability
+- [16-01]: Scrollbar gutter compensation via padding-right: 29px on list header
 
 ### Technical Notes
 
@@ -63,7 +67,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 15-02-PLAN.md (shared formatters & file kinds) -- Phase 15 complete
+Stopped at: Completed 16-01-PLAN.md (list view presentational components)
 Resume file: None
 
 ---
