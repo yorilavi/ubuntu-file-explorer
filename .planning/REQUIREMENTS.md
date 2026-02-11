@@ -62,28 +62,28 @@ Requirements for Metadata & List View milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| META-01 | — | Pending |
-| META-02 | — | Pending |
-| META-03 | — | Pending |
-| LIST-01 | — | Pending |
-| LIST-02 | — | Pending |
-| LIST-03 | — | Pending |
-| LIST-04 | — | Pending |
-| LIST-05 | — | Pending |
-| SORT-01 | — | Pending |
-| SORT-02 | — | Pending |
-| SORT-03 | — | Pending |
-| SORT-04 | — | Pending |
-| VIEW-01 | — | Pending |
-| VIEW-02 | — | Pending |
-| VIEW-03 | — | Pending |
-| VIEW-04 | — | Pending |
+| META-01 | Phase 15 | Pending |
+| META-02 | Phase 15 | Pending |
+| META-03 | Phase 15 | Pending |
+| LIST-01 | Phase 16 | Pending |
+| LIST-02 | Phase 16 | Pending |
+| LIST-03 | Phase 16 | Pending |
+| LIST-04 | Phase 16 | Pending |
+| LIST-05 | Phase 16 | Pending |
+| SORT-01 | Phase 16 | Pending |
+| SORT-02 | Phase 16 | Pending |
+| SORT-03 | Phase 16 | Pending |
+| SORT-04 | Phase 16 | Pending |
+| VIEW-01 | Phase 17 | Pending |
+| VIEW-02 | Phase 17 | Pending |
+| VIEW-03 | Phase 17 | Pending |
+| VIEW-04 | Phase 17 | Pending |
 
 **Coverage:**
-- v1.3 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️
+- v1.3 requirements: 16 total
+- Mapped to phases: 16
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-10*
-*Last updated: 2026-02-10 after initial definition*
+*Last updated: 2026-02-10 after roadmap creation*

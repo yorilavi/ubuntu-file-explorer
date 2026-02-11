@@ -1,846 +1,708 @@
-# Architecture Integration: Folder Transfer & PDF Preview
+# Architecture: List View, Metadata Display, and Sorting Integration
 
-**Milestone:** v1.2 Folder Operations
-**Researched:** 2026-01-29
+**Milestone:** v1.3 List View & Metadata
+**Researched:** 2026-02-10
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This document defines how folder upload/download and PDF preview integrate with the existing Electron SSH file explorer architecture. Both features extend established patterns: folder transfers build on the stream-based file transfer engine with recursive enumeration and progress aggregation, while PDF preview follows the existing type-detection → fetch → render pattern using browser-native rendering.
+This document defines how list view, file metadata display, and sorting integrate with the existing Electron SSH file explorer. The key finding is that **the codebase already contains unused list view components** (`DirectoryList.tsx`, `FileRow.tsx`) with full metadata display and sort logic, plus CSS for grid-based rows with columns for name, size, modified, permissions, and owner. These were created early in development, before the Miller column architecture was implemented, and are currently dead code.
 
-**Key architectural decision:** PDF rendering uses Electron's built-in Chromium PDF viewer (PDFium-based since Electron 9.0.0) via data URLs, avoiding the 815KB JavaScript overhead of PDF.js and its memory management complexity.
+The architecture work is therefore a **modernization and integration** problem, not a greenfield design. The SFTP layer (`sftp-service.ts`) already returns full `FileEntry` metadata (size, modified, permissions, uid, gid, symlink target) from `readdir` -- no additional SFTP stat calls are needed. The data already flows through IPC correctly.
 
----
-
-## Integration Points with Existing Architecture
-
-### Current Architecture Recap
-
-```
-Main Process (Node.js with SSH2)
-├── SSH Connection Manager
-├── SFTP Session Handler (ssh2-sftp-client wrapper)
-├── File Transfer Engine (stream-based, AbortController cancellation)
-├── IPC Handlers (invoke/handle pattern)
-└── Preview Cache
-
-Renderer Process (React 19, sandbox: true)
-├── Column View Navigator (Miller columns)
-├── Preview Panel (image, code, markdown)
-├── Lightbox Viewer (image and markdown)
-└── Toast Notifications (Sonner)
-
-IPC Bridge (typed preload)
-├── file-ops:download / file-ops:upload
-├── preview:read-file / preview:folder-info
-├── file-ops:progress (Main → Renderer event)
-└── preview:code-chunk (Main → Renderer event for streaming)
-```
-
-### New Components Required
-
-| Component | Location | Integration Point |
-|-----------|----------|-------------------|
-| **Recursive Directory Enumerator** | Main: file-operations-service.ts | Extends existing file transfer functions |
-| **Folder Progress Aggregator** | Main: file-operations-service.ts | Uses existing progress callback pattern |
-| **Folder Picker Dialog Handler** | Main: file-operations-handlers.ts | Extends existing dialog patterns |
-| **PDF Type Detector** | Main: preview-handlers.ts | Extends existing detectFileType() |
-| **PDF Renderer** | Renderer: PreviewPanel/PDFPreview.tsx | New component following ImagePreview.tsx pattern |
-| **Folder Transfer UI** | Renderer: FileItem.tsx context menu | Extends existing upload/download actions |
+**Key architectural decision:** Implement list view as a peer to ColumnView, sharing data sources via the existing IPC layer, rather than as a mode within ColumnView. The two views have fundamentally different layout needs (single scrollable table vs. multi-column horizontal scroll) that make mode-switching within ColumnView more complex than a sibling component.
 
 ---
 
-## Folder Transfer Architecture
-
-### Pattern: Recursive Enumeration + Stream Aggregation
-
-Folder transfers extend the existing stream-based transfer pattern with recursive directory enumeration and aggregated progress tracking.
-
-#### Data Flow
+## Current Architecture Recap
 
 ```
-User initiates folder upload/download
-         │
-         ▼
-Renderer calls api.uploadFolder() / api.downloadFolder()
-         │
-         ▼
-Main process enumerates directory tree recursively
-         │
-         ├─ Build file list with relative paths
-         ├─ Calculate total size for progress
-         └─ Generate operation ID
-         │
-         ▼
-Main process transfers files sequentially with shared progress callback
-         │
-         ├─ Current file progress (0-100%)
-         ├─ Overall progress (files complete / total files)
-         └─ Aggregate bytes transferred / total bytes
-         │
-         ▼
-Main emits 'file-ops:progress' events with aggregated progress
-         │
-         ▼
-Renderer receives progress via onFileOperationProgress callback
-         │
-         ▼
-Toast displays: "Uploading folder (5/20 files, 45%)"
-         │
-         ▼
-Transfer complete or cancelled via AbortController
+Main Process (Node.js + ssh2)
++-- SSH Connection Manager (ssh-service.ts)
++-- SFTP Service (sftp-service.ts) -- readdir already returns full FileEntry
++-- File Operations Service (file-operations-service.ts)
++-- Preview Cache (preview-cache.ts)
++-- IPC Handlers (ssh-handlers.ts, preview-handlers.ts, file-operations-handlers.ts)
++-- Storage (connection-store, credential-store, favorites-store, ui-preferences-store)
+
+Preload Bridge (preload.ts)
++-- Typed contextBridge API (ElectronAPI)
++-- listDirectory, readFilePreview, file operations, UI preferences
+
+Renderer Process (React 19)
++-- App.tsx -- orchestrator: state, routing, preview panel, lightbox
++-- ServerSidebar -- connection list + favorites
++-- ColumnView -- Miller columns container (useReducer for column state)
+    +-- Column.tsx -- single column with @tanstack/react-virtual
+    +-- FileItem.tsx -- compact file row (icon + name + chevron)
++-- PathBar -- breadcrumb navigation
++-- PreviewPanel -- file preview (image, code, PDF, folder, binary)
++-- Lightbox -- fullscreen preview (image, markdown, code, PDF)
++-- DirectoryList.tsx [UNUSED] -- list view with sort, metadata columns
++-- FileRow.tsx [UNUSED] -- row with icon, name, size, modified, permissions, owner
 ```
 
-#### Recursive Enumeration Algorithm
+### Data Already Available
 
-**Main Process: file-operations-service.ts**
+The `FileEntry` type already carries all metadata needed for list view display:
 
 ```typescript
-interface FolderEnumerationResult {
-  files: Array<{
-    relativePath: string;
-    fullPath: string;
-    size: number;
-  }>;
-  totalSize: number;
-  totalFiles: number;
+interface FileEntry {
+  name: string;        // File or directory name
+  path: string;        // Full absolute path
+  size: number;        // Size in bytes (already populated by readdir)
+  modified: Date;      // Last modification time (from mtime)
+  isDirectory: boolean;
+  isSymlink: boolean;
+  permissions: string; // Unix permissions as octal string (e.g., '0755')
+  uid: number;         // Owner user ID
+  gid: number;         // Owner group ID
+  target?: string;     // Symlink target path
 }
+```
 
-// For local folder upload
-async function enumerateLocalFolder(
-  basePath: string
-): Promise<FolderEnumerationResult> {
-  const files: Array<{ relativePath: string; fullPath: string; size: number }> = [];
-  let totalSize = 0;
+**Critical insight:** The SFTP `readdir` call in `sftp-service.ts` (line 100-145) already extracts `size`, `modified`, `permissions`, `uid`, `gid` from `entry.attrs`. No additional `stat` calls are needed. The data flows through IPC via `ssh:list-directory` and arrives in the renderer as a complete `DirectoryListing`.
 
-  async function walk(currentPath: string, relativeTo: string) {
-    const entries = await fs.readdir(currentPath, { withFileTypes: true });
+The existing `FileItem.tsx` in Miller columns simply ignores most metadata (only uses `name`, `isDirectory`, `isSymlink`) -- but the data is there in `ColumnState.entries`.
 
-    for (const entry of entries) {
-      const fullPath = path.join(currentPath, entry.name);
-      const relativePath = path.relative(relativeTo, fullPath);
+---
 
-      if (entry.isDirectory()) {
-        // Recurse into subdirectory
-        await walk(fullPath, relativeTo);
-      } else if (entry.isFile()) {
-        const stats = await fs.stat(fullPath);
-        files.push({ relativePath, fullPath, size: stats.size });
-        totalSize += stats.size;
-      }
-      // Skip symlinks to avoid loops
+## Recommended Architecture
+
+### View Mode Toggle Architecture
+
+```
+App.tsx
++-- viewMode state: 'columns' | 'list'
++-- ViewModeToggle (in browser-toolbar)
++-- browser-main
+    +-- [if columns] ColumnView (existing, unchanged)
+    +-- [if list] ListView (new, reuses data patterns)
+    +-- PreviewPanel (shared, works with both views)
+```
+
+#### Why Sibling Components, Not Modes Within ColumnView
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| **Mode within ColumnView** | Reuses reducer | ColumnView reducer is multi-column-centric; list view is single-directory. Reducer actions (NAVIGATE_INTO, NAVIGATE_BACK, FOCUS_COLUMN) make no sense for list view. |
+| **Sibling component (recommended)** | Clean separation, simpler code | Needs some shared logic (data fetching, selection callbacks) |
+
+The ColumnView reducer manages an array of columns with independent state. A list view shows one directory at a time with sorting. These are architecturally different -- forcing them into one reducer creates awkward abstractions. Keep them as sibling components that share the same IPC calls and selection callbacks.
+
+### Component Boundaries
+
+| Component | Responsibility | New/Modified | Communicates With |
+|-----------|---------------|--------------|-------------------|
+| `App.tsx` | View mode state, toggles between ColumnView and ListView | **Modified** | ListView, ColumnView, PreviewPanel |
+| `ViewModeToggle` | UI control to switch view modes | **New** | App.tsx (via callback) |
+| `ListView` | Single-directory list with sort, metadata columns | **New** (based on existing DirectoryList) | App.tsx, ListRow, IPC |
+| `ListRow` | Row with icon, name, size, date, permissions, owner | **New** (based on existing FileRow) | ListView |
+| `ListHeader` | Sortable column headers | **New** (extracted from DirectoryList pattern) | ListView |
+| `ColumnView` | Miller columns (existing, unchanged) | **Unchanged** | App.tsx |
+| `PreviewPanel` | File preview sidebar | **Unchanged** | App.tsx (receives selectedFile) |
+| `ui-preferences-store` | Persists view mode preference | **Modified** | IPC |
+| `preload.ts` | View mode get/set | **Modified** | IPC |
+
+### Data Flow: List View
+
+```
+User clicks ViewModeToggle -> 'list'
+         |
+         v
+App.tsx sets viewMode = 'list', persists via IPC
+         |
+         v
+App.tsx renders ListView instead of ColumnView
+         |
+         v
+ListView calls window.electronAPI.listDirectory(serverId, currentPath)
+(Same IPC call as ColumnView -- no backend changes)
+         |
+         v
+Receives DirectoryListing { path, entries: FileEntry[] }
+(entries already have size, modified, permissions, uid, gid)
+         |
+         v
+ListView applies local sort + hidden filter
+         |
+         v
+Renders virtualized rows via @tanstack/react-virtual
+         |
+         v
+User clicks row -> onFileSelect(file) -> App.tsx -> PreviewPanel
+(Same callback pattern as ColumnView)
+         |
+         v
+User double-clicks directory -> navigate into -> re-fetch
+User clicks ".." or PathBar -> navigate up/to -> re-fetch
+```
+
+### Data Flow: Sorting
+
+Sorting is **renderer-only**. No IPC changes needed.
+
+```
+User clicks column header (e.g., "Size")
+         |
+         v
+ListView updates sortColumn + sortDirection state
+         |
+         v
+useMemo recomputes sorted entries from raw entries
+         |
+         v
+Re-render with new sort order
+         |
+         v
+Persist sort preference via ui-preferences IPC (optional, low priority)
+```
+
+The existing `DirectoryList.tsx` already has this exact sort pattern with `sortColumn`, `sortDirection`, and a `useMemo` that sorts while keeping directories first. This pattern should be reused directly.
+
+---
+
+## Component Design Details
+
+### ListView Component
+
+Based on modernizing the existing `DirectoryList.tsx` to work with the current architecture:
+
+```typescript
+// src/renderer/components/ListView/ListView.tsx
+
+interface ListViewProps {
+  serverId: string;
+  initialPath?: string;           // Starting directory
+  navigateTo?: string | null;     // External navigation (PathBar)
+  showHidden?: boolean;           // From App.tsx state
+  onFileSelect?: (file: FileEntry) => void;
+  onPathChange?: (path: string) => void;
+  onNavigationComplete?: () => void;
+  onRefreshColumn?: (refreshFn: () => void) => void;
+  onFavoritesChanged?: () => void;
+  onMoveToClick?: (file: FileEntry) => void;
+  onFilesLoaded?: (files: FileEntry[]) => void;
+}
+```
+
+**Key design constraint:** ListView must accept the same props as ColumnView so App.tsx can swap them transparently. The `onRefreshColumn`, `onFileSelect`, `onPathChange`, `onNavigationComplete`, `onFavoritesChanged`, `onMoveToClick`, and `onFilesLoaded` callbacks must work identically.
+
+### ListView Internal State
+
+```typescript
+// State (simpler than ColumnView -- single directory, no column array)
+const [entries, setEntries] = useState<FileEntry[]>([]);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+const [currentPath, setCurrentPath] = useState(initialPath);
+const [sortColumn, setSortColumn] = useState<SortColumn>('name');
+const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+const [selectedIndex, setSelectedIndex] = useState(-1);
+const [focusedIndex, setFocusedIndex] = useState(0);
+```
+
+### ListRow Component
+
+Based on modernizing existing `FileRow.tsx` with:
+- Context menu (matching FileItem.tsx -- download, rename, delete, move, favorites)
+- Selection state (focused, selected, multi-select)
+- Keyboard navigation support
+- Virtualized rendering via @tanstack/react-virtual
+
+```typescript
+// src/renderer/components/ListView/ListRow.tsx
+
+interface ListRowProps {
+  file: FileEntry;
+  isSelected: boolean;
+  isFocused: boolean;
+  isHidden?: boolean;
+  serverId: string;
+  showHiddenFiles: boolean;
+  onRefresh: () => void;
+  onClick: (e: React.MouseEvent) => void;
+  onDoubleClick: () => void;
+  onFavoritesChanged?: () => void;
+  onMoveToClick?: (file: FileEntry) => void;
+}
+```
+
+### ListHeader Component
+
+Sortable column headers with indicators:
+
+```typescript
+// src/renderer/components/ListView/ListHeader.tsx
+
+type SortColumn = 'name' | 'size' | 'modified' | 'permissions';
+type SortDirection = 'asc' | 'desc';
+
+interface ListHeaderProps {
+  sortColumn: SortColumn;
+  sortDirection: SortDirection;
+  onSort: (column: SortColumn) => void;
+}
+```
+
+### ViewModeToggle Component
+
+Minimal toggle in the browser toolbar:
+
+```typescript
+// src/renderer/components/ViewModeToggle.tsx
+
+type ViewMode = 'columns' | 'list';
+
+interface ViewModeToggleProps {
+  mode: ViewMode;
+  onModeChange: (mode: ViewMode) => void;
+}
+```
+
+---
+
+## Integration Points: What Changes Where
+
+### Modified Files
+
+| File | Change | Why |
+|------|--------|-----|
+| `App.tsx` | Add `viewMode` state, render ListView or ColumnView based on mode, add ViewModeToggle to toolbar | Orchestrator needs to switch views |
+| `ui-preferences-store.ts` | Add `viewMode` field to schema with default `'columns'` | Persist view mode preference |
+| `ui-preferences-handlers.ts` | Add `getViewMode` / `setViewMode` IPC handlers | Expose persistence to renderer |
+| `preload.ts` | Add `getViewMode` / `setViewMode` to API, add `ViewMode` type | Bridge for persistence |
+| `index.css` | Add list view grid styles (already partially there: `.file-row`, `.directory-header`) | List view layout |
+
+### New Files
+
+| File | Purpose | Based On |
+|------|---------|----------|
+| `src/renderer/components/ListView/ListView.tsx` | List view container with fetch, sort, virtualization | `DirectoryList.tsx` (modernized) |
+| `src/renderer/components/ListView/ListRow.tsx` | Metadata row with context menu | `FileRow.tsx` + `FileItem.tsx` context menu |
+| `src/renderer/components/ListView/ListHeader.tsx` | Sortable column headers | `DirectoryList.tsx` header section |
+| `src/renderer/components/ListView/ListView.css` | List view styles | Existing `.file-row` / `.directory-header` CSS |
+| `src/renderer/components/ListView/index.ts` | Barrel export | Pattern from ColumnView |
+| `src/renderer/components/ViewModeToggle.tsx` | View mode switch control | New |
+| `src/renderer/components/ViewModeToggle.css` | Toggle styles | New |
+
+### Unchanged Files
+
+| File | Why Unchanged |
+|------|---------------|
+| `sftp-service.ts` | Already returns full metadata in `readdir` |
+| `ssh-handlers.ts` | `ssh:list-directory` handler already returns complete `DirectoryListing` |
+| `Column.tsx` | Miller column view remains as-is |
+| `ColumnView.tsx` | Column view remains as-is |
+| `FileItem.tsx` | Miller column item remains as-is |
+| `PreviewPanel.tsx` | Receives `selectedFile` from App.tsx -- view-agnostic |
+| `shared/types.ts` | `FileEntry` already has all needed fields |
+| `main/ssh/types.ts` | Already complete |
+
+### Files to Remove (Clean Up)
+
+| File | Reason |
+|------|--------|
+| `DirectoryList.tsx` | Replaced by `ListView.tsx` (modernized version) |
+| `FileRow.tsx` | Replaced by `ListRow.tsx` (modernized version with context menu) |
+
+---
+
+## Keyboard Navigation in List View
+
+List view reuses the `useColumnNavigation` hook pattern but with list-specific behavior:
+
+| Key | Miller Columns (existing) | List View (new) |
+|-----|--------------------------|-----------------|
+| Arrow Up/Down | Move focus within column | Move focus within list |
+| Arrow Right | Navigate into folder (new column) | Navigate into folder (replace list) |
+| Arrow Left | Focus parent column | Navigate to parent directory |
+| Enter | Navigate into folder | Navigate into folder |
+| Space | Lightbox toggle | Lightbox toggle |
+| Type-ahead | Jump to matching filename | Jump to matching filename |
+| Cmd+Click | Multi-select in column | Multi-select in list |
+| Shift+Click | Range select in column | Range select in list |
+
+The existing `useColumnNavigation` hook can be reused for list view with minor parameter changes (no `onNavigateLeft` to parent column, instead navigate to parent path).
+
+---
+
+## Sorting Architecture
+
+### Sort Fields
+
+| Column | Field | Type | Sort Logic |
+|--------|-------|------|------------|
+| Name | `file.name` | string | `localeCompare` |
+| Size | `file.size` | number | Numeric comparison |
+| Modified | `file.modified` | Date | `getTime()` comparison |
+| Permissions | `file.permissions` | string | String comparison (octal) |
+
+### Sort Invariant: Directories Always First
+
+Both views always sort directories before files. This is the Finder convention and is already implemented in both `ColumnView.fetchDirectory` and `DirectoryList.sortedEntries`. Within each group (dirs, files), the selected sort applies.
+
+```typescript
+const sortedEntries = useMemo(() => {
+  const filtered = showHidden
+    ? entries
+    : entries.filter(e => !e.name.startsWith('.'));
+
+  return [...filtered].sort((a, b) => {
+    // Directories always first
+    if (a.isDirectory !== b.isDirectory) {
+      return a.isDirectory ? -1 : 1;
     }
-  }
-
-  await walk(basePath, basePath);
-  return { files, totalSize, totalFiles: files.length };
-}
-
-// For remote folder download
-async function enumerateRemoteFolder(
-  sftp: SFTPWrapper,
-  basePath: string
-): Promise<FolderEnumerationResult> {
-  const files: Array<{ relativePath: string; fullPath: string; size: number }> = [];
-  let totalSize = 0;
-
-  async function walk(currentPath: string, relativeTo: string) {
-    const entries = await new Promise<FileEntry[]>((resolve, reject) => {
-      sftp.readdir(currentPath, (err, list) => err ? reject(err) : resolve(list));
-    });
-
-    for (const entry of entries) {
-      const fullPath = path.posix.join(currentPath, entry.filename);
-      const relativePath = path.posix.relative(relativeTo, fullPath);
-
-      if (entry.attrs.isDirectory()) {
-        await walk(fullPath, relativeTo);
-      } else if (entry.attrs.isFile()) {
-        files.push({ relativePath, fullPath, size: entry.attrs.size });
-        totalSize += entry.attrs.size;
-      }
+    // Then by selected column
+    let cmp = 0;
+    switch (sortColumn) {
+      case 'name': cmp = a.name.localeCompare(b.name); break;
+      case 'size': cmp = a.size - b.size; break;
+      case 'modified': cmp = a.modified.getTime() - b.modified.getTime(); break;
+      case 'permissions': cmp = a.permissions.localeCompare(b.permissions); break;
     }
-  }
-
-  await walk(basePath, basePath);
-  return { files, totalSize, totalFiles: files.length };
-}
+    return sortDirection === 'asc' ? cmp : -cmp;
+  });
+}, [entries, sortColumn, sortDirection, showHidden]);
 ```
 
-**Key considerations:**
-- Skip symlinks to avoid infinite loops
-- Use path.posix for remote paths (always forward slashes)
-- Use path.join/path.relative for local paths (OS-aware)
-- Enumeration happens upfront before transfer starts (enables accurate progress)
+### Virtualization for Large Directories
 
-#### Progress Aggregation Pattern
+List view uses `@tanstack/react-virtual` (already a dependency at v3.13.18) just like Miller columns do in `Column.tsx`. The row height is taller than Miller columns to accommodate metadata:
+
+- Miller column row: 28px (compact, icon + name only)
+- List view row: 32px (icon + name + size + date + permissions + owner)
 
 ```typescript
-async function uploadFolder(
-  serverId: string,
-  localFolderPath: string,
-  remoteDir: string,
-  operationId: string,
-  onProgress: (percent: number, filesComplete: number, totalFiles: number) => void
-): Promise<{ remotePath: string; operationId: string }> {
-  const sftp = await getSFTPWrapper(serverId);
-  const controller = new AbortController();
-  activeOperations.set(operationId, controller);
-
-  // 1. Enumerate all files upfront
-  const { files, totalSize, totalFiles } = await enumerateLocalFolder(localFolderPath);
-
-  let bytesTransferred = 0;
-  let filesComplete = 0;
-
-  try {
-    // 2. Transfer files sequentially
-    for (const file of files) {
-      if (controller.signal.aborted) {
-        throw new Error('Operation cancelled');
-      }
-
-      // Create remote directory structure as needed
-      const remoteDirPath = path.posix.join(
-        remoteDir,
-        path.dirname(file.relativePath)
-      );
-      await ensureRemoteDirectory(sftp, remoteDirPath);
-
-      // Transfer file with per-file progress
-      await uploadFile(serverId, file.fullPath, remoteDirPath, undefined, (filePercent) => {
-        // Aggregate progress: bytes from completed files + current file progress
-        const currentFileBytes = Math.round((filePercent / 100) * file.size);
-        const totalBytesNow = bytesTransferred + currentFileBytes;
-        const overallPercent = Math.round((totalBytesNow / totalSize) * 100);
-
-        onProgress(overallPercent, filesComplete, totalFiles);
-      });
-
-      // File complete
-      bytesTransferred += file.size;
-      filesComplete++;
-      onProgress(Math.round((bytesTransferred / totalSize) * 100), filesComplete, totalFiles);
-    }
-
-    const folderName = path.basename(localFolderPath);
-    const remotePath = path.posix.join(remoteDir, folderName);
-    return { remotePath, operationId };
-  } finally {
-    activeOperations.delete(operationId);
-  }
-}
-```
-
-**Progress granularity:**
-- Overall percentage: aggregates bytes from all files
-- File count: "5/20 files" for user-visible progress
-- Current file progress: smooth updates within each file transfer
-
-#### Cancellation Integration
-
-Folder transfers reuse the existing AbortController pattern:
-
-```typescript
-// User clicks cancel in toast
-api.cancelOperation(operationId);
-
-// Main process
-function cancelOperation(operationId: string): boolean {
-  const controller = activeOperations.get(operationId);
-  if (controller) {
-    controller.abort(); // Stops current file transfer immediately
-    activeOperations.delete(operationId);
-    return true;
-  }
-  return false;
-}
-```
-
-**Behavior:**
-- Cancellation stops the current file transfer mid-stream
-- Partial folder upload/download leaves some files transferred
-- Cleanup removes partial current file (existing pattern)
-- No retry logic needed (user can re-initiate)
-
-### New IPC Channels
-
-| Channel | Direction | Purpose | Parameters |
-|---------|-----------|---------|------------|
-| `file-ops:upload-folder` | Renderer → Main | Upload local folder to remote server | serverId, localPath, remoteDir |
-| `file-ops:download-folder` | Renderer → Main | Download remote folder to local Mac | serverId, remotePath, folderName |
-
-**Response format (matches existing FileOperationResult):**
-
-```typescript
-interface FileOperationResult {
-  success: boolean;
-  path?: string;
-  error?: string;
-  operationId?: string;
-  cancelled?: boolean;
-}
-```
-
-**Progress events (reuse existing channel):**
-
-```typescript
-// Main → Renderer via 'file-ops:progress'
-interface FolderProgress extends TransferProgress {
-  filePath: string;          // Current file being transferred
-  filesComplete: number;     // Files successfully transferred
-  totalFiles: number;        // Total files in folder
-}
-```
-
-### UI Integration Points
-
-#### FileItem.tsx Context Menu Extension
-
-```typescript
-// Existing context menu actions
-const menuItems = [
-  { label: 'Download', action: handleDownload },
-  { label: 'Upload File', action: handleUpload },
-  // NEW: Add folder operations
-  { label: 'Upload Folder...', action: handleUploadFolder, disabled: !isDirectory },
-  { label: 'Download Folder', action: handleDownloadFolder, hidden: !isDirectory },
-  { label: 'Rename', action: handleRename },
-  { label: 'Delete', action: handleDelete },
-];
-```
-
-#### Toast Progress Display
-
-```typescript
-// Renderer: Modify existing progress toast to show folder context
-const showFolderTransferProgress = (
-  type: 'upload' | 'download',
-  folderName: string,
-  operationId: string
-) => {
-  toast.promise(
-    () => transferPromise,
-    {
-      loading: ({ filesComplete, totalFiles, percent }) =>
-        `${type === 'upload' ? 'Uploading' : 'Downloading'} ${folderName} (${filesComplete}/${totalFiles} files, ${percent}%)`,
-      success: `${folderName} ${type === 'upload' ? 'uploaded' : 'downloaded'}`,
-      error: 'Transfer failed',
-      action: {
-        label: 'Cancel',
-        onClick: () => api.cancelOperation(operationId),
-      },
-    }
-  );
-};
-```
-
-### Memory Management Considerations
-
-**Folder size limits:**
-- No hard limit on folder size (sequential transfer prevents memory issues)
-- Enumeration phase: O(n) memory where n = number of files (lightweight metadata only)
-- Transfer phase: O(1) memory (one file at a time, streaming)
-
-**Large folder scenarios:**
-- 1,000 files: ~100KB enumeration overhead (negligible)
-- 10,000 files: ~1MB enumeration overhead (acceptable)
-- 100,000 files: ~10MB enumeration overhead (still acceptable, rare on servers)
-
-**Optimization:** If enumeration overhead becomes an issue, implement streaming enumeration (enumerate directories on-demand as files transfer). Current upfront enumeration is simpler and provides better UX (accurate progress from start).
-
----
-
-## PDF Preview Architecture
-
-### Pattern: Browser-Native Rendering via Data URLs
-
-PDF preview extends the existing preview pattern (type detection → fetch → render) using Electron's built-in Chromium PDF viewer instead of PDF.js.
-
-#### Why Not PDF.js?
-
-| Factor | PDF.js | Chromium PDFium (Native) |
-|--------|--------|--------------------------|
-| **JavaScript size** | 815KB (190KB frontend + 624KB worker) | 0KB (built into Chromium) |
-| **Parse/compile time** | Significant (45,971 lines of JS) | Instant (native code) |
-| **Memory overhead** | High (separate worker process) | Low (native rendering) |
-| **Rendering accuracy** | Good | Excellent (Chrome's PDF engine) |
-| **Maintenance** | Requires updates | Maintained by Chromium team |
-| **Integration complexity** | Moderate (worker setup) | Trivial (data URL or blob URL) |
-
-**Decision:** Use Chromium's built-in PDF viewer. It's been available since Electron 9.0.0 (May 2020) and provides superior performance and accuracy with zero JavaScript overhead.
-
-Sources:
-- [Insomnia Tale of Learning to Love Electron](https://konghq.com/blog/engineering/learning-to-love-electron) - Documents dropping PDF.js for PDFium in Electron
-- [How to build an Electron PDF viewer with PDF.js](https://pspdfkit.com/blog/2021/how-to-build-an-electron-pdf-viewer-with-pdfjs/) - Alternative approach with PDF.js
-- [Comparing the best React PDF viewers for developers](https://www.nutrient.io/blog/top-react-pdf-viewers/) - PDFium advantages
-
-#### Data Flow
-
-```
-User selects PDF file in column view
-         │
-         ▼
-PreviewPanel calls api.readFilePreview(serverId, filePath, fileName, fileSize)
-         │
-         ▼
-Main process detects type: 'pdf' via extension
-         │
-         ▼
-Main process checks cache, fetches via SFTP if cache miss
-         │
-         ▼
-Main process creates data URL: `data:application/pdf;base64,${buffer.toString('base64')}`
-         │
-         ▼
-Main returns { type: 'pdf', dataUrl, fileSize }
-         │
-         ▼
-Renderer receives preview data
-         │
-         ▼
-PDFPreview.tsx renders: <embed src={dataUrl} type="application/pdf" />
-         │
-         ▼
-Chromium PDFium renders PDF natively in preview panel
-```
-
-#### Type Detection Extension
-
-**Main Process: preview-handlers.ts**
-
-```typescript
-function detectFileType(filename: string): FileTypeInfo {
-  const ext = filename.toLowerCase().split('.').pop() || '';
-
-  // Image extensions
-  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'];
-  if (imageExts.includes(ext)) {
-    return { category: 'image', mimeType: mimeMap[ext] || 'image/unknown' };
-  }
-
-  // PDF extension (NEW)
-  if (ext === 'pdf') {
-    return { category: 'pdf', mimeType: 'application/pdf' };
-  }
-
-  // Code/text extensions...
-  // (existing code)
-}
-```
-
-#### Preview Data Extension
-
-**Shared Types: src/shared/types.ts**
-
-```typescript
-export type PreviewData =
-  | { type: 'image'; dataUrl: string; metadata: ImageMetadata; fileSize: number; mimeType: string }
-  | { type: 'code'; content: string; language: string; lineCount: number; truncated: boolean }
-  | { type: 'pdf'; dataUrl: string; fileSize: number; pageCount?: number } // NEW
-  | { type: 'folder'; name: string; itemCount: number; totalSize: number }
-  | { type: 'binary'; name: string; fileSize: number; mimeType: string }
-  | { type: 'too-large'; name: string; fileSize: number }
-  | { type: 'error'; message: string }
-  | { type: 'loading'; progress: number };
-```
-
-**Note:** `pageCount` is optional because extracting page count from PDF requires parsing (not essential for MVP, can show "PDF Document" without page count).
-
-#### PDF Renderer Component
-
-**Renderer: PreviewPanel/PDFPreview.tsx**
-
-```typescript
-import React from 'react';
-
-interface PDFPreviewProps {
-  dataUrl: string;
-  fileSize: number;
-  pageCount?: number;
-}
-
-export const PDFPreview: React.FC<PDFPreviewProps> = ({
-  dataUrl,
-  fileSize,
-  pageCount
-}) => {
-  return (
-    <div className="pdf-preview">
-      {/* Header with metadata */}
-      <div className="pdf-preview-header">
-        <span className="pdf-icon">📄</span>
-        <span className="pdf-info">
-          PDF Document
-          {pageCount && ` • ${pageCount} pages`}
-          {` • ${formatFileSize(fileSize)}`}
-        </span>
-      </div>
-
-      {/* Native PDF embed */}
-      <embed
-        src={dataUrl}
-        type="application/pdf"
-        className="pdf-preview-embed"
-        style={{ width: '100%', height: 'calc(100% - 40px)' }}
-      />
-    </div>
-  );
-};
-```
-
-**Integration in PreviewPanel.tsx:**
-
-```typescript
-function PreviewPanel({ selectedFile }: PreviewPanelProps) {
-  const { preview, loading } = usePreview(selectedFile);
-
-  if (loading) return <LoadingSpinner />;
-  if (!preview) return <EmptyState />;
-
-  switch (preview.type) {
-    case 'image':
-      return <ImagePreview {...preview} />;
-    case 'code':
-      return <CodePreview {...preview} />;
-    case 'pdf': // NEW
-      return <PDFPreview {...preview} />;
-    case 'folder':
-      return <FolderInfo {...preview} />;
-    // ... other cases
-  }
-}
-```
-
-#### Memory Management for PDFs
-
-**File size limit (existing):**
-- MAX_PREVIEW_SIZE = 50MB (from preview-handlers.ts)
-- Applies to PDFs same as images/code files
-
-**Memory considerations:**
-
-| PDF Size | Base64 Overhead | Data URL Size | Memory Impact |
-|----------|----------------|---------------|---------------|
-| 1MB | 1.33MB | 1.33MB | Low (typical) |
-| 10MB | 13.3MB | 13.3MB | Moderate |
-| 50MB | 66.5MB | 66.5MB | High (limit) |
-
-**Base64 encoding overhead:** 33% size increase (4 chars per 3 bytes)
-
-**Optimization opportunities (not MVP):**
-1. Use Blob URLs instead of data URLs to avoid base64 overhead
-2. Implement progressive loading for large PDFs (first page only)
-3. Add dedicated PDF size limit lower than general preview limit
-
-**MVP approach:** Use data URLs (consistent with existing image preview pattern). 50MB limit is reasonable for typical server PDFs.
-
-#### Cache Integration
-
-PDFs use the existing preview cache pattern:
-
-```typescript
-// Main Process: preview-handlers.ts (in readFilePreview handler)
-if (fileType.category === 'pdf') {
-  // Check cache first
-  const cached = await getCachedFile(serverId, filePath);
-  if (cached && !isCacheStale(sftp, filePath, cached.mtime, cached.size)) {
-    const dataUrl = `data:application/pdf;base64,${cached.data.toString('base64')}`;
-    return { type: 'pdf', dataUrl, fileSize: cached.size };
-  }
-
-  // Fetch, cache, return
-  const buffer = await fetchFileViaSFTP(sftp, filePath);
-  await cacheFile(serverId, filePath, buffer, mtime, size);
-  const dataUrl = `data:application/pdf;base64,${buffer.toString('base64')}`;
-  return { type: 'pdf', dataUrl, fileSize: buffer.length };
-}
-```
-
-**Cache behavior:**
-- PDFs cached same as images (LRU cache with mtime staleness check)
-- No special handling needed
-- Base64 encoding happens on read, not on cache write (buffer cached)
-
-#### No Lightbox for PDFs
-
-Unlike images and markdown, PDFs do **not** open in lightbox viewer.
-
-**Rationale:**
-- PDF embed already provides full navigation (zoom, scroll, page controls)
-- Chromium's built-in PDF viewer includes all expected features
-- Adding lightbox wrapper adds no value, only complexity
-- Spacebar opens lightbox for images/markdown, does nothing for PDFs (expected UX)
-
-**Implementation:**
-```typescript
-// In useKeyboardShortcuts.ts
-const handleSpacebar = () => {
-  if (preview.type === 'image' || preview.type === 'code' && preview.language === 'markdown') {
-    openLightbox();
-  }
-  // PDFs: do nothing (embed has its own controls)
-};
+const virtualizer = useVirtualizer({
+  count: sortedEntries.length,
+  getScrollElement: () => parentRef.current,
+  estimateSize: () => 32,
+  overscan: 15,
+});
 ```
 
 ---
 
-## Component Integration Matrix
+## Metadata Display Formatting
 
-### Modified Components
+These utility functions already exist in `FileRow.tsx` and should be extracted to a shared module:
 
-| Component | File | Modification | Integration Type |
-|-----------|------|--------------|------------------|
-| `file-operations-service.ts` | Main | Add uploadFolder(), downloadFolder(), enumerateFolders() | Extend existing service |
-| `file-operations-handlers.ts` | Main | Add IPC handlers for folder operations | New IPC channels |
-| `preview-handlers.ts` | Main | Extend detectFileType() to recognize PDF | Extend existing function |
-| `preload.ts` | Preload | Add uploadFolder(), downloadFolder() to API surface | Extend existing API |
-| `types.ts` | Shared | Add 'pdf' to PreviewData union | Extend existing type |
-| `FileItem.tsx` | Renderer | Add folder upload/download to context menu | Extend existing menu |
-| `PreviewPanel.tsx` | Renderer | Add case for 'pdf' preview type | Extend existing switch |
+### File Size
 
-### New Components
+```typescript
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+```
 
-| Component | File | Purpose | Pattern Source |
-|-----------|------|---------|----------------|
-| `PDFPreview.tsx` | Renderer | Render PDF via embed element | ImagePreview.tsx pattern |
+### Modification Date
 
-**Total new files:** 1 (PDFPreview.tsx)
+```typescript
+function formatDate(date: Date): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  });
+}
+```
 
-**Total modified files:** 7 (service, handlers, preload, types, FileItem, PreviewPanel, keyboard shortcuts)
+### Permissions
+
+```typescript
+function formatPermissions(mode: string): string {
+  const modeNum = parseInt(mode, 8);
+  const perms = ['---', '--x', '-w-', '-wx', 'r--', 'r-x', 'rw-', 'rwx'];
+  return perms[(modeNum >> 6) & 7] + perms[(modeNum >> 3) & 7] + perms[modeNum & 7];
+}
+```
+
+These should go in a shared `src/renderer/utils/formatters.ts` file, since `PreviewPanel.tsx` also has a `formatSize` function.
 
 ---
 
-## Build Order and Dependencies
+## Patterns to Follow
 
-### Suggested Implementation Order
+### Pattern 1: View-Agnostic App.tsx Orchestration
 
-#### Phase 1: Folder Upload (2-3 days)
+App.tsx should not care which view is active. Both views provide the same callback interface:
 
-**Goal:** Upload local folders to remote server with progress
+```typescript
+// App.tsx render
+<div className="browser-columns">
+  {viewMode === 'columns' ? (
+    <ColumnView
+      key={selectedServer}
+      serverId={selectedServer}
+      initialPath="/"
+      navigateTo={navigateToPath}
+      showHidden={showHidden ?? false}
+      onFileSelect={handleFileSelect}
+      onPathChange={handlePathChange}
+      onNavigationComplete={handleNavigationComplete}
+      onFavoritesChanged={handleFavoritesChanged}
+      onMoveToClick={handleMoveToClick}
+      onRefreshColumn={handleRefreshColumnCallback}
+      onFilesLoaded={handleFilesLoaded}
+    />
+  ) : (
+    <ListView
+      key={selectedServer}
+      serverId={selectedServer}
+      initialPath="/"
+      navigateTo={navigateToPath}
+      showHidden={showHidden ?? false}
+      onFileSelect={handleFileSelect}
+      onPathChange={handlePathChange}
+      onNavigationComplete={handleNavigationComplete}
+      onFavoritesChanged={handleFavoritesChanged}
+      onMoveToClick={handleMoveToClick}
+      onRefreshColumn={handleRefreshColumnCallback}
+      onFilesLoaded={handleFilesLoaded}
+    />
+  )}
+</div>
+```
 
-| Step | Component | Deliverable | Blocks |
-|------|-----------|-------------|--------|
-| 1.1 | Local enumeration | enumerateLocalFolder() working | 1.2 |
-| 1.2 | Upload logic | uploadFolder() transfers files with progress | 1.3 |
-| 1.3 | IPC integration | file-ops:upload-folder handler working | 1.4 |
-| 1.4 | UI integration | Context menu action triggers upload | Test |
+### Pattern 2: Context Menu Reuse
 
-**Rationale:** Upload is more common use case than download. Local file enumeration is simpler (fs.readdir) than remote (SFTP).
+`ListRow` needs the same context menu as `FileItem` (download, rename, delete, move, favorites, upload folder, download folder). Rather than duplicating the 600+ lines of `FileItem.tsx` context menu handlers, extract context menu logic into a shared hook:
 
-#### Phase 2: Folder Download (2-3 days)
+```typescript
+// src/renderer/hooks/useFileContextMenu.ts
 
-**Goal:** Download remote folders to local Mac with progress
+function useFileContextMenu(params: {
+  file: FileEntry;
+  serverId: string;
+  showHiddenFiles: boolean;
+  onRefresh: () => void;
+  onRefreshChild?: () => void;
+  onFavoritesChanged?: () => void;
+  onMoveToClick?: (file: FileEntry) => void;
+}) {
+  // Returns: contextMenu state, handlers, portal element
+  return { contextMenu, handleContextMenu, contextMenuPortal };
+}
+```
 
-| Step | Component | Deliverable | Blocks |
-|------|-----------|-------------|--------|
-| 2.1 | Remote enumeration | enumerateRemoteFolder() working | 2.2 |
-| 2.2 | Download logic | downloadFolder() transfers files with progress | 2.3 |
-| 2.3 | IPC integration | file-ops:download-folder handler working | 2.4 |
-| 2.4 | UI integration | Context menu action triggers download | Test |
+This hook extracts the download, upload, delete, rename, move, favorites, folder upload, and folder download handlers from `FileItem.tsx`. Both `FileItem` and `ListRow` consume this hook.
 
-**Rationale:** Builds on folder upload pattern. Remote enumeration requires SFTP readdir recursion.
+### Pattern 3: Shared Formatting Utilities
 
-#### Phase 3: PDF Preview (1-2 days)
+Extract formatting functions used across components:
 
-**Goal:** Display PDF files in preview panel
+```typescript
+// src/renderer/utils/formatters.ts
+export function formatSize(bytes: number): string { ... }
+export function formatDate(date: Date): string { ... }
+export function formatPermissions(mode: string): string { ... }
+```
 
-| Step | Component | Deliverable | Blocks |
-|------|-----------|-------------|--------|
-| 3.1 | Type detection | detectFileType() recognizes PDF | 3.2 |
-| 3.2 | Preview handler | preview:read-file returns PDF data URL | 3.3 |
-| 3.3 | PDF component | PDFPreview.tsx renders embed | 3.4 |
-| 3.4 | Integration | PreviewPanel shows PDFs | Test |
+---
 
-**Rationale:** Independent of folder operations. Trivial implementation leveraging existing patterns.
+## Anti-Patterns to Avoid
 
-**Total estimated time:** 5-8 days (1 week with testing/polish)
+### Anti-Pattern 1: Metadata in Preview Panel Only
+
+**What:** Showing file metadata (size, date, permissions) only in the preview panel sidebar.
+**Why bad:** Users need to compare metadata across files at a glance. Preview panel shows one file at a time. List view with inline metadata is the standard pattern for this (Finder, VS Code, WinSCP).
+**Instead:** Show metadata inline in list view rows. Preview panel can show additional detail for the selected file.
+
+### Anti-Pattern 2: Separate SFTP Stat Calls for Metadata
+
+**What:** Making individual `sftp.stat()` calls for each file to get metadata.
+**Why bad:** `readdir` already returns `attrs` with size, mtime, mode, uid, gid. Stat calls add N extra round trips per directory.
+**Instead:** Use the data already returned by `readdir` (which the codebase already does).
+
+### Anti-Pattern 3: Shared State Between Views
+
+**What:** Having ColumnView and ListView share a single state store so switching views preserves scroll position, selection, etc.
+**Why bad:** Premature optimization. Adds complexity for a feature that rarely switches. State shapes differ (array of columns vs. single list).
+**Instead:** Each view manages its own state. When switching, the new view loads the current path fresh. Preserve `currentPath` at the App level so the user returns to the same directory.
+
+### Anti-Pattern 4: Real-Time Metadata Refresh
+
+**What:** Polling or watching for file metadata changes.
+**Why bad:** Over SSH/SFTP, there is no filesystem watch mechanism. Polling would be expensive (N stat calls per interval). Remote files rarely change while browsing.
+**Instead:** Metadata is fetched once per directory listing. User can manually refresh (existing refresh patterns).
+
+---
+
+## Suggested Build Order
+
+### Phase 1: Shared Utilities Extraction (Foundation)
+
+**Goal:** Extract reusable code from existing components before building new ones.
+
+| Step | Deliverable | Files |
+|------|-------------|-------|
+| 1.1 | Create `formatters.ts` with formatSize, formatDate, formatPermissions | New: `src/renderer/utils/formatters.ts` |
+| 1.2 | Extract context menu hook from FileItem.tsx | New: `src/renderer/hooks/useFileContextMenu.ts` |
+| 1.3 | Refactor FileItem.tsx to use extracted hook | Modified: `FileItem.tsx` |
+
+**Rationale:** This foundation step prevents code duplication between FileItem (Miller columns) and ListRow (list view). It also de-bloats FileItem.tsx which is currently 763 lines. Must happen first because Phase 2 and 3 depend on these shared pieces.
+
+### Phase 2: ListView Core (Data + Rendering)
+
+**Goal:** Build the list view with sorting, metadata columns, and virtualization.
+
+| Step | Deliverable | Files |
+|------|-------------|-------|
+| 2.1 | ListHeader with sortable columns and indicators | New: `ListView/ListHeader.tsx` |
+| 2.2 | ListRow with metadata display, context menu (via hook), selection states | New: `ListView/ListRow.tsx`, `ListView/ListView.css` |
+| 2.3 | ListView container: fetch, sort, virtualization, keyboard nav | New: `ListView/ListView.tsx`, `ListView/index.ts` |
+
+**Rationale:** Build bottom-up (header, row, container). The container orchestrates fetching and sorting. Virtualization is mandatory since the same large directories that need it in Miller columns need it here. Existing `DirectoryList.tsx` and `FileRow.tsx` serve as reference but are rewritten to match current architecture patterns.
+
+### Phase 3: View Mode Integration (App Orchestration)
+
+**Goal:** Wire ListView into the app with mode switching and persistence.
+
+| Step | Deliverable | Files |
+|------|-------------|-------|
+| 3.1 | ViewModeToggle component | New: `ViewModeToggle.tsx`, `ViewModeToggle.css` |
+| 3.2 | View mode persistence (ui-preferences-store + handlers + preload) | Modified: `ui-preferences-store.ts`, `ui-preferences-handlers.ts`, `preload.ts` |
+| 3.3 | App.tsx integration: viewMode state, conditional rendering, toolbar toggle | Modified: `App.tsx` |
+| 3.4 | Path synchronization: switching views preserves current directory | Modified: `App.tsx` |
+| 3.5 | Clean up: remove unused `DirectoryList.tsx` and `FileRow.tsx` | Removed: 2 files |
+
+**Rationale:** Integration must happen after ListView is working standalone. Path synchronization is important UX -- switching from column view at `/home/user/docs` should show the same directory in list view. The old unused components can be safely removed once the new ones are verified.
+
+### Phase 4: Polish (Keyboard, a11y, Edge Cases)
+
+**Goal:** Match the quality level of existing Miller column implementation.
+
+| Step | Deliverable | Files |
+|------|-------------|-------|
+| 4.1 | List view keyboard navigation (arrows, enter, type-ahead, escape) | Modified: `ListView.tsx` |
+| 4.2 | Keyboard shortcut to toggle view mode (e.g., Cmd+2 for list, Cmd+1 for columns) | Modified: `App.tsx` |
+| 4.3 | Lightbox integration in list view (spacebar, arrow keys when open) | Modified: `ListView.tsx`, `App.tsx` |
+| 4.4 | Accessibility: ARIA roles, labels, live regions for sort changes | Modified: `ListView.tsx`, `ListHeader.tsx`, `ListRow.tsx` |
+
+**Rationale:** Polish after core functionality works. Keyboard nav and lightbox integration are important because they are well-established patterns in the column view that users will expect to work in list view too.
 
 ### Dependency Graph
 
 ```
-Phase 1: Folder Upload
-├── Local enumeration (no deps)
-├── Upload logic (depends on: existing uploadFile)
-├── IPC handlers (depends on: upload logic)
-└── UI (depends on: IPC handlers)
+Phase 1: Shared Utilities (no deps)
++-- formatters.ts (no deps)
++-- useFileContextMenu.ts (depends on: FileItem.tsx pattern understanding)
++-- FileItem.tsx refactor (depends on: useFileContextMenu.ts)
 
-Phase 2: Folder Download
-├── Remote enumeration (depends on: existing getSFTPWrapper)
-├── Download logic (depends on: existing downloadFile, remote enumeration)
-├── IPC handlers (depends on: download logic)
-└── UI (depends on: IPC handlers)
+Phase 2: ListView Core (depends on: Phase 1)
++-- ListHeader.tsx (no deps beyond types)
++-- ListRow.tsx (depends on: formatters.ts, useFileContextMenu.ts)
++-- ListView.tsx (depends on: ListHeader, ListRow, @tanstack/react-virtual)
 
-Phase 3: PDF Preview (parallel to folder ops)
-├── Type detection (no deps)
-├── Preview handler (depends on: type detection, existing fetchFile)
-├── PDF component (no deps)
-└── Integration (depends on: preview handler, PDF component)
+Phase 3: View Mode Integration (depends on: Phase 2)
++-- ViewModeToggle.tsx (no deps)
++-- Persistence (depends on: existing ui-preferences pattern)
++-- App.tsx integration (depends on: ListView.tsx, ViewModeToggle.tsx, persistence)
++-- Cleanup (depends on: App.tsx integration verified working)
+
+Phase 4: Polish (depends on: Phase 3)
++-- Keyboard nav (depends on: ListView mounted in App)
++-- Lightbox (depends on: keyboard nav + App.tsx lightbox wiring)
++-- Accessibility (depends on: all components finalized)
 ```
 
-**Critical path:** Phase 1 → Phase 2 (sequential)
+**Critical path:** Phase 1 -> Phase 2 -> Phase 3 (sequential, each depends on prior)
 
-**Parallel opportunities:** Phase 3 can be implemented concurrently with Phase 1/2
-
----
-
-## Testing Strategy
-
-### Folder Transfer Tests
-
-**Unit tests (Main process):**
-- `enumerateLocalFolder()` with nested directories, symlinks, empty folders
-- `enumerateRemoteFolder()` with SFTP mocked
-- `uploadFolder()` progress calculation accuracy
-- `downloadFolder()` creates correct local directory structure
-
-**Integration tests (IPC):**
-- Upload folder, verify all files transferred
-- Download folder, verify directory structure preserved
-- Cancel mid-transfer, verify cleanup
-- Upload folder with existing files (overwrite behavior)
-
-**Manual tests:**
-- Large folder (1000+ files) transfers with UI progress
-- Folder with deep nesting (10+ levels)
-- Folder with special characters in filenames
-- Cancel transfer at various stages
-
-### PDF Preview Tests
-
-**Unit tests (Main process):**
-- `detectFileType()` recognizes .pdf extension
-- Data URL generation for PDF buffers
-- Cache hit/miss for PDF files
-
-**Integration tests (IPC):**
-- Preview small PDF (<1MB)
-- Preview large PDF (near 50MB limit)
-- Preview PDF over limit (error handling)
-
-**Manual tests:**
-- PDF renders correctly in preview panel
-- PDF zoom, scroll, page controls work
-- Navigate between PDF and non-PDF files
-- Cached PDF loads instantly
+**Parallel opportunities within phases:**
+- Phase 1: formatters.ts and useFileContextMenu.ts can be built in parallel
+- Phase 2: ListHeader and ListRow can be built in parallel before ListView
+- Phase 4: Keyboard, lightbox, and a11y are somewhat parallel
 
 ---
 
-## Known Limitations and Future Enhancements
+## Metadata in Preview Panel (Bonus)
 
-### Folder Transfer Limitations (MVP)
+The PreviewPanel currently shows the filename in a header but no file metadata. As a low-effort enhancement, the preview panel header could show metadata for any selected file:
 
-| Limitation | Impact | Future Enhancement |
-|------------|--------|-------------------|
-| Sequential file transfer | Slower than concurrent | Implement concurrent transfer queue (limit 3-5 simultaneous) |
-| No folder merge logic | Overwrites existing files | Add merge options (skip, overwrite, rename) |
-| No symlink handling | Symlinks skipped silently | Add symlink resolution or warning |
-| Upfront enumeration | Delay before transfer starts | Implement streaming enumeration for huge folders |
+```
++--------------------------------+
+| document.pdf                   |  <- existing filename
+| 2.4 MB | Jan 15, 2026 3:42 PM |  <- new metadata line
+| rwxr-xr-x | 1000:1000         |  <- new metadata line
++--------------------------------+
+| [preview content]              |
++--------------------------------+
+```
 
-### PDF Preview Limitations (MVP)
-
-| Limitation | Impact | Future Enhancement |
-|------------|--------|-------------------|
-| Base64 overhead (33%) | Higher memory for large PDFs | Use Blob URLs instead of data URLs |
-| No page count extraction | Missing metadata in UI | Parse PDF header for page count |
-| 50MB file size limit | Can't preview very large PDFs | Progressive loading (first page only) |
-| No lightbox view | Less immersive experience | Debate: is fullscreen PDF viewing useful? |
-
-### Security Considerations
-
-**Folder transfers:**
-- Validate all paths to prevent directory traversal attacks
-- Check available disk space before download (prevent fill attack)
-- Limit concurrent transfers to prevent resource exhaustion
-
-**PDF preview:**
-- PDFs rendered in sandboxed renderer process (secure by default)
-- No server-side execution risk (PDFium is Chromium's hardened engine)
-- Data URLs are memory-only (no temp file exposure)
+This works in both view modes and complements the list view metadata. It is a simple modification to `PreviewPanel.tsx` -- adding `selectedFile.size`, `selectedFile.modified`, `selectedFile.permissions` display using the shared formatters. However, this is optional polish and should not block the core list view work.
 
 ---
 
-## Performance Benchmarks (Expected)
+## Scalability Considerations
 
-### Folder Transfer Performance
+| Concern | At 100 files | At 1K files | At 10K files |
+|---------|-------------|-------------|--------------|
+| Sort performance | Instant | Instant (useMemo) | ~10-50ms (acceptable, useMemo caches) |
+| Virtualization | Not needed but works | Benefits start | Essential (same as Miller columns) |
+| Memory | Negligible | ~2-3MB for FileEntry array | ~20-30MB (same as current readdir result) |
+| IPC transfer | Instant | ~50ms | ~200-500ms (same as current) |
 
-| Scenario | Files | Total Size | Expected Time | Notes |
-|----------|-------|------------|---------------|-------|
-| Small folder | 10 files | 10MB | 5-10 sec | Network limited |
-| Medium folder | 100 files | 100MB | 1-2 min | SSH overhead per file |
-| Large folder | 1000 files | 1GB | 10-15 min | Sequential transfer |
+The sort runs in the renderer. `Array.sort` on 10K items with `localeCompare` is ~10-50ms -- imperceptible and cached by `useMemo`.
 
-**Optimization:** Concurrent transfers could reduce medium/large folder times by 50-70%.
+---
 
-### PDF Preview Performance
+## No Backend Changes Required
 
-| Scenario | Size | Expected Time | Notes |
-|----------|------|---------------|-------|
-| Typical PDF | 1MB | <500ms | Cache hit: instant |
-| Large PDF | 10MB | 2-3 sec | Network + render |
-| Max size PDF | 50MB | 10-15 sec | Base64 + PDFium load |
+This is worth emphasizing: **zero changes to the main process, SFTP service, or IPC protocol are needed** for the core list view and metadata features. The entire implementation is renderer-side component work plus minor IPC additions for view mode persistence.
 
-**Chromium PDFium rendering:** Near-instant for PDFs up to 50MB (native code performance).
+| Layer | Changes |
+|-------|---------|
+| Main process SSH/SFTP | None |
+| Main process IPC handlers | +2 handlers (getViewMode, setViewMode) |
+| Main process storage | +1 field in ui-preferences schema |
+| Preload bridge | +2 methods |
+| Shared types | None (FileEntry already complete) |
+| Renderer components | New ListView family + modified App.tsx |
 
 ---
 
 ## References and Sources
 
-### Folder Transfer Research
+### Existing Codebase (Authoritative)
 
-- [ssh2-sftp-client - npm](https://www.npmjs.com/package/ssh2-sftp-client) - uploadDir/downloadDir methods documentation
-- [How to Upload a Folder to an SFTP Server Using TypeScript and ssh2-sftp-client](https://www.timsanteford.com/posts/how-to-upload-a-folder-to-an-sftp-server-using-typescript-and-ssh2-sftp-client/) - Recursive folder upload patterns
-- [Electron IPC Communication](https://www.electronjs.org/docs/latest/tutorial/ipc) - Official IPC patterns
-- [Electron AbortController Pattern](https://github.com/electron/electron/issues/31737) - Cancellation patterns in Electron IPC
+- `src/main/ssh/sftp-service.ts` -- readdir already extracts full attrs (size, mtime, mode, uid, gid)
+- `src/main/ssh/types.ts` -- FileEntry type with all metadata fields
+- `src/renderer/components/DirectoryList.tsx` -- existing unused list view with sort
+- `src/renderer/components/FileRow.tsx` -- existing unused row with metadata display
+- `src/renderer/components/ColumnView/Column.tsx` -- virtualization pattern to reuse
+- `src/renderer/components/FileItem.tsx` -- context menu pattern to extract
+- `src/main/storage/ui-preferences-store.ts` -- preference persistence pattern
 
-### PDF Preview Research
+### Architecture Patterns (From Training Data, MEDIUM confidence)
 
-- [Insomnia Tale of Learning to Love Electron](https://konghq.com/blog/engineering/learning-to-love-electron) - PDFium vs PDF.js in Electron
-- [How to build an Electron PDF viewer with PDF.js](https://pspdfkit.com/blog/2021/how-to-build-an-electron-pdf-viewer-with-pdfjs/) - Alternative PDF.js approach
-- [Comparing the best React PDF viewers for developers](https://www.nutrient.io/blog/top-react-pdf-viewers/) - PDFium advantages and alternatives
-- [Electron Security](https://www.electronjs.org/docs/latest/tutorial/security) - Security best practices for sandboxed rendering
-- [Top five JavaScript PDF viewers for 2025](https://www.nutrient.io/blog/top-5-javascript-pdf-viewers/) - PDF.js alternatives and comparisons
-
-### Architecture Patterns
-
-- [Advanced Electron.js architecture - LogRocket Blog](https://blog.logrocket.com/advanced-electron-js-architecture/) - Electron architecture best practices
-- [Building High-Performance Electron Apps](https://www.johnnyle.io/read/electron-performance) - Performance optimization patterns
+- @tanstack/react-virtual v3 virtualizer works with any container, not just vertical lists -- can handle the fixed-header + scrollable-body pattern needed for list view
+- ssh2 `readdir` returns `SFTPFileEntry.attrs` which includes `mode`, `uid`, `gid`, `size`, `atime`, `mtime` -- no separate stat call needed (verified in codebase)
+- Electron contextBridge pattern for view mode persistence follows exact pattern of existing `showHiddenFiles` preference
 
 ---
 
-## Roadmap Implications
+## Confidence Assessment
 
-### Phase Structure Recommendation
+| Area | Level | Reason |
+|------|-------|--------|
+| Data availability | HIGH | Verified: sftp-service.ts already extracts all metadata from readdir |
+| Component architecture | HIGH | Based on existing codebase patterns (ColumnView, DirectoryList, FileRow) |
+| Sorting implementation | HIGH | Existing DirectoryList.tsx has working sort code to reference |
+| Virtualization | HIGH | @tanstack/react-virtual already used in Column.tsx |
+| Context menu extraction | MEDIUM | FileItem.tsx handlers have complex state (toast refs, operation tracking) -- extraction may surface edge cases |
+| View mode persistence | HIGH | Follows exact pattern of showHiddenFiles preference |
+| Keyboard navigation reuse | MEDIUM | useColumnNavigation hook is column-specific; list view may need a separate hook or a generalized version |
 
-Based on dependency analysis and complexity:
+---
 
-**Milestone v1.2: Folder Operations (5-8 days)**
+## Open Questions
 
-1. **Phase 1: Folder Upload** (2-3 days)
-   - Local enumeration → upload logic → IPC → UI
-   - Critical path for folder operations
+1. **Should sort preference persist per-server?** Current ui-preferences-store is global. If user sorts by size on server A, should server B also show size sort? Recommendation: keep it global (simpler), revisit if users request per-server.
 
-2. **Phase 2: Folder Download** (2-3 days)
-   - Remote enumeration → download logic → IPC → UI
-   - Builds on Phase 1 patterns
+2. **Should the view mode toggle be a toolbar button or keyboard shortcut only?** Recommendation: both. Button in toolbar for discoverability, Cmd+1/Cmd+2 for power users.
 
-3. **Phase 3: PDF Preview** (1-2 days, parallel to Phase 1/2)
-   - Type detection → preview handler → component → integration
-   - Independent, can be developed concurrently
-
-**Testing & Polish** (1-2 days)
-- Integration tests for all three features
-- Manual testing with real server folders
-- Progress toast refinement
-- Error handling polish
-
-### Risk Assessment
-
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Recursive enumeration performance issues | Low | Medium | Limit folder depth warning at 1000+ files |
-| PDF rendering compatibility | Low | Low | PDFium is Chrome's engine, excellent compatibility |
-| Progress aggregation complexity | Medium | Low | Existing pattern handles it, just more state |
-| Folder structure edge cases | Medium | Medium | Comprehensive test suite with symlinks, unicode, etc. |
-
-**Overall confidence:** HIGH - Both features extend well-proven patterns with minimal new concepts.
+3. **Column widths in list view -- fixed or resizable?** The Miller column view has resizable columns. List view columns could be fixed (simpler) or resizable (matches Finder). Recommendation: start with fixed reasonable widths, add resize in a polish phase if needed.
