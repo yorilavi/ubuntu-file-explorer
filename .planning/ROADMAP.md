@@ -34,7 +34,7 @@ Phases 12-14, 9 plans. See .planning/milestones/ for details.
 
 **Milestone Goal:** Add file metadata display with a toggleable list view and sorting capabilities, giving users a detail-oriented alternative to Miller column navigation.
 
-- [ ] **Phase 15: Shared Utilities & Metadata** - Extract shared code from FileItem and prove metadata formatting
+- [x] **Phase 15: Shared Utilities & Metadata** - Extract shared code from FileItem and prove metadata formatting (completed 2026-02-10)
 - [ ] **Phase 16: List View Core** - Build the complete list view with columns, sorting, virtualization, and interaction
 - [ ] **Phase 17: View Mode Integration** - Wire list view into the app with toggle, persistence, and state preservation
 
@@ -52,8 +52,8 @@ Phases 12-14, 9 plans. See .planning/milestones/ for details.
 **Plans:** 2 plans
 
 Plans:
-- [ ] 15-01-PLAN.md -- Extract context menu hook from FileItem.tsx
-- [ ] 15-02-PLAN.md -- Metadata format utilities and kind mapping
+- [x] 15-01-PLAN.md -- Extract context menu hook from FileItem.tsx
+- [x] 15-02-PLAN.md -- Metadata format utilities and kind mapping
 
 ### Phase 16: List View Core
 **Goal**: Users can browse any directory in a full-width list view with sortable columns, fast scrolling through large directories, keyboard navigation, context menus, and preview panel integration
@@ -93,7 +93,7 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 15. Shared Utilities & Metadata | v1.3 | 0/2 | Not started | - |
+| 15. Shared Utilities & Metadata | v1.3 | 2/2 | ✓ Complete | 2026-02-10 |
 | 16. List View Core | v1.3 | 0/3 | Not started | - |
 | 17. View Mode Integration | v1.3 | 0/2 | Not started | - |
 
