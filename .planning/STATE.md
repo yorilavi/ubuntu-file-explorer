@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 17 of 17 (View Mode Integration)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-02-11 — Completed 17-01 ViewModeToggle & IPC persistence
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-11 — Completed 17-02 App.tsx view mode integration
 
-Progress: [███████░░░] 71% (5/7 plans)
+Progress: [██████████] 100% (7/7 plans)
 
 ## Performance Metrics
 
@@ -24,8 +24,8 @@ Progress: [███████░░░] 71% (5/7 plans)
 - Total milestones: 3 complete (v1.0, v1.1, v1.2)
 
 **v1.3 Velocity:**
-- Plans completed: 5
-- Phases completed: 2/3 (Phase 15, 16 complete)
+- Plans completed: 7
+- Phases completed: 3/3 (Phase 15, 16, 17 complete)
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -34,6 +34,7 @@ Progress: [███████░░░] 71% (5/7 plans)
 | 16-01 | List view presentational components | 2min | 2 | 4 |
 | 16-02 | ListView container | 2min | 2 | 3 |
 | 17-01 | ViewModeToggle & IPC persistence | 1min | 2 | 5 |
+| 17-02 | App.tsx view mode integration | 2min | 1 | 1 |
 
 ## Accumulated Context
 
@@ -60,6 +61,9 @@ Recent decisions affecting current work:
 - [17-01]: ViewModeToggle icon shows CURRENT mode, tooltip describes target mode with shortcut
 - [17-01]: No active/highlighted CSS state on view toggle (both modes equally valid)
 - [17-01]: viewMode defaults to 'columns' preserving existing Miller columns behavior
+- [17-02]: handleFileSelect columnIndex made optional for cross-view compatibility
+- [17-02]: Both views get key={selectedServer}, no key={viewMode} (navigateToPath handles path preservation)
+- [17-02]: viewMode state concrete default 'columns' (not null) avoids null checks everywhere
 
 ### Technical Notes
 
@@ -75,7 +79,7 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-11
-Stopped at: Completed 17-01-PLAN.md (ViewModeToggle & IPC persistence)
+Stopped at: Completed 17-02-PLAN.md (App.tsx view mode integration) -- Phase 17 complete, v1.3 milestone complete
 Resume file: None
 
 ---
