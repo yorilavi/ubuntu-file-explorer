@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 ## Current Position
 
 Phase: 15 of 17 (Shared Utilities & Metadata)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-02-10 — Roadmap created for v1.3
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-02-11 — Completed 15-01 context menu hook extraction
 
-Progress: [░░░░░░░░░░] 0% (0/7 plans)
+Progress: [█░░░░░░░░░] 14% (1/7 plans)
 
 ## Performance Metrics
 
@@ -24,8 +24,12 @@ Progress: [░░░░░░░░░░] 0% (0/7 plans)
 - Total milestones: 3 complete (v1.0, v1.1, v1.2)
 
 **v1.3 Velocity:**
-- Plans completed: 0
+- Plans completed: 1
 - Phases completed: 0/3
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 15-01 | Context menu hook | 4min | 2 | 2 |
 
 ## Accumulated Context
 
@@ -37,6 +41,9 @@ Recent decisions affecting current work:
 - [v1.3 roadmap]: 3-phase structure (utilities extraction -> list view core -> view integration)
 - [v1.3 roadmap]: Miller column sorting deferred to future milestone (MSORT-01, MSORT-02)
 - [v1.3 research]: Context menu hook extraction identified as highest-risk refactor
+- [15-01]: ConflictStrategy imported from shared/types (not redefined in hook)
+- [15-01]: Ref-based pattern for circular callback dependencies (retry <-> operation handlers)
+- [15-01]: formatBytes kept temporarily in hook for 15-02 extraction
 
 ### Technical Notes
 
@@ -51,9 +58,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-10
-Stopped at: Roadmap created for v1.3, ready to plan Phase 15
+Last session: 2026-02-11
+Stopped at: Completed 15-01-PLAN.md (context menu hook extraction)
 Resume file: None
 
 ---
-*Last updated: 2026-02-10*
+*Last updated: 2026-02-11*
