@@ -8,8 +8,12 @@ import PathBar from './components/PathBar';
 import PreviewPanel from './components/PreviewPanel';
 import LightboxView, { LightboxSlide } from './components/PreviewPanel/Lightbox';
 import HiddenFilesToggle from './components/HiddenFilesToggle';
+import ViewModeToggle from './components/ViewModeToggle';
+import ListView from './components/ListView';
 import { ToastProvider } from './components/ToastProvider';
 import { RemoteFolderPicker } from './components/RemoteFolderPicker';
+
+type ViewMode = 'columns' | 'list';
 
 // Default preview panel width for reset
 const DEFAULT_PREVIEW_WIDTH = 300;
@@ -68,6 +72,7 @@ function App(): React.JSX.Element {
   const [currentPath, setCurrentPath] = useState('/');
   const [navigateToPath, setNavigateToPath] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState<boolean | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('columns');
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
@@ -110,6 +115,13 @@ function App(): React.JSX.Element {
   // Load saved hidden files preference on mount
   useEffect(() => {
     window.electronAPI.getShowHiddenFiles().then(setShowHidden);
+  }, []);
+
+  // Load saved view mode preference on mount
+  useEffect(() => {
+    window.electronAPI.getViewMode().then((mode) => {
+      setViewMode(mode as ViewMode);
+    });
   }, []);
 
   // Handle preview panel resize
@@ -180,8 +192,7 @@ function App(): React.JSX.Element {
     setSelectedFile(null);
   }, [selectedServer]);
 
-  const handleFileSelect = useCallback((file: FileEntry, columnIndex: number) => {
-    console.log('Selected file:', file.name, 'in column', columnIndex);
+  const handleFileSelect = useCallback((file: FileEntry, _columnIndex?: number) => {
     setSelectedFile(file);
   }, []);
 
@@ -425,6 +436,17 @@ function App(): React.JSX.Element {
     });
   }, []);
 
+  const handleSetViewMode = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    window.electronAPI.setViewMode(mode);
+    // VIEW-04: preserve current directory when switching views
+    setNavigateToPath(currentPath);
+  }, [currentPath]);
+
+  const handleViewModeToggle = useCallback(() => {
+    handleSetViewMode(viewMode === 'columns' ? 'list' : 'columns');
+  }, [viewMode, handleSetViewMode]);
+
   // Keyboard shortcut: Cmd+Shift+. to toggle hidden files
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -448,6 +470,30 @@ function App(): React.JSX.Element {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleToggleHidden]);
+
+  // Keyboard shortcuts: Cmd+1 for column view, Cmd+2 for list view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      // Cmd+1 -> Column view, Cmd+2 -> List view (Finder convention)
+      if (e.metaKey && !e.shiftKey && !e.altKey) {
+        if (e.code === 'Digit1') {
+          e.preventDefault();
+          handleSetViewMode('columns');
+        } else if (e.code === 'Digit2') {
+          e.preventDefault();
+          handleSetViewMode('list');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSetViewMode]);
 
   // Handle spacebar for lightbox and arrow keys when lightbox is open
   useEffect(() => {
@@ -545,6 +591,10 @@ function App(): React.JSX.Element {
                     onNavigate={handlePathNavigate}
                   />
                   <div className="browser-toolbar__controls">
+                    <ViewModeToggle
+                      viewMode={viewMode}
+                      onToggle={handleViewModeToggle}
+                    />
                     <HiddenFilesToggle
                       showHidden={showHidden ?? false}
                       onToggle={handleToggleHidden}
@@ -555,20 +605,37 @@ function App(): React.JSX.Element {
                 {/* Column view + Preview panel */}
                 <div ref={browserMainRef} className={`browser-main ${previewResizing ? 'browser-main--resizing' : ''}`}>
                   <div className="browser-columns">
-                    <ColumnView
-                      key={selectedServer}
-                      serverId={selectedServer}
-                      initialPath="/"
-                      navigateTo={navigateToPath}
-                      showHidden={showHidden ?? false}
-                      onFileSelect={handleFileSelect}
-                      onPathChange={handlePathChange}
-                      onNavigationComplete={handleNavigationComplete}
-                      onFavoritesChanged={handleFavoritesChanged}
-                      onMoveToClick={handleMoveToClick}
-                      onRefreshColumn={handleRefreshColumnCallback}
-                      onFilesLoaded={handleFilesLoaded}
-                    />
+                    {viewMode === 'columns' ? (
+                      <ColumnView
+                        key={selectedServer}
+                        serverId={selectedServer}
+                        initialPath="/"
+                        navigateTo={navigateToPath}
+                        showHidden={showHidden ?? false}
+                        onFileSelect={handleFileSelect}
+                        onPathChange={handlePathChange}
+                        onNavigationComplete={handleNavigationComplete}
+                        onFavoritesChanged={handleFavoritesChanged}
+                        onMoveToClick={handleMoveToClick}
+                        onRefreshColumn={handleRefreshColumnCallback}
+                        onFilesLoaded={handleFilesLoaded}
+                      />
+                    ) : (
+                      <ListView
+                        key={selectedServer}
+                        serverId={selectedServer}
+                        initialPath="/"
+                        navigateTo={navigateToPath}
+                        showHidden={showHidden ?? false}
+                        onFileSelect={handleFileSelect}
+                        onPathChange={handlePathChange}
+                        onNavigationComplete={handleNavigationComplete}
+                        onFavoritesChanged={handleFavoritesChanged}
+                        onMoveToClick={handleMoveToClick}
+                        onRefreshColumn={handleRefreshColumnCallback}
+                        onFilesLoaded={handleFilesLoaded}
+                      />
+                    )}
                   </div>
                   <div
                     className={`browser-main__resize-handle ${previewResizing ? 'browser-main__resize-handle--active' : ''}`}
