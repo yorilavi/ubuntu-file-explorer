@@ -80,11 +80,11 @@ Plans:
   2. User can press a keyboard shortcut to toggle view mode without reaching for the mouse
   3. View mode preference persists across app restarts (close app in list view, reopen in list view)
   4. Switching views preserves the current directory and selected file -- the user sees the same location and selection in the new view
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 17-01: ViewModeToggle component with toolbar integration and keyboard shortcut
-- [ ] 17-02: App.tsx wiring, view persistence, and state synchronization
+- [ ] 17-01-PLAN.md -- ViewModeToggle component and viewMode persistence layer (store, IPC handlers, preload)
+- [ ] 17-02-PLAN.md -- App.tsx wiring with conditional rendering, keyboard shortcuts, and state preservation
 
 ## Progress
 
