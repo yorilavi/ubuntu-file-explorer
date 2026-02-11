@@ -49,11 +49,11 @@ Phases 12-14, 9 plans. See .planning/milestones/ for details.
   2. Format utilities produce human-readable dates from SFTP mtime timestamps
   3. Format utilities map file extensions to kind labels (e.g., "Folder", "PNG Image", "TypeScript", "PDF Document")
   4. Context menu logic extracted into a reusable hook that FileItem.tsx consumes without behavior change (rename, delete, move, download, upload all still work identically)
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 15-01: Extract context menu hook from FileItem.tsx
-- [ ] 15-02: Metadata format utilities and kind mapping
+- [ ] 15-01-PLAN.md -- Extract context menu hook from FileItem.tsx
+- [ ] 15-02-PLAN.md -- Metadata format utilities and kind mapping
 
 ### Phase 16: List View Core
 **Goal**: Users can browse any directory in a full-width list view with sortable columns, fast scrolling through large directories, keyboard navigation, context menus, and preview panel integration
