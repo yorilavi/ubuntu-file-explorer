@@ -170,7 +170,7 @@ function PDFPreview({
             className="pdf-preview__nav-btn"
             onClick={goToPrevPage}
             disabled={pageNumber <= 1}
-            title="Previous page (Up/Left arrow)"
+            data-tooltip="Previous page (Up/Left arrow)"
           >
             <span>Prev</span>
           </button>
@@ -181,7 +181,7 @@ function PDFPreview({
             className="pdf-preview__nav-btn"
             onClick={goToNextPage}
             disabled={pageNumber >= numPages}
-            title="Next page (Down/Right arrow)"
+            data-tooltip="Next page (Down/Right arrow)"
           >
             <span>Next</span>
           </button>

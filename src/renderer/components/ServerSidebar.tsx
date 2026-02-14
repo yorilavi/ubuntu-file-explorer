@@ -25,6 +25,7 @@ interface ServerSidebarProps {
   onServerSelect: (serverId: string) => void;
   onFavoriteNavigate: (serverId: string, path: string) => void;
   onRefreshFavorites?: (refreshFn: () => Promise<void>) => void;
+  onHelpClick?: () => void;
 }
 
 /**
@@ -37,6 +38,7 @@ function ServerSidebar({
   onServerSelect,
   onFavoriteNavigate,
   onRefreshFavorites,
+  onHelpClick,
 }: ServerSidebarProps): React.JSX.Element {
   const [servers, setServers] = useState<Server[]>([]);
   const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionState>>({});
@@ -182,7 +184,8 @@ function ServerSidebar({
           <button
             className={`sidebar-server__chevron ${!isCollapsed ? 'sidebar-server__chevron--open' : ''}`}
             onClick={(e) => { e.stopPropagation(); toggleCollapse(server.id); }}
-            title={isCollapsed ? 'Expand' : 'Collapse'}
+            data-tooltip={isCollapsed ? 'Expand favorites' : 'Collapse favorites'}
+            data-tooltip-pos="right"
           >
             ▶
           </button>
@@ -243,13 +246,22 @@ function ServerSidebar({
     <div className="sidebar">
       <div className="sidebar-header">
         <h2 className="sidebar-title">Servers</h2>
-        <button
-          className="sidebar-add-btn"
-          onClick={() => setShowAddModal(true)}
-          title="Add Connection"
-        >
-          +
-        </button>
+        <div className="sidebar-header__actions">
+          <button
+            className="sidebar-help-btn"
+            onClick={onHelpClick}
+            data-tooltip="Help (Cmd+/)"
+          >
+            ?
+          </button>
+          <button
+            className="sidebar-add-btn"
+            onClick={() => setShowAddModal(true)}
+            data-tooltip="Add Connection"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <div className="sidebar-content">

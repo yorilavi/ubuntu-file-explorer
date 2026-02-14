@@ -8,6 +8,7 @@ import PathBar from './components/PathBar';
 import PreviewPanel from './components/PreviewPanel';
 import LightboxView, { LightboxSlide } from './components/PreviewPanel/Lightbox';
 import HiddenFilesToggle from './components/HiddenFilesToggle';
+import HelpModal from './components/HelpModal';
 import ViewModeToggle from './components/ViewModeToggle';
 import ListView from './components/ListView';
 import { ToastProvider } from './components/ToastProvider';
@@ -89,6 +90,9 @@ function App(): React.JSX.Element {
     currentPage: number;
     scale: number;
   } | null>(null);
+
+  // Help modal state
+  const [showHelp, setShowHelp] = useState(false);
 
   // Move file state
   const [moveTarget, setMoveTarget] = useState<FileEntry | null>(null);
@@ -447,7 +451,7 @@ function App(): React.JSX.Element {
     handleSetViewMode(viewMode === 'columns' ? 'list' : 'columns');
   }, [viewMode, handleSetViewMode]);
 
-  // Keyboard shortcut: Cmd+Shift+. to toggle hidden files
+  // Keyboard shortcut: Cmd+Shift+. to toggle hidden files, Cmd+/ for help
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Skip if typing in input/textarea/contenteditable
@@ -464,6 +468,12 @@ function App(): React.JSX.Element {
       if (e.metaKey && e.shiftKey && e.code === 'Period') {
         e.preventDefault();
         handleToggleHidden();
+      }
+
+      // Cmd+/ opens help modal
+      if (e.metaKey && e.code === 'Slash') {
+        e.preventDefault();
+        setShowHelp((prev) => !prev);
       }
     };
 
@@ -579,6 +589,7 @@ function App(): React.JSX.Element {
           onServerSelect={setSelectedServer}
           onFavoriteNavigate={handleFavoriteNavigate}
           onRefreshFavorites={handleRefreshFavoritesCallback}
+          onHelpClick={() => setShowHelp(true)}
         />
         <main className="main-content">
           {selectedServer ? (
@@ -641,6 +652,8 @@ function App(): React.JSX.Element {
                     className={`browser-main__resize-handle ${previewResizing ? 'browser-main__resize-handle--active' : ''}`}
                     onMouseDown={handlePreviewResizeStart}
                     onDoubleClick={handlePreviewDoubleClick}
+                    data-tooltip="Drag to resize — double-click to reset"
+                    data-tooltip-pos="left"
                   />
                   <div className="browser-preview" style={{ width: previewWidth }}>
                     <PreviewPanel
@@ -694,6 +707,9 @@ function App(): React.JSX.Element {
           onMoveConfirm={handleMoveConfirm}
         />
       )}
+
+      {/* Help modal */}
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </>
   );
 }

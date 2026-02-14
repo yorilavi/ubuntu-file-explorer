@@ -166,7 +166,7 @@ function DirectoryList({
             className="directory-toolbar__back"
             onClick={handleNavigateUp}
             disabled={currentPath === '/'}
-            title="Go to parent directory"
+            data-tooltip="Go to parent directory"
           >
             ..
           </button>

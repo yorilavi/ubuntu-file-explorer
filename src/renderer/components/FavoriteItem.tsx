@@ -40,7 +40,7 @@ export function FavoriteItem({ id, path, onNavigate, onRemove }: FavoriteItemPro
       {...attributes}
     >
       {/* Drag handle on left */}
-      <span className="favorite-item__handle" {...listeners}>
+      <span className="favorite-item__handle" data-tooltip="Drag to reorder" data-tooltip-pos="right" {...listeners}>
         ⋮⋮
       </span>
 
@@ -48,7 +48,8 @@ export function FavoriteItem({ id, path, onNavigate, onRemove }: FavoriteItemPro
       <button
         className="favorite-item__content"
         onClick={onNavigate}
-        title={path}
+        data-tooltip={path}
+        data-tooltip-pos="bottom"
       >
         <span className="favorite-item__icon">📁</span>
         <span className="favorite-item__name">{folderName}</span>
@@ -61,7 +62,7 @@ export function FavoriteItem({ id, path, onNavigate, onRemove }: FavoriteItemPro
           e.stopPropagation();
           onRemove();
         }}
-        title="Remove from favorites"
+        data-tooltip="Remove from favorites"
       >
         ×
       </button>

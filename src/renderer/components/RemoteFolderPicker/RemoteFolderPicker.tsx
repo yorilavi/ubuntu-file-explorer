@@ -108,7 +108,7 @@ function RemoteFolderPicker({
         {/* Header */}
         <div className="modal__header">
           <h2 className="modal__title">Move to...</h2>
-          <button className="modal__close" onClick={onClose} title="Close">
+          <button className="modal__close" onClick={onClose} data-tooltip="Close">
             &times;
           </button>
         </div>
