@@ -528,6 +528,18 @@ const electronAPI = {
   setShowHiddenFiles: (show: boolean): Promise<void> =>
     ipcRenderer.invoke('ui:setShowHiddenFiles', show),
 
+  /**
+   * Get view mode preference.
+   */
+  getViewMode: (): Promise<string> =>
+    ipcRenderer.invoke('ui:getViewMode'),
+
+  /**
+   * Save view mode preference.
+   */
+  setViewMode: (mode: string): Promise<void> =>
+    ipcRenderer.invoke('ui:setViewMode', mode),
+
   // Shell Operations
   // ================
 

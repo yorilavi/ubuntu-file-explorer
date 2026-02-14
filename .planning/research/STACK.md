@@ -1,235 +1,182 @@
-# Technology Stack: Folder Transfer & PDF Preview
+# Technology Stack: Metadata Display, List View, and Sort Controls
 
 **Project:** Ubuntu File Explorer
-**Milestone:** Folder Upload/Download + PDF Preview
-**Researched:** 2026-01-29
+**Milestone:** File Metadata Display + List View + Sort Controls
+**Researched:** 2026-02-10
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This milestone requires **minimal new dependencies**. The existing `ssh2` package already installed provides the SFTP foundation. Only **two new packages** are needed:
+This milestone requires **zero new dependencies**. The existing stack -- `@tanstack/react-virtual` (v3.13.18), React 19, and plain CSS -- provides everything needed. The primary question investigated was whether `@tanstack/react-table` should be added for the list view. The answer is **no** -- it would add complexity without benefit given this project's specific constraints.
 
-1. **ssh2-sftp-client** (v12.0.1) - Adds promise-based SFTP operations with built-in `uploadDir`/`downloadDir` methods
-2. **react-pdf** (v10.3.0) - React component for rendering PDFs using PDF.js
-
-**Anti-recommendation:** Do NOT use tar/gzip compression for folder transfers. The complexity, temporary storage requirements, and extraction coordination outweigh benefits for typical SSH file explorer use cases.
+The reasoning: This is a file explorer, not a data table. The "list view" is a flat directory listing with 6 fixed columns and a single sort dimension at a time. The project already has working sort logic in the orphaned `DirectoryList.tsx`, working virtualization in `Column.tsx`, and working file operations in `FileItem.tsx`. What's needed is wiring these together, not abstracting them behind a table library.
 
 ---
 
-## New Dependencies Required
+## Recommended Stack Changes
 
-### Core SFTP Enhancement
+### New Dependencies: None
 
-| Package | Version | Purpose | Why This Approach |
-|---------|---------|---------|-------------------|
-| ssh2-sftp-client | ^12.0.1 | Promise-based SFTP with directory operations | Wraps existing ssh2 with built-in `uploadDir`/`downloadDir` methods. Cleaner than reimplementing recursion manually. |
+No new packages are required. The entire feature set can be built with existing dependencies.
 
-**Integration notes:**
-- Reuses existing `ssh2` connection (already in package.json at v1.17.0)
-- Provides promise-based API vs ssh2's callback/stream API
-- Built-in progress tracking via `step` callback in uploadDir/downloadDir
-- Configurable concurrency via `promiseLimit` option (default: 10)
+### Existing Dependencies to Leverage
 
-**Installation:**
-```bash
-npm install ssh2-sftp-client@^12.0.1
-```
-
-**Why not use raw ssh2 for folders?**
-- ssh2 requires manual recursive directory traversal implementation
-- ssh2-sftp-client provides battle-tested `uploadDir`/`downloadDir` methods
-- Existing project already uses ssh2 for single files; this adds folder capability without replacing anything
-
-### PDF Rendering
-
-| Package | Version | Purpose | Why This Approach |
-|---------|---------|---------|-------------------|
-| react-pdf | ^10.3.0 | React component for PDF rendering | Best React integration for PDF.js. Handles worker setup, canvas rendering, and pagination. |
-| pdfjs-dist | ^5.4.530 | PDF.js rendering engine (peer dependency) | Required by react-pdf. Latest stable from Mozilla. |
-
-**Integration notes:**
-- Follows existing pattern: project uses `react-markdown` for markdown, `react-syntax-highlighter` for code
-- Worker must be configured in renderer (see setup below)
-- Renders to canvas element (works in Electron renderer)
-- Supports page navigation, zoom, text selection
-
-**Installation:**
-```bash
-npm install react-pdf@^10.3.0
-```
-
-**Why react-pdf vs alternatives?**
-- **vs pdfjs-dist directly**: react-pdf provides React components, handles worker setup, manages canvas lifecycle
-- **vs electron-pdf-window**: react-pdf integrates into existing preview panel (no new windows)
-- **vs commercial (Apryse, Nutrient)**: overkill for read-only preview; commercial features (annotation, signing) not needed
-
-### TypeScript Support
-
-| Package | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| @types/react-pdf | ^7.0.0 | TypeScript definitions for react-pdf | Install alongside react-pdf |
-| @types/archiver | ^7.0.0 | TypeScript definitions for archiver | ONLY if implementing tar approach (NOT recommended) |
-
-**Note:** ssh2-sftp-client ships with built-in TypeScript definitions.
+| Technology | Version | Role in This Milestone |
+|------------|---------|----------------------|
+| `@tanstack/react-virtual` | 3.13.18 | Virtualize list view rows (reuse existing pattern from `Column.tsx`) |
+| `react` | 19.2.4 | Component architecture, `useMemo` for sort computation |
+| `electron-conf` | 1.3.0 | Persist view mode preference, sort preferences, column widths |
+| CSS Grid | native | Column layout for list view rows and header (reuse existing `.file-row` grid pattern) |
 
 ---
 
-## Folder Transfer: Approach Decision
+## The Key Decision: Custom Implementation over TanStack Table
 
-### Recommended: File-by-File with ssh2-sftp-client
+### Why NOT Add @tanstack/react-table
 
-**Use `uploadDir()` and `downloadDir()` methods directly.**
+**Decision: Do not install `@tanstack/react-table`.**
 
-**Why this approach:**
-1. **No temporary storage** - Files transfer directly without intermediate tar archives
-2. **Progress granularity** - Track per-file progress, show which file is transferring
-3. **Resilience** - Failed individual files don't corrupt entire transfer
-4. **Cancellation** - Can abort mid-transfer without orphaned tar files
-5. **Simplicity** - Built-in methods handle recursion, directory creation, permissions
+| Factor | TanStack Table | Custom Implementation |
+|--------|---------------|----------------------|
+| **Bundle size** | +52KB minified (table-core + react-table) | 0KB additional |
+| **Learning curve** | Headless paradigm requires learning column defs, row model, sorting API | Uses patterns already in the codebase |
+| **Sort logic** | Provides generic multi-column sort | Project needs single-column sort with folders-first -- already written in `DirectoryList.tsx` and `ColumnView.tsx` |
+| **Virtualization** | Requires separate integration with @tanstack/react-virtual | Already integrated in `Column.tsx` |
+| **Column resize** | Provides headless resize API | Already implemented in `ColumnView.tsx` with saved widths via IPC |
+| **Row selection** | Provides selection model | Already implemented: multi-select with Cmd-click, Shift-click in `columnReducer` |
+| **Context menus** | No built-in support | Already implemented in `FileItem.tsx` |
+| **DnD** | No built-in support | Already using `@dnd-kit/core` |
 
-**Performance characteristics:**
-- Overhead: ~5-10ms per file for SFTP handshake
-- Negligible for typical directories (< 1000 files)
-- Concurrency tunable via `promiseLimit` option
+**The core problem:** TanStack Table is designed for data-rich table UIs (admin dashboards, data grids, spreadsheet-like interfaces). A file explorer "list view" is a simpler problem -- it's a styled directory listing, not a data table. TanStack Table would require:
 
-**Code example:**
-```typescript
-await sftp.uploadDir(localPath, remotePath, {
-  filter: (item) => !item.name.startsWith('.'), // Skip hidden files
-  useFastput: false, // More compatible across servers
-  promiseLimit: 10 // Max concurrent transfers
-});
-```
+1. Defining column models that duplicate the existing `FileEntry` type
+2. Wrapping the existing sort logic in TanStack's sorting API
+3. Integrating TanStack's row model with the existing selection/focus/keyboard navigation system
+4. Bridging TanStack's virtualization integration with the existing `@tanstack/react-virtual` setup
 
-### NOT Recommended: Tar/Gzip Compression
+Each integration point adds abstraction without reducing code. The project already has 80% of the implementation -- sort logic, virtualization, selection, keyboard navigation, context menus, column resize -- spread across `DirectoryList.tsx`, `Column.tsx`, `ColumnView.tsx`, and `FileItem.tsx`.
 
-**Why NOT to use archiver + tar approach:**
+### When TanStack Table WOULD make sense
 
-1. **Requires server-side extraction** - Must SSH exec `tar -xzf` on remote server
-   - Permission issues: User may not have exec rights
-   - Path complexity: Coordinating temp directories on both sides
-   - Error handling: Extraction failures leave orphaned archives
+- Multi-column sorting (sort by name THEN by date)
+- Column reordering via drag-and-drop
+- Column filtering/search within columns
+- Grouped/expandable rows
+- Pagination
+- 10+ columns
 
-2. **Temporary storage overhead**
-   - Must create .tar.gz locally before upload
-   - Must clean up archive after transfer
-   - Doubles disk space requirement during operation
-
-3. **All-or-nothing transfer**
-   - Single corrupted file fails entire archive
-   - Can't resume partial transfers
-   - Can't show per-file progress
-
-4. **Complexity vs benefit tradeoff**
-   - Only beneficial for 1000+ tiny files (<1KB each)
-   - SSH file explorer typical use case: dozens to hundreds of files
-   - Compression benefit: minimal for already-compressed files (images, videos, PDFs)
-
-**When tar/gzip WOULD make sense:**
-- Transferring 10,000+ log files
-- Bandwidth-constrained connection (< 1 Mbps)
-- Archival/backup scenarios (not interactive file browsing)
-
-**If you must implement tar approach later:**
-```bash
-npm install archiver@^7.0.1
-npm install -D @types/archiver@^7.0.0
-```
+None of these are requirements for a file explorer list view.
 
 ---
 
-## react-pdf Setup Requirements
+## What Exists vs What Needs Building
 
-### Worker Configuration
+### Already Built (Reuse Directly)
 
-react-pdf requires PDF.js worker for rendering. Configure in renderer process:
+| Component | Location | What It Does | Reuse For |
+|-----------|----------|-------------|-----------|
+| Sort logic | `DirectoryList.tsx` lines 78-105 | Sorts by name/size/modified, folders-first | Sort implementation for both list view and column view |
+| Sort UI | `DirectoryList.tsx` lines 110-119, 155-158 | Column header click toggles sort direction | Sort header in list view |
+| File metadata display | `FileRow.tsx` lines 14-45 | `formatSize()`, `formatDate()`, `formatPermissions()` | Metadata display everywhere |
+| Virtualization | `Column.tsx` lines 50-55 | `useVirtualizer` with 28px row height | Virtualized list view |
+| Keyboard navigation | `useColumnNavigation.ts` | Arrow keys, type-ahead, selection | List view keyboard navigation |
+| Column resize + persist | `ColumnView.tsx` lines 234-335 | Mouse drag resize with IPC save | List view column width resize |
+| Selection model | `columnReducer` in `ColumnView.tsx` | Multi-select with Cmd/Shift-click | List view selection |
+| Context menus | `FileItem.tsx` | Download, upload, rename, delete, move | List view context menus |
+| View preference persist | `electron-conf` via IPC | `getColumnWidths`/`setColumnWidths` | Persist view mode, sort prefs |
 
-```typescript
-// src/renderer/setup.ts
-import { pdfjs } from 'react-pdf';
+### Needs Building (New Code)
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
-```
-
-**Why this approach:**
-- Uses ES modules (works with Vite bundler already in project)
-- Worker runs in separate thread (doesn't block UI)
-- Recommended by react-pdf v10.x documentation
-
-### Optional Stylesheets
-
-For text selection and annotations (optional):
-
-```typescript
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-```
-
-**Note:** Text layer adds ~20KB to bundle. Include only if text selection is needed.
-
-### Canvas Rendering
-
-react-pdf renders to HTML canvas. Electron renderer supports canvas natively.
-
-**Integration with existing preview panel:**
-- Follows same pattern as `react-markdown` component
-- Swap component based on file type: `.pdf` → `<Document>`, `.md` → `<ReactMarkdown>`
-- Reuse existing panel resizing (already has `react-resizable-panels`)
+| Component | Purpose | Estimated Complexity |
+|-----------|---------|---------------------|
+| `ListView.tsx` | List view container with header + virtualized rows | Medium -- combines `DirectoryList` header pattern with `Column` virtualization |
+| `ListRow.tsx` | Single row showing icon + name + size + date + perms + owner | Low -- adapts `FileRow.tsx` + `FileItem.tsx` context menu |
+| View mode toggle | Toolbar button to switch between column view and list view | Low -- state in `App.tsx`, conditional render |
+| Sort controls in column view | Sort dropdown/buttons in column view toolbar | Low -- reuse sort logic from `DirectoryList.tsx` |
+| Column width resize for list view | Draggable column borders in list header | Medium -- adapt `ColumnView.tsx` resize pattern |
+| Sort preference persistence | Save sort column + direction per server | Low -- extend `electron-conf` IPC |
 
 ---
 
-## Integration with Existing Stack
+## Implementation Strategy: Merge Existing Patterns
 
-### Existing Patterns to Follow
+### Step 1: Extract Shared Utilities
 
-| Existing Pattern | How to Apply to New Features |
-|------------------|------------------------------|
-| **IPC for file operations** | Add `ipcMain.handle('folder:upload')` and `ipcMain.handle('folder:download')` |
-| **Progress tracking** | Reuse existing progress event pattern: `webContents.send('transfer:progress', { current, total })` |
-| **Cancellation** | Extend existing AbortController pattern to folder transfers |
-| **Stream-based transfers** | ssh2-sftp-client uses streams internally; expose via same IPC events |
+The sort logic and format functions exist in orphaned code. Extract to shared utilities:
 
-### IPC Architecture Pattern
-
-**Main process (Node.js side):**
 ```typescript
-ipcMain.handle('folder:upload', async (event, { localPath, remotePath }) => {
-  const sftp = await getSftpClient(); // Reuses existing ssh2 connection
+// src/renderer/utils/fileFormatters.ts
+export function formatSize(bytes: number): string { ... }
+export function formatDate(date: Date): string { ... }
+export function formatPermissions(mode: string): string { ... }
 
-  await sftp.uploadDir(localPath, remotePath, {
-    step: (totalTransferred, chunk, total) => {
-      event.sender.send('transfer:progress', {
-        transferred: totalTransferred,
-        total: total
-      });
-    }
-  });
-});
+// src/renderer/utils/fileSorting.ts
+export type SortColumn = 'name' | 'size' | 'modified' | 'permissions' | 'owner';
+export type SortDirection = 'asc' | 'desc';
+
+export function sortFileEntries(
+  entries: FileEntry[],
+  column: SortColumn,
+  direction: SortDirection,
+  foldersFirst: boolean = true,
+): FileEntry[] { ... }
 ```
 
-**Renderer process (React side):**
-```typescript
-const uploadFolder = async (localPath: string, remotePath: string) => {
-  return window.electron.ipcRenderer.invoke('folder:upload', {
-    localPath,
-    remotePath
-  });
-};
+### Step 2: Build ListView Using Existing Patterns
+
+The `ListView` component combines:
+- Header from `DirectoryList.tsx` (grid layout with sortable columns)
+- Virtualized body from `Column.tsx` (`useVirtualizer`)
+- Row rendering from `FileRow.tsx` (grid cells with metadata)
+- Context menus from `FileItem.tsx` (right-click operations)
+
+### Step 3: Add Sort to Column View
+
+The Miller column view currently sorts "folders first, then alphabetically" (hardcoded in `ColumnView.tsx` line 363). Adding sort controls means:
+- Lifting the sort function to use the extracted `sortFileEntries()`
+- Adding sort state to `ColumnViewState` or `App.tsx`
+- Rendering a sort dropdown in the toolbar
+
+---
+
+## CSS Architecture for List View
+
+### Existing Pattern: CSS Grid
+
+Both the header and rows already use CSS Grid with matching template columns:
+
+```css
+/* Already exists in index.css */
+.directory-header {
+  display: grid;
+  grid-template-columns: 40px 1fr 80px 150px 100px 80px;
+}
+.file-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 80px 150px 100px 80px;
+}
 ```
 
-### Progress Tracking Integration
+**Recommendation:** Keep this approach. CSS Grid handles column alignment between header and body rows without JavaScript measurement. For resizable columns, switch to `grid-template-columns` with pixel values stored in state (same pattern as `ColumnView.tsx` column widths).
 
-ssh2-sftp-client `step` callback provides:
-- `totalTransferred` - Bytes transferred so far
-- `chunk` - Bytes in current transfer
-- `total` - Total bytes to transfer
+### Fixed Row Height for Virtualization
 
-**Reuse existing progress UI:**
-- Same progress bar component used for single-file transfers
-- Update to show: "Uploading folder (5/23 files, 45%)"
+The existing column view uses 28px fixed row height. The list view can use the same or slightly taller (32px) to accommodate metadata text. `@tanstack/react-virtual` requires consistent row height for optimal performance.
+
+---
+
+## Persistence Strategy
+
+### What to Persist via electron-conf (IPC)
+
+| Preference | Key | Default | Notes |
+|-----------|-----|---------|-------|
+| View mode | `viewMode` | `'columns'` | `'columns'` or `'list'` |
+| Sort column | `sortColumn` | `'name'` | `'name'`, `'size'`, `'modified'`, `'permissions'`, `'owner'` |
+| Sort direction | `sortDirection` | `'asc'` | `'asc'` or `'desc'` |
+| List view column widths | `listColumnWidths` | `[40, 250, 80, 150, 100, 80]` | Pixel widths per column |
+
+**Pattern:** Follow existing `getColumnWidths`/`setColumnWidths` and `getPreviewPanelWidth`/`setPreviewPanelWidth` IPC handlers. Add equivalent handlers for the new preferences.
 
 ---
 
@@ -237,120 +184,75 @@ ssh2-sftp-client `step` callback provides:
 
 | Library | Why NOT |
 |---------|---------|
-| **archiver** | Tar/gzip approach adds complexity without benefit for typical use case |
-| **tar-stream** | Same reason - file-by-file is simpler and more resilient |
-| **electron-pdf** | CLI tool for generating PDFs, not viewing them |
-| **electron-pdf-window** | Opens new windows; conflicts with existing preview panel architecture |
-| **pdfjs-express** | Commercial wrapper; free tier has watermarks; overkill for read-only preview |
-| **Apryse/Nutrient SDKs** | Commercial annotation/editing features not needed; expensive |
-| **node-ssh** | Duplicate of existing ssh2; ssh2-sftp-client wraps ssh2 |
+| **@tanstack/react-table** | Overkill for 6-column file listing. Adds abstraction layer over patterns already implemented. See detailed analysis above. |
+| **ag-grid-react** | Commercial license needed for column resize/sort. Enormous bundle (~300KB). Enterprise data grid, not a file explorer component. |
+| **react-data-grid** | Better fit than ag-grid but still overkill. Optimized for spreadsheet-like editing, not file browsing. |
+| **react-window** | Inferior to @tanstack/react-virtual (already installed). react-window is maintenance mode; TanStack Virtual is its successor. |
+| **Any CSS framework** | Project uses hand-written CSS with BEM convention. Adding Tailwind/Chakra/etc. for one milestone would create style inconsistency. |
+| **date-fns / dayjs** | `formatDate()` already implemented with `Date.toLocaleDateString()`. No date math needed. |
+| **filesize (npm)** | `formatSize()` already implemented in both `FileRow.tsx` and `FileItem.tsx`. No need for a library. |
 
 ---
 
-## Version Verification
+## Integration Points with Existing Code
 
-All versions verified via npm registry on 2026-01-29:
+### IPC Layer (Main Process)
 
-```bash
-npm view ssh2-sftp-client version  # 12.0.1 ✓
-npm view react-pdf version          # 10.3.0 ✓
-npm view pdfjs-dist version         # 5.4.530 ✓
-npm view archiver version           # 7.0.1 (if needed)
+New handlers needed:
+
+```typescript
+// Persistence handlers (following existing pattern)
+ipcMain.handle('get-view-mode', () => store.get('viewMode', 'columns'));
+ipcMain.handle('set-view-mode', (_, mode) => store.set('viewMode', mode));
+ipcMain.handle('get-sort-preferences', () => store.get('sortPreferences', { column: 'name', direction: 'asc' }));
+ipcMain.handle('set-sort-preferences', (_, prefs) => store.set('sortPreferences', prefs));
+ipcMain.handle('get-list-column-widths', () => store.get('listColumnWidths', []));
+ipcMain.handle('set-list-column-widths', (_, widths) => store.set('listColumnWidths', widths));
 ```
 
-**Node.js compatibility:**
-- ssh2-sftp-client: Requires Node v20.x+ (project likely using Node 20 or 22 via Electron 40)
-- react-pdf: Works with React 19 (already in package.json at v19.2.4)
-- pdfjs-dist: No Node version constraints (runs in renderer)
+### Preload Bridge
 
----
+Extend `ElectronAPI` interface with corresponding methods (follows existing pattern exactly).
 
-## Installation Summary
+### Renderer (App.tsx)
 
-### Minimum Required
-```bash
-npm install ssh2-sftp-client@^12.0.1
-npm install react-pdf@^10.3.0
-```
+The view mode toggle lives in `App.tsx` toolbar. When mode is `'list'`, render `<ListView>` instead of `<ColumnView>`. Both receive the same `serverId`, `showHidden`, `onFileSelect`, `onPathChange` props.
 
-### With TypeScript (Recommended)
-```bash
-npm install ssh2-sftp-client@^12.0.1
-npm install react-pdf@^10.3.0
-npm install -D @types/react-pdf@^7.0.0
-```
-
-### If Implementing Tar Approach (NOT Recommended)
-```bash
-npm install archiver@^7.0.1
-npm install -D @types/archiver@^7.0.0
-```
+**Critical:** The list view needs its own navigation model (single directory, breadcrumb/back navigation) vs column view (multi-column drill-down). The `DirectoryList.tsx` already has this pattern with `currentPath`, `handleNavigateUp`, and `handleFileDoubleClick`.
 
 ---
 
 ## Performance Considerations
 
-### Folder Transfers
+### Virtualization Reuse
 
-**Concurrency tuning:**
-- Default: 10 concurrent file transfers (`promiseLimit: 10`)
-- Lower for slow servers: `promiseLimit: 5`
-- Higher for fast local networks: `promiseLimit: 20`
+The list view with metadata columns renders more DOM per row than the column view (6 cells vs 1 name). With `@tanstack/react-virtual`, only visible rows render. For 10,000-file directories, this means ~30-50 DOM rows regardless of total count.
 
-**Benchmark guidance:**
-- 100 files @ 1MB each: ~30-60 seconds (depends on network)
-- 1000 files @ 10KB each: ~60-120 seconds (SFTP handshake overhead dominates)
-- Large single files (>100MB): Use existing single-file transfer with progress
+**Row height:** Use fixed 32px. Variable row heights cause performance issues with `@tanstack/react-virtual` (requires dynamic measurement).
 
-**When to warn user:**
-- Folders with >500 files: Show confirmation dialog
-- Total size >1GB: Show estimated time
+### Sort Performance
 
-### PDF Rendering
+`Array.sort()` on 10,000 `FileEntry` objects with `localeCompare` takes <10ms on modern hardware. No need for Web Workers or debouncing. Use `useMemo` keyed on `[entries, sortColumn, sortDirection]` to avoid re-sorting on unrelated re-renders.
 
-**Memory usage:**
-- PDF.js loads entire PDF into memory
-- 10MB PDF = ~30-50MB memory during render
-- Large PDFs (>50MB): Warn user or show page-by-page
+### Column View Sort
 
-**Render performance:**
-- Simple PDF (text only): ~100-200ms per page
-- Complex PDF (images, vector graphics): ~500ms-2s per page
-- Recommendation: Render first page immediately, lazy-load subsequent pages
+Adding sort to column view means re-sorting per-column entries. Since each column is an independent directory listing (typically <1000 entries), sort performance is trivial.
 
 ---
 
-## Migration Notes
+## Dead Code Identification
 
-### From Existing Code
+### Files to Refactor or Remove
 
-**Current state:** Project uses raw `ssh2` for single-file transfers.
+The codebase contains orphaned list view code from an earlier iteration:
 
-**Migration path:**
-1. Install ssh2-sftp-client
-2. Keep existing single-file transfer code (don't break working features)
-3. Add NEW handlers for folder operations
-4. Gradually migrate single-file to ssh2-sftp-client if beneficial (optional)
+| File | Status | Action |
+|------|--------|--------|
+| `DirectoryList.tsx` | Orphaned (not imported by any component) | Refactor into new `ListView.tsx` -- reuse sort logic, discard standalone navigation |
+| `FileRow.tsx` | Only imported by `DirectoryList.tsx` | Refactor into new `ListRow.tsx` -- add context menu integration from `FileItem.tsx` |
+| CSS in `index.css` (lines 498-648) | Styles for orphaned components | Keep and adapt for new list view components |
 
-**Coexistence:**
-- ssh2 connection can be shared with ssh2-sftp-client
-- No conflicts - ssh2-sftp-client wraps ssh2, doesn't replace it
-
-### Preview Panel Extension
-
-**Current state:** Preview panel shows markdown, syntax-highlighted code, images.
-
-**Extension pattern:**
-```typescript
-// Existing pattern
-const getPreviewComponent = (fileType: string) => {
-  if (fileType === '.md') return MarkdownPreview;
-  if (fileType === '.jpg') return ImagePreview;
-  // NEW: Add PDF
-  if (fileType === '.pdf') return PdfPreview;
-  return TextPreview;
-};
-```
+**Recommendation:** Do not delete the orphaned code. Instead, extract the reusable patterns (sort logic, format functions, grid layout) into the new components and shared utilities, then remove the dead files once the new implementation is complete.
 
 ---
 
@@ -358,35 +260,32 @@ const getPreviewComponent = (fileType: string) => {
 
 | Area | Level | Rationale |
 |------|-------|-----------|
-| **ssh2-sftp-client** | HIGH | Official npm package, actively maintained, verified v12.0.1 via npm registry, built-in TypeScript support |
-| **File-by-file approach** | HIGH | Industry standard for SFTP file explorers (WinSCP, FileZilla, Cyberduck all use this), best practice from multiple sources |
-| **react-pdf** | HIGH | Most popular React PDF library (verified v10.3.0), official PDF.js wrapper, works in Electron (confirmed via GitHub issues) |
-| **Tar approach rejection** | HIGH | Verified via SFTP best practices documentation, expert consensus on file-by-file for <1000 files |
-| **Worker setup** | MEDIUM | Documented in react-pdf v10.x README, but Electron bundler nuances may require adjustment |
+| **No new deps needed** | HIGH | Thorough codebase analysis confirms all patterns exist. Sort logic, virtualization, selection, context menus, persistence, resize -- all implemented. |
+| **TanStack Table rejection** | HIGH | Based on detailed analysis of project requirements vs library capabilities. The project's existing code coverage of needed features makes the library redundant. |
+| **CSS Grid for layout** | HIGH | Already used in the existing orphaned list view code. Proven pattern for header/row alignment. |
+| **Virtualization approach** | HIGH | `@tanstack/react-virtual` v3.13.18 installed and working in `Column.tsx`. Same API applies to list view rows. |
+| **Persistence via electron-conf** | HIGH | Existing pattern used for column widths, preview panel width, hidden files toggle. Extending with 3 more preferences is trivial. |
+
+**Overall confidence:** HIGH -- This is a UI assembly milestone, not a technology research milestone. All building blocks exist.
+
+---
+
+## Installation Summary
+
+```bash
+# No new packages to install.
+# The entire milestone uses existing dependencies:
+#   @tanstack/react-virtual  3.13.18  (virtualization)
+#   electron-conf             1.3.0   (persistence)
+#   react                    19.2.4   (components)
+```
 
 ---
 
 ## Sources
 
-### SFTP Folder Transfers
-- [How to Upload a Folder to an SFTP Server Using TypeScript and ssh2-sftp-client](https://www.timsanteford.com/posts/how-to-upload-a-folder-to-an-sftp-server-using-typescript-and-ssh2-sftp-client/)
-- [ssh2-sftp-client - npm](https://www.npmjs.com/package/ssh2-sftp-client)
-- [GitHub - theophilusx/ssh2-sftp-client](https://github.com/theophilusx/ssh2-sftp-client)
-- [How to Use SFTP: Best Practices For Secure File Transfer](https://www.myworkdrive.com/blog/how-to-use-sftp)
-- [Use scp, rsync, or sftp to transfer files - Alibaba Cloud](https://www.alibabacloud.com/help/en/ecs/user-guide/use-sftp-to-upload-files-to-a-linux-instance)
-
-### PDF Rendering
-- [GitHub - wojtekmaj/react-pdf](https://github.com/wojtekmaj/react-pdf)
-- [How to build an Electron PDF viewer with PDF.js](https://www.nutrient.io/blog/how-to-build-an-electron-pdf-viewer-with-pdfjs/)
-- [Build a React PDF viewer with PDF.js and Next.js](https://www.nutrient.io/blog/how-to-build-a-reactjs-viewer-with-pdfjs/)
-- [A Beginner's Guide To Pdfjs-dist Integration](https://www.dhiwise.com/post/how-to-integrate-pdfjs-dist-for-pdf-rendering)
-- [GitHub - mozilla/pdf.js](https://github.com/mozilla/pdf.js)
-
-### Electron Integration
-- [Inter-Process Communication | Electron](https://www.electronjs.org/docs/latest/tutorial/ipc)
-- [Building High-Performance Electron Apps](https://www.johnnyle.io/read/electron-performance)
-- [Handling interprocess communications in Electron applications like a pro](https://blog.logrocket.com/handling-interprocess-communications-in-electron-applications-like-a-pro/)
-
-### Compression Alternatives
-- [archiver - npm](https://www.npmjs.com/package/archiver)
-- [tar vs archiver comparison](https://npm-compare.com/archiver,tar,zip-a-folder)
+- **Codebase analysis (PRIMARY):** Direct inspection of `DirectoryList.tsx`, `FileRow.tsx`, `Column.tsx`, `ColumnView.tsx`, `FileItem.tsx`, `useColumnNavigation.ts`, `App.tsx`, `index.css`, `package.json`, and shared types
+- **@tanstack/react-virtual:** Verified v3.13.18 installed in `node_modules/@tanstack/react-virtual/package.json`
+- **@tanstack/react-table:** Training data knowledge (v8.x headless table library, ~52KB bundle, supports sorting/filtering/pagination). Confidence: MEDIUM -- version may have updated since May 2025 training cutoff, but core API and design philosophy stable since v8.0 (2022)
+- **CSS Grid:** Web standard, no version concerns
+- **electron-conf:** Verified v1.3.0 in `package.json`, existing usage pattern confirmed in `ColumnView.tsx` and `App.tsx`

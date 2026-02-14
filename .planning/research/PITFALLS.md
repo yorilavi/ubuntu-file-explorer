@@ -1,1114 +1,746 @@
-# Pitfalls: Folder Transfer and PDF Preview
+# Pitfalls: File Metadata Display, List View, and Sorting
 
-**Project:** Ubuntu File Explorer v1.2
-**Context:** Adding folder upload/download and PDF preview to existing Electron SSH file explorer
-**Researched:** 2026-01-29
+**Project:** Ubuntu File Explorer v1.3
+**Context:** Adding file metadata display, list/detail view mode, and sorting to existing Electron SSH file explorer
+**Researched:** 2026-02-10
 **Overall Confidence:** HIGH
 
 ## Executive Summary
 
-Adding folder transfer and PDF preview to an existing Electron SSH file explorer introduces specific integration challenges beyond typical feature development. The app already handles single-file transfers with streaming, progress tracking, and cancellation. The primary risks are:
+Adding metadata display, a list view, and sorting to this existing Electron SSH file explorer introduces specific integration challenges that are easy to misdiagnose. The primary risks are:
 
-1. **Memory explosion from recursive folder enumeration** - Known issue: ssh2 uses significantly more memory than native tools
-2. **Partial failure complexity** - Some files succeed, others fail, requiring robust state management
-3. **Progress tracking accuracy** - Nested folders make "X% complete" calculations complex
-4. **PDF rendering security and memory** - PDF.js can leak memory, PDFs are potential XSS vectors
-5. **Integration breakage** - New features may break existing batching (10-20 concurrent transfers) that prevents OOM
+1. **Misunderstanding what metadata is already available** - ssh2's `readdir` already returns `attrs` (size, mtime, mode, uid, gid). The real gap is symlink target type resolution, not basic file stats.
+2. **Dual-view state divergence** - Two view modes (Miller columns + list view) sharing the same data but maintaining independent selection, focus, and scroll state creates subtle synchronization bugs.
+3. **Sorting breaking the existing "directories first" invariant** - Current code hardcodes folders-first sorting in three separate places. Custom sorting must either preserve this or explicitly let users break it.
+4. **View/sort preference scoping** - Global vs per-directory vs per-server preferences create UX inconsistency if not decided upfront.
+5. **Re-rendering performance regression** - Adding metadata columns to 28px-height rows with virtualization requires careful measurement to avoid layout thrashing.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Recursive Folder Enumeration Memory Explosion
+### Pitfall 1: Unnecessary N+1 SFTP Stat Calls (The Phantom Performance Problem)
 
 **What goes wrong:**
 
-When recursively listing folder contents before transfer, ssh2-sftp-client loads the entire directory tree into memory. For folders with thousands of nested files, this can consume gigabytes of RAM before a single file transfer begins. Combine this with the known issue that "ssh2 uses significantly more memory than native tools" and OOM crashes become likely.
+The milestone description mentions "stat calls per file" as a performance concern. A developer unfamiliar with the existing code might add individual `sftp.stat()` calls for every file to get metadata, creating N+1 round-trips over SSH. For a 500-file directory on a 100ms latency connection, this adds 50 seconds of blocking time.
 
-**Why it happens:**
+**Why it's actually a non-problem for basic metadata:**
 
-- `sftp.list()` returns full arrays, not streams
-- Recursive directory walking builds complete tree structure in memory
-- File metadata (permissions, timestamps, sizes) multiplies memory footprint
-- ssh2's internal buffering adds 2-3x overhead compared to native tools
-
-**Consequences:**
-
-- App crashes with OOM before transfer starts
-- Electron renderer freezes during enumeration (if done in main process synchronously)
-- Users can't transfer large project directories (e.g., node_modules with 50k+ files)
-- MacOS shows "Application Not Responding" during enumeration
-
-**Prevention:**
+The current `sftp-service.ts` (line 100-145) already extracts full metadata from `readdir` results:
 
 ```typescript
-// BAD: Load entire tree, then transfer
-async function uploadFolder(localPath: string, remotePath: string) {
-  const allFiles = await recursivelyListAllFiles(localPath); // OOM risk
-  for (const file of allFiles) {
-    await sftp.put(file.local, file.remote);
-  }
-}
+// ALREADY AVAILABLE from readdir attrs:
+size: entry.attrs.size || 0,           // File size
+modified: new Date((entry.attrs.mtime || 0) * 1000),  // Modification time
+permissions: '0' + permBits.toString(8).padStart(3, '0'),  // Unix permissions
+uid: entry.attrs.uid || 0,            // Owner UID
+gid: entry.attrs.gid || 0,            // Owner GID
+```
 
-// GOOD: Stream enumeration, transfer as you discover
-async function* enumerateFolderStreaming(localPath: string, remotePath: string) {
-  const entries = await fs.readdir(localPath, { withFileTypes: true });
-  for (const entry of entries) {
-    if (entry.isFile()) {
-      yield { local: path.join(localPath, entry.name), remote: path.join(remotePath, entry.name) };
-    } else if (entry.isDirectory()) {
-      yield* enumerateFolderStreaming(path.join(localPath, entry.name), path.join(remotePath, entry.name));
-    }
-  }
-}
+The `FileEntry` type in `shared/types.ts` already includes size, modified, permissions, uid, gid. The existing `FileRow` component (unused but present in codebase) already renders all these fields. **No extra SFTP calls are needed for basic metadata display.**
 
-async function uploadFolder(localPath: string, remotePath: string) {
-  for await (const file of enumerateFolderStreaming(localPath, remotePath)) {
-    await transferQueue.add(() => sftp.put(file.local, file.remote));
-  }
+**Where stat calls ARE actually needed:**
+
+The one legitimate case for extra stat calls is **resolving symlink targets to determine if they point to directories**. Currently, `isSymlink` files show a symlink badge but the code uses raw mode bits from readdir, which report the symlink type (0o120000), not the target type. To show the correct icon (folder vs file) for symlinks, you need `sftp.stat()` (which follows symlinks) rather than `sftp.lstat()`.
+
+```typescript
+// Current: knows it's a symlink, but not what type the target is
+const isSymlink = (mode & 0o170000) === 0o120000;
+
+// Needed for symlink icon accuracy:
+if (isSymlink) {
+  const targetStats = await new Promise((resolve, reject) => {
+    sftp.stat(fullPath, (err, stats) => err ? resolve(null) : resolve(stats));
+  });
+  const targetIsDirectory = targetStats ? (targetStats.mode & 0o170000) === 0o040000 : false;
 }
 ```
 
+**Consequences of misdiagnosis:**
+
+- Developer adds stat calls that duplicate already-available data, creating a 10-50x slowdown
+- Or developer adds stat calls for all files "just in case" instead of only symlinks
+- Large directories become unusable over high-latency connections
+- The real issue (symlink target resolution) remains unaddressed
+
+**Prevention:**
+
+- Do NOT add per-file stat calls. The data is already in readdir results.
+- For symlink target type resolution, batch stat calls only for symlinks, with concurrency limiting (max 10 concurrent) and graceful fallback.
+- Add the symlink target stat as an optional enhancement, not a blocking requirement.
+
 **Detection:**
 
-- Memory profiler shows spike during folder listing
-- Heapdumps reveal thousands of file metadata objects
-- Transfer preparation takes >10 seconds for medium folders
-- Console warnings: "MaxListenersExceededWarning" (related to accumulation)
+- Network tab / SFTP logging shows stat calls matching readdir count
+- Directory load time scales linearly with file count
+- Comparison: readdir is one call regardless of file count
 
-**Phase to Address:** Phase 1 (Folder Transfer Architecture)
+**Phase to Address:** Phase 1 (Metadata Display) - Must verify readdir attrs are sufficient before writing any stat code
 
-**Confidence:** HIGH - Verified by existing PROJECT.md knowledge: "ssh2 uses significantly more memory than native tools"
+**Confidence:** HIGH - Verified by reading actual sftp-service.ts source and ssh2 library behavior
 
 ---
 
-### Pitfall 2: Partial Transfer Failure State Management
+### Pitfall 2: Dual View State Divergence (Miller Columns vs List View)
 
 **What goes wrong:**
 
-During folder transfer, some files succeed while others fail (permissions, disk space, network hiccup). Without proper state management, the UI shows "Transfer Complete" when 80% succeeded, leaving users with corrupted folder states. Retrying the entire folder duplicates successful files or overwrites newer versions.
+The existing ColumnView has complex state management via a `useReducer` with 10 action types (NAVIGATE_INTO, NAVIGATE_BACK, SELECT_ITEM, FOCUS_ITEM, etc). It maintains multi-column state, selection sets, focused indices, and scroll offsets. Building a separate list view with its own state creates two sources of truth. Switching views loses selection, scroll position, or current path.
 
 **Why it happens:**
 
-- ssh2-sftp-client's `uploadDir()` and `downloadDir()` don't provide granular failure reporting
-- Network interruptions mid-transfer leave partial state
-- Existing single-file transfer code assumes "success or total failure"
-- Progress tracking (which already exists) needs extension for multi-file semantics
-
-**Consequences:**
-
-- Silent data loss - users think transfer completed
-- Duplicate files on retry without skip logic
-- No way to resume interrupted folder transfers
-- Support burden: "Why are only some files transferred?"
-
-**Prevention:**
+The ColumnView's state (`ColumnViewState` in `types/columnView.ts`) is deeply specific to Miller columns:
 
 ```typescript
-interface FolderTransferState {
-  totalFiles: number;
-  successFiles: string[];
-  failedFiles: Array<{ path: string; error: string }>;
-  skippedFiles: string[];
-  inProgressFiles: string[];
+interface ColumnViewState {
+  columns: ColumnState[];          // Multiple columns - meaningless in list view
+  activeColumnIndex: number;       // Which column has focus
 }
 
-async function uploadFolderWithState(
-  localPath: string,
-  remotePath: string,
-  state: FolderTransferState,
-  options: { skipExisting: boolean; retryFailed: boolean }
-): Promise<FolderTransferState> {
-  for await (const file of enumerateFolderStreaming(localPath, remotePath)) {
-    // Skip if already successful
-    if (state.successFiles.includes(file.remote)) {
-      state.skippedFiles.push(file.remote);
-      continue;
-    }
-
-    state.inProgressFiles = [file.remote];
-
-    try {
-      await sftp.put(file.local, file.remote);
-      state.successFiles.push(file.remote);
-    } catch (error) {
-      state.failedFiles.push({ path: file.remote, error: error.message });
-    } finally {
-      state.inProgressFiles = [];
-    }
-  }
-
-  return state;
+interface ColumnState {
+  path: string;
+  entries: FileEntry[];
+  selectedIndices: Set<number>;    // Per-column selection
+  focusedIndex: number;            // Per-column focus
+  scrollOffset: number;
+  loading: boolean;
+  error: string | null;
 }
 ```
 
+A list view needs completely different state: single directory with sortable entries, single selection set, column header sort indicators, and scroll position. Developers either: (a) try to shoehorn list view into ColumnViewState (wrong abstraction), or (b) build a completely independent state that doesn't share the current path/server context.
+
+**Consequences:**
+
+- Switch from column view to list view: selection lost, navigated back to root
+- Switch from list view to column view: column hierarchy not rebuilt
+- File operations (rename, delete) in one view don't refresh the other
+- `selectedFile` in App.tsx becomes ambiguous - which view set it?
+- Preview panel breaks because it depends on `onFileSelect` callback from ColumnView
+
+**Prevention:**
+
+Lift shared state to App.tsx (or a shared hook), keep view-specific state in each view component:
+
+```typescript
+// SHARED state (in App.tsx or useFileExplorer hook):
+interface SharedBrowserState {
+  currentPath: string;
+  entries: FileEntry[];          // Single source of truth for directory contents
+  selectedFile: FileEntry | null;
+  loading: boolean;
+  error: string | null;
+}
+
+// VIEW-SPECIFIC state:
+// ColumnView keeps: columns[], activeColumnIndex, per-column scroll
+// ListView keeps: sortColumn, sortDirection, scrollTop, columnWidths
+
+// The ColumnView already fetches entries via its own mechanism.
+// Key: both views must call the same fetchDirectory and share the result.
+```
+
+The existing `DirectoryList` component (currently unused but in the codebase) provides a starting template for list view - it already has sorting, hidden file toggle, and `FileRow` rendering. But it fetches its own directory contents independently, which would diverge from ColumnView.
+
 **Detection:**
 
-- User reports: "Only some files transferred"
-- Transfer shows 100% but remote folder incomplete
-- Retry duplicates files or shows errors about existing files
-- No clear indication of what failed
+- Switching view modes resets current path or selection
+- File operation refresh only updates one view
+- Two different `listDirectory` IPC calls for the same path
+- Preview panel shows stale file after view switch
 
-**Phase to Address:** Phase 2 (Folder Transfer Implementation)
+**Phase to Address:** Phase 2 (List View) - Must design shared state layer BEFORE building the list view component
 
-**Confidence:** HIGH - Common pattern in SFTP batch operations
+**Confidence:** HIGH - Directly observed in codebase: ColumnView and DirectoryList each have independent fetch logic
 
 ---
 
-### Pitfall 3: Progress Tracking Accuracy for Nested Folders
+### Pitfall 3: Sorting Duplicated in Three Places
 
 **What goes wrong:**
 
-The existing single-file progress works via stream `data` events for bytes transferred. For folders, you need to calculate progress across multiple files of different sizes. Naive implementations show "50% complete" when transferring file 50 of 100, even if the first 49 were tiny and file 50 is 1GB (so actually 5% by bytes). Users lose trust in progress indicators.
+The current codebase has the same "directories first, then alphabetical" sort logic in three separate locations:
+
+1. **`sftp-service.ts` line 148-153**: Server-side sort after readdir
+2. **`ColumnView.tsx` line 363-367**: Client-side sort in fetchDirectory
+3. **`DirectoryList.tsx` line 84-104**: Client-side sort with configurable columns
+
+Adding user-configurable sorting means modifying all three locations, and they'll drift out of sync. A user sorts by "size descending" in list view, switches to column view, and sees alphabetical order because ColumnView has its own hardcoded sort.
 
 **Why it happens:**
 
-- Total byte count unknown until full enumeration completes (see Pitfall 1)
-- Stream-based progress (existing implementation) works per-file, not per-folder
-- File discovery and transfer happen concurrently (streaming enumeration)
-- Existing progress toasts designed for single-file operations
+The sort in sftp-service.ts was added for consistent API responses. The sort in ColumnView was added because IPC serialization and hidden-file filtering happen after the server sort. The sort in DirectoryList was built independently with its own sort state. Nobody coordinated because these were built in different phases.
 
 **Consequences:**
 
-- Progress bar jumps erratically (1%, 5%, 99%, 100% in 4 seconds)
-- Estimated time remaining wildly inaccurate
-- Users can't plan work ("How long will this take?")
-- "Cancel" button pressed late because progress looked nearly done
+- Sorting in list view doesn't carry over to column view
+- Adding a new sort option requires changes in 3+ files
+- Server-side sort is wasted work if client re-sorts anyway
+- "Sort by modified" in one view, alphabetical in another - confusing UX
 
 **Prevention:**
 
+1. **Remove the sort from `sftp-service.ts`** - Return entries in readdir order. Let the client sort.
+2. **Create a single `sortEntries()` utility** used by both views:
+
 ```typescript
-interface FolderProgress {
-  phase: 'enumerating' | 'transferring' | 'verifying';
-  filesDiscovered: number;
-  filesTransferred: number;
-  bytesTotal: number | null; // null during enumeration
-  bytesTransferred: number;
+// src/shared/sorting.ts
+type SortField = 'name' | 'size' | 'modified' | 'permissions';
+type SortDirection = 'asc' | 'desc';
+
+interface SortConfig {
+  field: SortField;
+  direction: SortDirection;
+  directoriesFirst: boolean;  // Make the invariant explicit
 }
 
-// Two-pass approach for accurate progress
-async function uploadFolderWithProgress(localPath: string, remotePath: string) {
-  const progress: FolderProgress = {
-    phase: 'enumerating',
-    filesDiscovered: 0,
-    filesTransferred: 0,
-    bytesTotal: null,
-    bytesTransferred: 0,
-  };
-
-  // Pass 1: Enumerate and calculate total
-  const files: FileToTransfer[] = [];
-  for await (const file of enumerateFolderStreaming(localPath, remotePath)) {
-    const stat = await fs.stat(file.local);
-    files.push({ ...file, size: stat.size });
-    progress.filesDiscovered++;
-    progress.bytesTotal = (progress.bytesTotal || 0) + stat.size;
-    updateUI(progress); // Show "Preparing... found 123 files"
-  }
-
-  // Pass 2: Transfer with accurate percentage
-  progress.phase = 'transferring';
-  for (const file of files) {
-    await transferWithProgress(file, (bytesTransferred) => {
-      progress.bytesTransferred += bytesTransferred;
-      updateUI(progress); // Show "45% (234 MB / 520 MB)"
-    });
-    progress.filesTransferred++;
-  }
+function sortEntries(entries: FileEntry[], config: SortConfig): FileEntry[] {
+  return [...entries].sort((a, b) => {
+    if (config.directoriesFirst && a.isDirectory !== b.isDirectory) {
+      return a.isDirectory ? -1 : 1;
+    }
+    // ... sort by field and direction
+  });
 }
 ```
 
-**Alternative: Streaming approach with estimated progress**
-
-```typescript
-// For massive folders where enumeration takes too long
-async function uploadFolderStreamingProgress(localPath: string, remotePath: string) {
-  let filesTransferred = 0;
-
-  for await (const file of enumerateFolderStreaming(localPath, remotePath)) {
-    await transferFile(file);
-    filesTransferred++;
-    updateUI({
-      mode: 'indeterminate-with-count',
-      message: `Transferred ${filesTransferred} files...`
-    });
-  }
-}
-```
+3. **Store sort config at the App level** so both views read from the same source.
 
 **Detection:**
 
-- Progress jumps from 10% to 90% instantly
-- Users report progress is "wrong"
-- Time estimates swing wildly (5 min, 30 min, 2 min, 1 hour)
+- Different sort order in column view vs list view for same directory
+- Changing sort preference only affects one view
+- Adding new sort field requires touching 3+ files
 
-**Phase to Address:** Phase 2 (Folder Transfer Implementation)
+**Phase to Address:** Phase 1 (Metadata Display) - Consolidate sorting BEFORE adding configurable sort UI
 
-**Confidence:** MEDIUM - Based on web search findings about progress tracking challenges, not direct ssh2-sftp-client documentation
+**Confidence:** HIGH - Three sort locations directly verified in codebase
 
 ---
 
-### Pitfall 4: PDF.js Memory Leaks and Missing Cleanup
+### Pitfall 4: Losing Column View Navigation Context on View Switch
 
 **What goes wrong:**
 
-PDF.js creates `loadingTask` objects that must be explicitly destroyed via `destroy()` method. If preview component unmounts without cleanup, PDF.js workers accumulate in memory. Viewing 20 PDFs can consume 5GB+ RAM. On page refresh, react-pdf adds another pdf.worker.js without stopping the previous one, compounding the leak.
+Miller columns maintain a navigation stack: `/` -> `/home` -> `/home/user` -> `/home/user/docs`, with each level as a separate column. When the user switches to list view showing `/home/user/docs`, does work there, then switches back to column view, the column hierarchy should be reconstructed. Without explicit handling, the user gets dumped into a single column showing `/home/user/docs` without parent columns.
 
 **Why it happens:**
 
-- PDF.js loadingTask resources (workers, canvas buffers) aren't garbage collected automatically
-- React component lifecycle doesn't guarantee cleanup if user navigates quickly
-- Large PDFs (100+ pages) decompress entire document into memory for rendering
-- Existing preview panel architecture may not account for heavyweight preview types
-
-**Consequences:**
-
-- Memory grows continuously when browsing PDFs
-- App eventually crashes with OOM
-- MacOS Activity Monitor shows Electron Helper consuming multiple GB
-- PDF preview becomes sluggish after viewing several documents
-
-**Prevention:**
+The ColumnView's `NAVIGATE_TO` action (line 62-76 in ColumnView.tsx) can rebuild columns from a path:
 
 ```typescript
-import { getDocument } from 'pdfjs-dist';
-
-function PDFPreview({ fileContent }: { fileContent: Uint8Array }) {
-  const loadingTaskRef = useRef<PDFDocumentLoadingTask | null>(null);
-
-  useEffect(() => {
-    const loadPDF = async () => {
-      // Clean up previous PDF if exists
-      if (loadingTaskRef.current) {
-        await loadingTaskRef.current.destroy();
-        loadingTaskRef.current = null;
-      }
-
-      const loadingTask = getDocument({ data: fileContent });
-      loadingTaskRef.current = loadingTask;
-
-      try {
-        const pdf = await loadingTask.promise;
-        // Render PDF...
-      } catch (error) {
-        if (error.name !== 'AbortException') {
-          // Handle actual errors
-        }
-      }
-    };
-
-    loadPDF();
-
-    // CRITICAL: Cleanup on unmount
-    return () => {
-      if (loadingTaskRef.current) {
-        loadingTaskRef.current.destroy();
-        loadingTaskRef.current = null;
-      }
-    };
-  }, [fileContent]);
-
-  // Component render...
-}
-```
-
-**Additional safeguard for worker management:**
-
-```typescript
-// Ensure single worker instance
-import { GlobalWorkerOptions } from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker?url';
-
-// Set once on app initialization
-GlobalWorkerOptions.workerSrc = pdfjsWorker;
-```
-
-**Detection:**
-
-- Memory profiler shows PDF.js worker processes accumulating
-- Heap snapshots reveal unreleased canvas ImageData
-- Console warning: "Warning: Ignoring invalid test task" (PDF.js internal)
-- Memory usage climbs by 100-500MB per PDF viewed
-
-**Phase to Address:** Phase 3 (PDF Preview Implementation)
-
-**Confidence:** HIGH - Multiple GitHub issues confirm this pattern ([wojtekmaj/react-pdf#504](https://github.com/wojtekmaj/react-pdf/issues/504), [wojtekmaj/react-pdf#305](https://github.com/wojtekmaj/react-pdf/issues/305))
-
----
-
-### Pitfall 5: Large PDF File Handling Without Size Limits
-
-**What goes wrong:**
-
-Transferring a 500MB PDF over SFTP into Electron's renderer via IPC causes memory overflow. Even if transfer succeeds, loading it into PDF.js decompresses the content to multiple GB. Users expect preview to "just work" like in browser, but Electron has tighter memory constraints.
-
-**Why it happens:**
-
-- Existing image preview uses base64 data URLs (from PROJECT.md: "Base64 data URLs for images")
-- Extending this pattern to PDFs creates 133% overhead (base64 encoding)
-- PDF.js loads entire document into memory for rendering
-- IPC message size limits (Chromium's default ~128MB) can be exceeded
-
-**Consequences:**
-
-- App crashes when opening large PDF in preview
-- IPC transfer fails silently or with cryptic errors
-- Even if IPC succeeds, renderer runs out of memory during PDF.js parsing
-- Users blame app for "not supporting PDFs" when it's size-specific
-
-**Prevention:**
-
-```typescript
-const MAX_PDF_PREVIEW_SIZE = 50 * 1024 * 1024; // 50MB
-
-async function handleFileSelection(file: RemoteFileEntry) {
-  if (file.type === 'pdf') {
-    if (file.size > MAX_PDF_PREVIEW_SIZE) {
-      showPreviewPlaceholder({
-        icon: 'pdf',
-        message: `PDF too large for preview (${formatBytes(file.size)})`,
-        actions: [
-          { label: 'Download', onClick: () => downloadFile(file) },
-          { label: 'Open Externally', onClick: () => downloadAndOpen(file) },
-        ],
-      });
-      return;
-    }
-
-    // For smaller PDFs, use file system instead of IPC
-    const tempPath = await downloadToTemp(file);
-    showPDFPreview({ filePath: tempPath }); // Pass path, not blob
+case 'NAVIGATE_TO': {
+  const segments = action.path.split('/').filter(Boolean);
+  const newColumns: typeof state.columns = [createColumnState('/')];
+  let currentPath = '';
+  for (const segment of segments) {
+    currentPath = `${currentPath}/${segment}`;
+    newColumns.push(createColumnState(currentPath));
   }
-}
-
-// In renderer, load from file path not data URL
-function PDFPreview({ filePath }: { filePath: string }) {
-  useEffect(() => {
-    const loadPDF = async () => {
-      // PDF.js can load from file:// URL in Electron
-      const loadingTask = getDocument(`file://${filePath}`);
-      // ... rest of loading logic
-    };
-    loadPDF();
-  }, [filePath]);
+  return { columns: newColumns, activeColumnIndex: newColumns.length - 1 };
 }
 ```
 
-**Alternative: Lazy page loading for large PDFs**
+But this creates empty columns that need to be fetched. If the user has already navigated deep, switching back triggers N directory fetches (one per path segment). For `/home/user/projects/app/src/components`, that's 7 fetches just to restore the view.
+
+**Consequences:**
+
+- Visible loading state in every column after switching back
+- Columns flash empty then populate left-to-right (jarring UX)
+- Each fetch is an IPC round-trip to main process -> SFTP
+- If any intermediate directory fetch fails, column hierarchy is broken
+- Previously selected files in parent columns are not restored
+
+**Prevention:**
+
+Cache directory listings when navigating, so switching back to column view can restore from cache without network calls:
 
 ```typescript
-// Only load visible pages, not entire document
-function PDFPreview({ filePath }: { filePath: string }) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageCache] = useState(new Map<number, PDFPageProxy>());
+// Directory cache - shared between views
+const directoryCache = new Map<string, { entries: FileEntry[]; fetchedAt: number }>();
 
-  const loadPage = async (pageNum: number) => {
-    if (pageCache.has(pageNum)) return pageCache.get(pageNum);
-
-    const pdf = await getDocument(`file://${filePath}`).promise;
-    const page = await pdf.getPage(pageNum);
-    pageCache.set(pageNum, page);
-
-    // Limit cache size to prevent memory growth
-    if (pageCache.size > 5) {
-      const oldestPage = pageCache.keys().next().value;
-      pageCache.delete(oldestPage);
-    }
-
-    return page;
-  };
+// When fetching any directory (from either view), cache the result
+function fetchDirectory(serverId: string, path: string): Promise<FileEntry[]> {
+  const cached = directoryCache.get(`${serverId}:${path}`);
+  if (cached && Date.now() - cached.fetchedAt < 30_000) {  // 30s cache
+    return Promise.resolve(cached.entries);
+  }
+  // ... actual fetch, then cache
 }
 ```
+
+Alternatively, keep the ColumnView mounted but hidden (`display: none`) when in list view mode, so its state is preserved in React state. This is simpler but uses more memory.
 
 **Detection:**
 
-- App crashes when selecting large PDF files
-- Console errors: "JavaScript heap out of memory"
-- IPC errors: "message too large" or silent failures
-- PDF preview shows blank page for large files
+- Switching from list view to column view shows loading spinners in all columns
+- Parent columns are empty or show stale data
+- Performance profiler shows burst of IPC calls on view switch
+- Selection in parent columns is lost
 
-**Phase to Address:** Phase 3 (PDF Preview Implementation)
+**Phase to Address:** Phase 2 (List View) - Design caching strategy alongside view switching
 
-**Confidence:** MEDIUM - Based on Electron IPC best practices and PDF.js memory characteristics
+**Confidence:** HIGH - NAVIGATE_TO action behavior verified in codebase
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 6: Breaking Existing Batching with Folder Operations
+### Pitfall 5: Metadata Columns Breaking Virtualized Row Height
 
 **What goes wrong:**
 
-The app currently batches 10-20 concurrent transfers to prevent OOM (from PROJECT.md: "batching 10-20 concurrent transfers prevents OOM"). Folder upload naively spawns one transfer per file, ignoring this limit. 100-file folder creates 100 concurrent transfers, triggering the same OOM issue that batching was designed to prevent.
+The existing Column component uses `@tanstack/react-virtual` with a fixed `estimateSize: () => 28` (28px per row). The current `FileItem` renders just icon + name + chevron, fitting reliably in 28px. Adding metadata columns (size, date, permissions) to the row either: (a) doesn't fit in 28px and causes text overflow/clipping, or (b) requires increasing row height, which breaks the virtualizer's measurement and causes scroll jumping.
 
 **Why it happens:**
 
-- New folder transfer code doesn't integrate with existing transfer queue
-- Developer assumes "it's just calling upload() many times"
-- Existing batching is implicit, not enforced by API
-- Queue concurrency limit is per-connection, folder transfer may use multiple
+`@tanstack/react-virtual` requires accurate size estimation. If you change `estimateSize` from 28 to 36 and some rows are still 28px (e.g., truncated text vs multi-line), the virtualizer miscalculates total scroll height. Scroll position jumps when items above the viewport change measured size.
+
+More critically, the Column view is space-constrained (columns are 150-220px wide). Adding metadata to column view rows doesn't make sense - that's a list view concern. But if you try to create a "detailed column view" you'll fight the column width constraint.
 
 **Consequences:**
 
-- Regression: OOM errors that were previously fixed
-- Users report "app was stable, now crashes on large operations"
-- Folder transfers work for small folders, fail for large ones
-- Difficult to debug because it's timing/size dependent
+- Scroll jumping when virtualizer recalculates sizes
+- Text overflow causing horizontal scroll within individual cells
+- Row height inconsistency between different views
+- Layout thrashing on window resize when metadata columns resize
 
 **Prevention:**
 
-```typescript
-// Existing transfer queue (from v1.0/v1.1)
-class TransferQueue {
-  private concurrentLimit = 15; // Current sweet spot
-  private activeTransfers = 0;
-  private queue: Array<() => Promise<void>> = [];
-
-  async add(transferFn: () => Promise<void>): Promise<void> {
-    if (this.activeTransfers < this.concurrentLimit) {
-      return this.execute(transferFn);
-    }
-
-    return new Promise((resolve, reject) => {
-      this.queue.push(async () => {
-        try {
-          await transferFn();
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
-  }
-
-  private async execute(transferFn: () => Promise<void>) {
-    this.activeTransfers++;
-    try {
-      await transferFn();
-    } finally {
-      this.activeTransfers--;
-      this.processQueue();
-    }
-  }
-
-  private processQueue() {
-    if (this.queue.length > 0 && this.activeTransfers < this.concurrentLimit) {
-      const next = this.queue.shift();
-      if (next) this.execute(next);
-    }
-  }
-}
-
-// GOOD: Folder transfer integrates with existing queue
-async function uploadFolder(localPath: string, remotePath: string) {
-  for await (const file of enumerateFolderStreaming(localPath, remotePath)) {
-    await transferQueue.add(() => sftp.put(file.local, file.remote)); // Respects limit
-  }
-}
-
-// BAD: Bypasses queue
-async function uploadFolder(localPath: string, remotePath: string) {
-  const files = await getAllFiles(localPath);
-  await Promise.all(files.map(f => sftp.put(f.local, f.remote))); // 100 concurrent!
-}
-```
-
-**Detection:**
-
-- OOM crashes during folder transfers
-- Memory spikes visible in Activity Monitor
-- Works fine for 10 files, crashes at 50+ files
-- Error: "JavaScript heap out of memory" during folder operations
-
-**Phase to Address:** Phase 1 (Folder Transfer Architecture) - Must integrate with existing queue from day one
-
-**Confidence:** HIGH - Directly related to known constraint from PROJECT.md
-
----
-
-### Pitfall 7: Symlink Handling in Recursive Folder Transfers
-
-**What goes wrong:**
-
-SFTP does not follow symbolic links during recursive transfers. A folder containing symlinks transfers the link itself (if server supports it) or fails silently. Circular symlinks (e.g., `project/link -> project/`) cause infinite recursion and stack overflow. Different SFTP servers handle symlinks inconsistently.
-
-**Why it happens:**
-
-- SSH2 SFTP protocol doesn't standardize symlink handling
-- Some servers report symlinks as files, others as directories, others as special type
-- Circular symlink detection requires tracking visited inodes or paths
-- Native SFTP clients handle this; ssh2-sftp-client requires manual logic
-
-**Consequences:**
-
-- Folder upload hangs indefinitely on circular symlink
-- Symlinked files/folders missing in transferred directory
-- App crash with "Maximum call stack size exceeded"
-- Inconsistent behavior across different servers (Linux vs macOS vs Windows OpenSSH)
-
-**Prevention:**
+- Keep column view compact (icon + name + chevron) - do NOT add metadata to column view rows
+- List view gets its own virtualizer with appropriate row height (32-36px)
+- Use fixed row heights in both views (no dynamic sizing)
+- Metadata in column view should be shown only in the preview panel (already exists)
 
 ```typescript
-interface PathTracker {
-  visited: Set<string>;
-  maxDepth: number;
-  currentDepth: number;
-}
+// Column view: compact FileItem (existing 28px)
+// List view: FileRow with metadata (new, 32-36px fixed)
+const LIST_ROW_HEIGHT = 34;  // Fixed, not estimated
 
-async function* enumerateFolderWithSymlinkDetection(
-  localPath: string,
-  remotePath: string,
-  tracker: PathTracker = { visited: new Set(), maxDepth: 50, currentDepth: 0 }
-): AsyncGenerator<FileToTransfer> {
-  // Detect recursion limit
-  if (tracker.currentDepth > tracker.maxDepth) {
-    console.warn(`Maximum recursion depth reached at ${localPath}`);
-    return;
-  }
-
-  // Resolve to real path for cycle detection
-  const realPath = await fs.realpath(localPath);
-  if (tracker.visited.has(realPath)) {
-    console.warn(`Circular symlink detected: ${localPath} -> ${realPath}`);
-    return;
-  }
-  tracker.visited.add(realPath);
-
-  const entries = await fs.readdir(localPath, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const entryPath = path.join(localPath, entry.name);
-
-    if (entry.isSymbolicLink()) {
-      // Option 1: Skip symlinks
-      console.log(`Skipping symlink: ${entryPath}`);
-      continue;
-
-      // Option 2: Follow symlinks (with cycle detection)
-      // const linkTarget = await fs.readlink(entryPath);
-      // const targetStat = await fs.stat(entryPath); // Follows symlink
-      // if (targetStat.isDirectory()) {
-      //   yield* enumerateFolderWithSymlinkDetection(entryPath, remotePath, {
-      //     ...tracker,
-      //     currentDepth: tracker.currentDepth + 1
-      //   });
-      // }
-    } else if (entry.isFile()) {
-      yield { local: entryPath, remote: path.join(remotePath, entry.name) };
-    } else if (entry.isDirectory()) {
-      yield* enumerateFolderWithSymlinkDetection(
-        entryPath,
-        path.join(remotePath, entry.name),
-        { ...tracker, currentDepth: tracker.currentDepth + 1 }
-      );
-    }
-  }
-}
-```
-
-**User-facing option:**
-
-```typescript
-interface FolderTransferOptions {
-  followSymlinks: boolean; // Default: false
-  maxDepth: number; // Default: 50
-  onSymlinkDetected?: (path: string, target: string) => 'skip' | 'follow' | 'abort';
-}
-```
-
-**Detection:**
-
-- App hangs during folder enumeration
-- Console error: "Maximum call stack size exceeded"
-- Some folders transfer with missing files/subdirectories
-- Different results when transferring same folder to different servers
-
-**Phase to Address:** Phase 1-2 (Folder Transfer Architecture/Implementation)
-
-**Confidence:** MEDIUM - Based on web search findings about SFTP symlink behavior
-
----
-
-### Pitfall 8: PDF Preview Security and XSS Risks
-
-**What goes wrong:**
-
-PDFs can contain JavaScript and embedded content. Loading untrusted PDFs in Electron without proper sandboxing creates XSS vectors. A malicious PDF could attempt to escape sandbox via PDF.js vulnerabilities or exploit improper Content Security Policy configuration. This is especially risky for SSH file explorers browsing unknown servers.
-
-**Why it happens:**
-
-- PDF.js executes in renderer context
-- Default CSP may allow unsafe-eval (required by some PDF.js versions)
-- Developers assume PDFs are "just documents"
-- Existing app has security-first architecture (contextIsolation: true, sandbox: true), but PDF preview might bypass
-
-**Consequences:**
-
-- XSS attack via malicious PDF
-- Potential RCE if nodeIntegration accidentally enabled for PDF viewer
-- Credential theft if PDF.js can access Electron APIs
-- App flagged by security audits
-
-**Prevention:**
-
-```typescript
-// 1. Load PDF in isolated context
-function PDFPreview({ pdfPath }: { pdfPath: string }) {
-  return (
-    <webview
-      src={`pdfviewer.html?file=${encodeURIComponent(pdfPath)}`}
-      webpreferences="contextIsolation=true, nodeIntegration=false, sandbox=true"
-      partition="persist:pdfviewer"
-    />
-  );
-}
-
-// 2. Set strict CSP for PDF viewer page
-// In pdfviewer.html:
-<meta http-equiv="Content-Security-Policy" content="
-  default-src 'none';
-  script-src 'self';
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' blob: data:;
-  font-src 'self' data:;
-  connect-src 'none';
-" />
-
-// 3. Disable PDF JavaScript execution
-import { GlobalWorkerOptions } from 'pdfjs-dist';
-
-const loadingTask = getDocument({
-  url: pdfPath,
-  disableAutoFetch: true,
-  disableStream: true,
-  isEvalSupported: false, // Disable JS in PDF
+const virtualizer = useVirtualizer({
+  count: entries.length,
+  getScrollElement: () => parentRef.current,
+  estimateSize: () => LIST_ROW_HEIGHT,
+  overscan: 15,  // More overscan for taller rows
 });
-
-// 4. Validate PDF before rendering
-async function validatePDF(pdfBuffer: Uint8Array): Promise<boolean> {
-  // Check magic bytes
-  const magicBytes = new Uint8Array(pdfBuffer.slice(0, 5));
-  const isPDF = String.fromCharCode(...magicBytes) === '%PDF-';
-
-  if (!isPDF) {
-    throw new Error('Invalid PDF file');
-  }
-
-  // Check file size
-  if (pdfBuffer.length > MAX_PDF_PREVIEW_SIZE) {
-    throw new Error('PDF too large');
-  }
-
-  return true;
-}
 ```
 
 **Detection:**
 
-- Security audit tools flag PDF viewer
-- CSP violations in console when opening PDFs
-- PDF viewer can access window.electron or other exposed APIs
-- Dev tools show eval() usage in PDF.js
+- Scroll position jumps when scrolling fast
+- Content flickers when items enter/leave viewport
+- Performance profiler shows repeated `getBoundingClientRect` calls
+- Visible gap between last visible item and scroll track position
 
-**Phase to Address:** Phase 3 (PDF Preview Implementation)
+**Phase to Address:** Phase 2 (List View) - Use fixed row heights from the start
 
-**Confidence:** MEDIUM-HIGH - Based on Electron security best practices and documented PDF.js XSS risks
+**Confidence:** HIGH - @tanstack/react-virtual behavior with mismatched sizes is well-documented
 
 ---
 
-### Pitfall 9: Incorrect Permission Preservation in Cross-Platform Transfers
+### Pitfall 6: Date Sorting Edge Cases with SFTP Timestamps
 
 **What goes wrong:**
 
-SFTP's `-p` flag preserves permissions by copying UID/GID numbers, not names. Transferring from Linux server (UID 1000 = user "john") to Mac (UID 1000 = user "alice") results in wrong ownership. Even when preserving permissions, umask on remote system can restrict them. Developers expect "preserve permissions" to work like rsync, but SFTP behaves differently.
+SFTP returns `mtime` as a Unix timestamp (seconds since epoch). Some SFTP servers return 0 for `mtime` when the timestamp is unavailable (e.g., virtual filesystems, some NFS mounts, FUSE filesystems). Sorting by "modified date" puts these files at January 1, 1970, far from the user's other files. Worse, some servers return timestamps in the future (incorrect timezone handling) which sorts them to the top.
+
+The current code already handles this: `modified: new Date((entry.attrs.mtime || 0) * 1000)` -- but `0` becomes `new Date(0)` which is "Thu Jan 01 1970" and silently corrupts sort order.
 
 **Why it happens:**
 
-- SFTP preserves numeric IDs, not symbolic names
-- Remote server umask applies even with preserve flag
-- ssh2-sftp-client doesn't expose granular permission control by default
-- Different behavior across platforms (Linux, macOS, Windows OpenSSH)
+- SFTP protocol doesn't mandate timestamp accuracy
+- Virtual filesystems (procfs, sysfs, FUSE) often return 0
+- NFS servers may have clock skew
+- The app explores remote Linux servers which commonly have these filesystem types
 
 **Consequences:**
 
-- Files uploaded with wrong permissions
-- Users can't execute scripts after upload
-- Folders become inaccessible (missing execute bit)
-- "Why did my file become read-only?"
+- Files with `mtime=0` sort to the very top (ascending) or very bottom (descending)
+- Mixed real/zero timestamps make date-sorted lists unusable
+- Users think the sort is broken when it's actually data quality
+- Future timestamps push files above recently-modified files
 
 **Prevention:**
 
 ```typescript
-interface TransferOptions {
-  preservePermissions: boolean; // Default: false
-  defaultFileMode?: number; // e.g., 0o644
-  defaultDirMode?: number; // e.g., 0o755
-  warningOnPreserve?: boolean; // Warn about UID/GID behavior
+function compareDates(a: Date, b: Date): number {
+  const aTime = a.getTime();
+  const bTime = b.getTime();
+
+  // Treat epoch-zero timestamps as "unknown" - sort them to the end
+  const EPOCH_ZERO = 0;
+  const aIsUnknown = aTime === EPOCH_ZERO;
+  const bIsUnknown = bTime === EPOCH_ZERO;
+
+  if (aIsUnknown && bIsUnknown) return 0;
+  if (aIsUnknown) return 1;  // Unknown sorts last
+  if (bIsUnknown) return 1;
+
+  return aTime - bTime;
 }
 
-async function uploadFileWithPermissions(
-  localPath: string,
-  remotePath: string,
-  options: TransferOptions
-) {
-  await sftp.put(localPath, remotePath);
-
-  if (options.preservePermissions) {
-    const stat = await fs.stat(localPath);
-    try {
-      // SFTP chmod
-      await sftp.chmod(remotePath, stat.mode & 0o777);
-    } catch (error) {
-      // Some SFTP servers don't support chmod
-      console.warn(`Could not set permissions for ${remotePath}:`, error);
-    }
-  } else if (options.defaultFileMode) {
-    await sftp.chmod(remotePath, options.defaultFileMode);
-  }
-}
-
-// For folders: ensure directories are executable
-async function uploadFolder(localPath: string, remotePath: string, options: TransferOptions) {
-  // Create directories first with proper permissions
-  for await (const dir of enumerateDirectories(localPath, remotePath)) {
-    await sftp.mkdir(dir.remote, true); // recursive
-    const mode = options.defaultDirMode || 0o755;
-    await sftp.chmod(dir.remote, mode); // Ensure readable + executable
-  }
-
-  // Then transfer files
-  for await (const file of enumerateFiles(localPath, remotePath)) {
-    await uploadFileWithPermissions(file.local, file.remote, options);
-  }
-}
-```
-
-**User education:**
-
-```typescript
-// Show warning on first preserve-permissions use
-if (options.preservePermissions && !userHasSeenPermissionWarning) {
-  showDialog({
-    title: 'Permission Preservation',
-    message: 'SFTP preserves numeric user/group IDs, not names. ' +
-             'File ownership may differ on the remote system if user IDs do not match.',
-    checkbox: 'Don\'t show this again',
-  });
+// Display: show "Unknown" instead of "Jan 1, 1970"
+function formatDate(date: Date): string {
+  if (date.getTime() === 0) return '--';
+  // ... existing formatting
 }
 ```
 
 **Detection:**
 
-- Users report "files have wrong owner after upload"
-- Scripts not executable after transfer
-- Folders with missing execute bit
-- Behavior differs between servers (Linux vs macOS)
+- "Jan 1, 1970" appears in date column for some files
+- Sort by date produces unexpected order
+- Files from /proc, /sys, or FUSE mounts cluster at extreme ends
 
-**Phase to Address:** Phase 2 (Folder Transfer Implementation)
+**Phase to Address:** Phase 3 (Sorting) - Handle in the sort comparison function
 
-**Confidence:** MEDIUM - Based on web search findings about SFTP permission handling
+**Confidence:** HIGH - mtime=0 behavior verified in sftp-service.ts, common on Linux servers
+
+---
+
+### Pitfall 7: View/Sort Preferences Scoping Ambiguity
+
+**What goes wrong:**
+
+The app needs to persist view mode and sort preferences (already has `ui-preferences-store.ts` using `electron-conf`). The question is: does "sort by size" apply globally, per-server, or per-directory? Users expect different scoping in different scenarios:
+
+- "I always want list view" -> global preference
+- "I want columns for this server, list for that server" -> per-server
+- "Sort by date in Downloads, by name elsewhere" -> per-directory
+
+Building global-only preferences and then discovering users want per-directory scoping requires a storage schema migration.
+
+**Why it happens:**
+
+The existing `ui-preferences-store.ts` uses flat key-value storage:
+
+```typescript
+interface UIPreferencesSchema {
+  columnWidths: number[];
+  previewPanelWidth: number;
+  showHiddenFiles: boolean;
+}
+```
+
+Adding `viewMode: 'columns' | 'list'` and `sortConfig: { field, direction }` as flat keys creates global preferences. Per-server or per-directory scoping requires nested keys like `viewPreferences.{serverId}.{path}`, which is a different storage pattern.
+
+**Consequences:**
+
+- Global preference: user switches to list view for one server, ALL servers switch
+- Per-directory preference: massive storage requirements, complex lookup
+- Wrong scoping leads to user frustration ("I didn't change this!")
+- Schema migration needed if you start global and want per-server later
+
+**Prevention:**
+
+Start with **global default + per-server override**:
+
+```typescript
+interface UIPreferencesSchema {
+  // Existing
+  columnWidths: number[];
+  previewPanelWidth: number;
+  showHiddenFiles: boolean;
+
+  // New: global defaults
+  defaultViewMode: 'columns' | 'list';
+  defaultSortField: 'name' | 'size' | 'modified';
+  defaultSortDirection: 'asc' | 'desc';
+
+  // New: per-server overrides (only store if different from default)
+  serverPreferences: Record<string, {
+    viewMode?: 'columns' | 'list';
+    sortField?: 'name' | 'size' | 'modified';
+    sortDirection?: 'asc' | 'desc';
+  }>;
+}
+```
+
+This pattern is:
+- Simple to implement (electron-conf supports nested objects)
+- No per-directory complexity
+- Supports the most common use case (different preferences for different servers)
+- Easy to extend to per-directory later if needed (add `directoryPreferences` nested under server)
+- Storage is bounded (one entry per server, not per directory)
+
+Do NOT build per-directory preferences in v1.3. Wait for user feedback.
+
+**Detection:**
+
+- User changes view mode, all servers affected
+- Preference resets when connecting to different server
+- Storage file grows unboundedly (if per-directory implemented)
+
+**Phase to Address:** Phase 1 (Metadata Display) - Design schema before any persistence code
+
+**Confidence:** HIGH - electron-conf schema directly verified in ui-preferences-store.ts
+
+---
+
+### Pitfall 8: Keyboard Navigation Divergence Between Views
+
+**What goes wrong:**
+
+The existing ColumnView has sophisticated keyboard navigation via `useColumnNavigation` hook: Up/Down moves focus, Left goes to parent column, Right enters folder, type-ahead search by filename, Cmd+click multi-select, Shift+click range select. A list view needs different keyboard behavior: Up/Down in a single list, no Left/Right column navigation, but needs keyboard-triggered sorting (e.g., clicking column headers). If keyboard shortcuts conflict or behave differently, users muscle memory breaks.
+
+**Why it happens:**
+
+The `useColumnNavigation` hook handles key events at the column level. In list view, there are no columns, so Left/Right should do nothing (or navigate breadcrumbs). But spacebar currently opens lightbox (handled in `App.tsx` line 452-486). If list view captures spacebar for row expansion or selection, it conflicts.
+
+**Consequences:**
+
+- Left arrow does nothing in list view (confusing after column view)
+- Type-ahead search works in one view but not the other
+- Spacebar conflict between lightbox and list view selection
+- Tab navigation order differs between views
+- Screen reader behavior inconsistent (ARIA roles differ)
+
+**Prevention:**
+
+- Share keyboard navigation primitives via a `useFileNavigation` hook:
+  - Up/Down: move focus (both views)
+  - Enter: open directory or file (both views)
+  - Spacebar: toggle lightbox (both views - keep existing behavior)
+  - Type-ahead: filter by name (both views)
+- View-specific keys:
+  - Column view: Left/Right for column navigation
+  - List view: Left/Right do nothing (or navigate path bar)
+- ARIA: Both views use `role="listbox"` with `aria-activedescendant`
+
+**Detection:**
+
+- User reports "arrow keys work differently in list view"
+- Type-ahead search missing in one view
+- ARIA audit shows different roles for same semantic purpose
+- Spacebar opens lightbox in one view, does something else in the other
+
+**Phase to Address:** Phase 2 (List View) - Extract shared navigation logic before building list view
+
+**Confidence:** MEDIUM - Based on useColumnNavigation hook analysis, some keyboard behavior is view-specific by design
+
+---
+
+### Pitfall 9: Sort Indicator State Not Visible in Column View
+
+**What goes wrong:**
+
+In list view, sort state is shown via column header indicators (up/down arrows). In column view, there are no column headers - it's just a list of files. If the user sorts by "size" and switches to column view, the sort order changes (column view applies the sort) but there's no visual indicator of what the sort is. The user sees files in a non-alphabetical order with no explanation.
+
+**Why it happens:**
+
+Column view's compact design intentionally omits headers. Adding sort indicators to column view requires either: adding a header row (which takes space and changes the visual design), or adding a sort indicator elsewhere (toolbar, which is far from the content).
+
+**Consequences:**
+
+- Files appear in "random" order in column view (actually sorted by size, but no indicator)
+- User confusion: "Why aren't my files alphabetical anymore?"
+- No discoverability of current sort in column view
+- Sort state becomes invisible when it matters most
+
+**Prevention:**
+
+Two approaches (pick one):
+
+**Option A: Column view always uses name sort.** Configurable sort only affects list view. This is how macOS Finder works - column view is always alphabetical, list view has sortable headers.
+
+**Option B: Add a subtle sort indicator.** Small text or icon at the top of each column showing current sort. Clicking it cycles sort options. This deviates from Finder but provides consistency.
+
+Recommend Option A because:
+- Matches Finder precedent (this app mimics Finder)
+- Simpler implementation
+- Column view with non-alphabetical sort is confusing regardless of indicators
+- Column widths (150-220px) don't leave room for sort headers
+
+**Detection:**
+
+- Files in column view appear unsorted after changing sort in list view
+- User complaints about "random" file ordering
+- Sort preference silently ignored in one view mode
+
+**Phase to Address:** Phase 3 (Sorting) - Decide sort scope per view mode upfront
+
+**Confidence:** MEDIUM - Based on Finder behavior analysis and column width constraints
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 10: Folder Transfer Cancellation Complexity
+### Pitfall 10: FileRow Component Already Exists But Is Stale
 
 **What goes wrong:**
 
-Existing single-file transfers support cancellation via AbortController (from PROJECT.md: "AbortController for cancellation"). Canceling a folder transfer mid-operation leaves partial state: some files transferred, some not, some mid-transfer. Users expect "Cancel" to cleanly abort, but implementation must track what was transferred to enable resume.
+The codebase contains `FileRow.tsx` and `DirectoryList.tsx` - components that render metadata columns and sortable headers. A developer might assume these are ready to use. But they are from an earlier prototype: `DirectoryList` fetches its own directory data independently, has its own hidden-file toggle, its own sort state, and is NOT wired into the current App.tsx architecture (which uses ColumnView + PreviewPanel).
 
 **Prevention:**
 
-Extend existing cancellation pattern to track per-file state:
+- Use `FileRow.tsx` as a design reference, not as production code
+- `DirectoryList.tsx`'s sorting logic can be extracted, but the component itself needs rewriting to integrate with the shared state layer
+- Delete or explicitly mark these as deprecated to prevent confusion
+- The `formatSize`, `formatDate`, `formatPermissions` utility functions in `FileRow.tsx` are reusable - extract them to a shared utility
 
-```typescript
-class FolderTransferOperation {
-  private abortController = new AbortController();
-  private state: FolderTransferState;
+**Phase to Address:** Phase 1 (Metadata Display) - Audit existing components before building new ones
 
-  async cancel() {
-    this.abortController.abort();
-
-    // Save state for potential resume
-    await saveTransferState(this.state);
-
-    // Clean up in-progress files (delete .part files)
-    for (const inProgressFile of this.state.inProgressFiles) {
-      await sftp.delete(`${inProgressFile}.part`).catch(() => {});
-    }
-
-    return {
-      status: 'cancelled',
-      successCount: this.state.successFiles.length,
-      totalCount: this.state.totalFiles,
-      resumeToken: this.state.id,
-    };
-  }
-}
-
-// UI shows resume option
-function TransferToast({ operation }: { operation: FolderTransferOperation }) {
-  const handleCancel = async () => {
-    const result = await operation.cancel();
-    toast(`Transfer cancelled. ${result.successCount}/${result.totalCount} files transferred.`, {
-      action: {
-        label: 'Resume',
-        onClick: () => resumeTransfer(result.resumeToken),
-      },
-    });
-  };
-}
-```
-
-**Phase to Address:** Phase 2 (Folder Transfer Implementation)
-
-**Confidence:** MEDIUM
+**Confidence:** HIGH - Verified: DirectoryList is not imported in App.tsx
 
 ---
 
-### Pitfall 11: PDF Preview Doesn't Work in Sandboxed Renderer
+### Pitfall 11: IPC Date Serialization Breaking Sort Stability
 
 **What goes wrong:**
 
-Electron's sandbox mode restricts access to Node.js APIs and file system. If PDF viewer tries to load PDFs via `fs.readFile()` or access file:// URLs directly, it fails with permission errors. Developers disable sandbox to "fix" it, creating security vulnerability.
+The existing code has a workaround for IPC date serialization: `modified: new Date(entry.modified)` in ColumnView.tsx (line 354). Dates pass through Electron IPC as ISO strings, not Date objects. If sorting happens before this conversion, `localeCompare` on date strings gives wrong order ("2024-01-15" < "2024-02-01" works, but "Dec 15" < "Feb 01" doesn't). If sorting happens after conversion but the conversion is inconsistent between views, sorts diverge.
 
 **Prevention:**
 
+- Ensure date conversion happens in a single place (the shared fetch layer), before any sorting
+- Sort by `date.getTime()` (numeric), never by date string
+- Add a type guard or assertion to verify dates are Date objects before sorting
+
 ```typescript
-// WRONG: Trying to access file system from renderer
-function PDFPreview({ filePath }: { filePath: string }) {
-  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
-
-  useEffect(() => {
-    // This fails in sandbox mode
-    fs.readFile(filePath, (err, data) => { // fs is undefined
-      setPdfData(data);
-    });
-  }, [filePath]);
-}
-
-// RIGHT: Use IPC to get data from main process
-// In preload.ts
-contextBridge.exposeInMainWorld('electron', {
-  readPDFFile: (filePath: string) => ipcRenderer.invoke('read-pdf-file', filePath),
-});
-
-// In main process
-ipcMain.handle('read-pdf-file', async (event, filePath: string) => {
-  // Validate path to prevent directory traversal
-  if (!isAllowedPath(filePath)) {
-    throw new Error('Invalid file path');
-  }
-
-  return await fs.promises.readFile(filePath);
-});
-
-// In renderer
-function PDFPreview({ filePath }: { filePath: string }) {
-  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
-
-  useEffect(() => {
-    window.electron.readPDFFile(filePath).then(setPdfData);
-  }, [filePath]);
-
-  if (!pdfData) return <div>Loading...</div>;
-
-  return <PDFRenderer data={pdfData} />;
+// In shared fetch utility:
+function normalizeEntries(raw: FileEntry[]): FileEntry[] {
+  return raw.map(entry => ({
+    ...entry,
+    modified: entry.modified instanceof Date
+      ? entry.modified
+      : new Date(entry.modified),
+  }));
 }
 ```
 
-**Phase to Address:** Phase 3 (PDF Preview Implementation)
+**Phase to Address:** Phase 1 (Metadata Display) - Normalize in shared fetch layer
 
-**Confidence:** HIGH - Common Electron sandboxing issue
+**Confidence:** HIGH - IPC date serialization workaround verified in ColumnView.tsx line 354
 
 ---
 
-### Pitfall 12: Duplicate File Handling in Folder Uploads
+### Pitfall 12: Resizable Metadata Columns Conflicting with Resizable Miller Columns
 
 **What goes wrong:**
 
-User uploads folder that already exists on remote server. Without skip/overwrite/rename options, either all files are duplicated (wasting space), all are overwritten (losing remote changes), or transfer fails entirely.
+The existing ColumnView has custom column resize handles (mousedown -> mousemove -> mouseup pattern in ColumnView.tsx lines 272-335). If the list view also has resizable metadata columns (Name, Size, Modified, etc.), two independent resize systems exist. A single mousemove handler can't disambiguate between "resizing column view column" and "resizing list view metadata column." The preview panel also has its own resize handle (App.tsx lines 116-158).
 
 **Prevention:**
 
-```typescript
-enum ConflictResolution {
-  Skip = 'skip',
-  Overwrite = 'overwrite',
-  Rename = 'rename',
-  Ask = 'ask',
-}
+- List view metadata columns should use CSS-based resizing (e.g., `resize: horizontal` on th elements, or a library like `@tanstack/react-table` with built-in column resizing)
+- Do NOT duplicate the custom mousedown/mousemove resize pattern from ColumnView
+- Only one resize system should be active at a time (column view OR list view, never both)
+- Persist list view column widths separately from Miller column widths in `ui-preferences-store.ts`
 
-async function uploadFileWithConflictHandling(
-  localPath: string,
-  remotePath: string,
-  resolution: ConflictResolution
-) {
-  const exists = await sftp.exists(remotePath);
+**Phase to Address:** Phase 2 (List View) - Choose resize approach before implementation
 
-  if (!exists) {
-    return await sftp.put(localPath, remotePath);
-  }
-
-  switch (resolution) {
-    case ConflictResolution.Skip:
-      return { skipped: true };
-
-    case ConflictResolution.Overwrite:
-      return await sftp.put(localPath, remotePath);
-
-    case ConflictResolution.Rename:
-      const newPath = await generateUniqueName(remotePath); // file (1).txt
-      return await sftp.put(localPath, newPath);
-
-    case ConflictResolution.Ask:
-      const userChoice = await showConflictDialog(remotePath);
-      return await uploadFileWithConflictHandling(localPath, remotePath, userChoice);
-  }
-}
-
-// Remember user choice for bulk operations
-let conflictResolutionForSession: ConflictResolution | null = null;
-
-function showConflictDialog(filePath: string): Promise<ConflictResolution> {
-  return new Promise((resolve) => {
-    dialog.show({
-      message: `File already exists: ${path.basename(filePath)}`,
-      buttons: ['Skip', 'Overwrite', 'Rename'],
-      checkbox: 'Apply to all conflicts',
-      onClose: (buttonIndex, checked) => {
-        const resolution = [
-          ConflictResolution.Skip,
-          ConflictResolution.Overwrite,
-          ConflictResolution.Rename,
-        ][buttonIndex];
-
-        if (checked) {
-          conflictResolutionForSession = resolution;
-        }
-
-        resolve(resolution);
-      },
-    });
-  });
-}
-```
-
-**Phase to Address:** Phase 2 (Folder Transfer Implementation)
-
-**Confidence:** MEDIUM
+**Confidence:** MEDIUM - Custom resize handlers verified in codebase, but conflict depends on implementation
 
 ---
 
 ## Integration Risks with Existing System
 
-### Risk 1: IPC Message Size Limits
+### Risk 1: Preview Panel Coupling
 
-**Current system:** Uses base64 data URLs for image preview (small payloads)
-**New risk:** Large PDFs encoded as base64 exceed IPC message size (~128MB limit)
+**Current system:** App.tsx receives `onFileSelect` from ColumnView, passes `selectedFile` to PreviewPanel.
+**New risk:** List view must provide the same `onFileSelect` callback with the same FileEntry shape. If list view's FileEntry has different field values (e.g., different date parsing), preview panel breaks.
 
-**Mitigation:** Use file system paths instead of passing blob data through IPC
+**Mitigation:** Both views share the same `FileEntry[]` data from a single fetch source. The `onFileSelect` contract is already well-defined.
 
-### Risk 2: Toast Notification Overload
+### Risk 2: Lightbox Navigation Assumptions
 
-**Current system:** One toast per file transfer with progress bar
-**New risk:** Folder with 100 files creates 100 toasts, making UI unusable
+**Current system:** Lightbox navigation (up/down arrows when lightbox is open) dispatches `lightbox-navigate` custom events that ColumnView listens to. List view needs to handle these same events.
+**New risk:** Both views listening to the same custom event. When switching views, stale listeners from the hidden view may fire.
 
-**Mitigation:** Single toast for folder operation, updated in-place with aggregate progress
+**Mitigation:** Only mount the active view's event listeners. Use cleanup in useEffect to remove listeners when view unmounts or becomes inactive.
 
-### Risk 3: UI State Complexity
+### Risk 3: Context Menu Feature Parity
 
-**Current system:** Single selected file, single preview
-**New risk:** Folder transfers are long-running background operations that should persist across navigation
+**Current system:** FileItem has extensive context menu (download, upload, rename, delete, move, favorites). This component is used in ColumnView.
+**New risk:** List view uses FileRow which has NO context menu. Users lose all file operations in list view.
 
-**Mitigation:** Add "Transfers" panel (like browser download manager) for ongoing folder operations
+**Mitigation:** Either share the FileItem component across both views (extract context menu into a reusable hook/component) or ensure FileRow gets context menu before shipping list view.
+
+### Risk 4: Toolbar Controls Scope
+
+**Current system:** HiddenFilesToggle in toolbar affects ColumnView. PathBar shows ColumnView's path.
+**New risk:** View mode switcher needs to go in toolbar. Sort controls need to go somewhere. Toolbar grows complex.
+
+**Mitigation:** Group controls logically: [PathBar] [View Toggle] [Sort | Hidden Files]. Keep toolbar single-row.
 
 ---
 
-## Phase Assignments
+## Phase-Specific Warnings
 
-### Phase 1: Folder Transfer Architecture (Week 1)
-- **Must address:**
-  - Pitfall 1: Recursive enumeration memory
-  - Pitfall 6: Integration with existing batching
-  - Pitfall 7: Symlink handling (detection, at minimum)
-
-### Phase 2: Folder Transfer Implementation (Week 2)
-- **Must address:**
-  - Pitfall 2: Partial failure state management
-  - Pitfall 3: Progress tracking accuracy
-  - Pitfall 9: Permission preservation
-  - Pitfall 10: Cancellation
-  - Pitfall 12: Duplicate file handling
-
-### Phase 3: PDF Preview Implementation (Week 3)
-- **Must address:**
-  - Pitfall 4: PDF.js memory leaks
-  - Pitfall 5: Large PDF file size limits
-  - Pitfall 8: Security and XSS risks
-  - Pitfall 11: Sandboxed renderer compatibility
-
-### Testing & Integration (Week 4)
-- **Must validate:**
-  - All integration risks with existing system
-  - Memory usage under load
-  - Cancellation and resume flows
-  - Security configuration
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Metadata display in existing views | Adding stat calls that duplicate readdir data (Pitfall 1) | Verify readdir attrs first; stat only for symlink resolution |
+| List view component | State divergence from ColumnView (Pitfall 2) | Shared data layer, separate view state |
+| Sorting implementation | Three duplicate sort locations (Pitfall 3) | Consolidate into shared utility before adding new sort options |
+| View switching UX | Column hierarchy lost on switch (Pitfall 4) | Directory cache or keep ColumnView mounted but hidden |
+| Sort in column view | No visible sort indicator (Pitfall 9) | Column view always name-sorted (Finder pattern) |
+| Preference persistence | Wrong scoping (Pitfall 7) | Global default + per-server override schema |
+| Keyboard navigation | Different behavior per view (Pitfall 8) | Shared useFileNavigation hook |
+| Existing components | Using stale DirectoryList/FileRow (Pitfall 10) | Audit and extract utilities, don't reuse as-is |
 
 ---
 
 ## Testing Checklist
 
-**Folder Transfer:**
-- [ ] Upload folder with 1000+ files stays under 500MB memory
-- [ ] Cancel mid-transfer and verify clean state
-- [ ] Network failure during transfer shows correct retry/resume UI
-- [ ] Circular symlink doesn't crash app
-- [ ] Concurrent folder + file transfers respect batching limit
-- [ ] Progress percentage matches actual bytes transferred
-- [ ] Partial failure shows specific failed files, allows retry
+**Metadata Display:**
+- [ ] Directory with 500+ files loads in under 2 seconds (no extra stat calls)
+- [ ] Symlink files show correct target type icon
+- [ ] Files with mtime=0 show "--" not "Jan 1, 1970"
+- [ ] Size shows "--" for directories, formatted bytes for files
+- [ ] Permissions render correctly for all common modes
 
-**PDF Preview:**
-- [ ] View 20 consecutive PDFs without memory leak
-- [ ] 100MB PDF shows "too large" message, doesn't crash
-- [ ] PDF with JavaScript doesn't execute in sandbox
-- [ ] Switching from PDF to image preview cleans up PDF.js resources
-- [ ] CSP violations don't appear in console
-- [ ] Sandboxed renderer can load and display PDFs
+**List View:**
+- [ ] Switching from column view to list view preserves current path
+- [ ] Switching back to column view restores column hierarchy
+- [ ] File selection in list view updates preview panel
+- [ ] Context menu works identically in both views
+- [ ] Keyboard navigation (up/down/enter/space/type-ahead) works in list view
+- [ ] Lightbox opens and navigates correctly from list view
+- [ ] Virtualized scrolling smooth with metadata columns at 500+ rows
+
+**Sorting:**
+- [ ] Sort by name, size, modified all work correctly
+- [ ] Directories remain first regardless of sort (unless explicitly changed)
+- [ ] Sort direction toggles on repeated header click
+- [ ] Sort persists across navigation within same server
+- [ ] Files with zero-timestamp sort to end, not beginning
+- [ ] Column view uses name sort regardless of list view sort preference
+- [ ] Sort preferences persist across app restart
+
+**Preferences:**
+- [ ] View mode preference persists across app restart
+- [ ] Per-server view preference overrides global default
+- [ ] Sort preference persists across app restart
+- [ ] Changing preference for one server doesn't affect others
 
 ---
 
 ## Sources
 
-**Folder Transfer:**
-- [ssh2-sftp-client npm](https://www.npmjs.com/package/ssh2-sftp-client)
-- [How to download multiple files? Issue #50](https://github.com/theophilusx/ssh2-sftp-client/issues/50)
-- [SFTP recursive transfer best practices](https://www.linuxjournal.com/content/fault-tolerant-sftp-scripting-retry-failed-transfers-automatically)
-- [SFTP symlink handling](https://forum.filezilla-project.org/viewtopic.php?t=51515)
-- [Automatic reconnect on failure - ComponentPro](https://doc.componentpro.com/ComponentPro-Sftp/automatic-reconnect-on-failure)
-- [SFTP file permissions preservation](https://access.redhat.com/solutions/3291161)
+**Codebase Analysis (primary source):**
+- `src/main/ssh/sftp-service.ts` - readdir already extracts full attrs (size, mtime, mode, uid, gid)
+- `src/shared/types.ts` - FileEntry already includes all metadata fields
+- `src/renderer/components/ColumnView/ColumnView.tsx` - Reducer with 10 action types, custom resize
+- `src/renderer/components/ColumnView/Column.tsx` - @tanstack/react-virtual with 28px fixed height
+- `src/renderer/components/FileRow.tsx` - Existing unused metadata row component
+- `src/renderer/components/DirectoryList.tsx` - Existing unused list view with sorting
+- `src/renderer/components/FileItem.tsx` - Active column view item with context menu
+- `src/main/storage/ui-preferences-store.ts` - electron-conf flat schema
+- `src/renderer/App.tsx` - Top-level state management, preview panel integration
 
-**PDF Preview:**
-- [Memory leak - react-pdf Issue #718](https://github.com/diegomura/react-pdf/issues/718)
-- [Memory consumption after rendering - react-pdf Issue #305](https://github.com/wojtekmaj/react-pdf/issues/305)
-- [Memory leak phenomenon pdf.worker.js - Issue #504](https://github.com/wojtekmaj/react-pdf/issues/504)
-- [Performance issues large PDFs - Discussion #1691](https://github.com/wojtekmaj/react-pdf/discussions/1691)
-- [How to Fix Memory Leaks in JavaScript PDF Viewers](https://medium.com/syncfusion/how-to-fix-memory-leaks-in-javascript-pdf-viewers-best-practices-and-debugging-tips-ba9037ea2884)
+**ssh2 Library:**
+- ssh2 SFTP readdir returns `attrs` object with mode, size, mtime, uid, gid per entry (single round-trip)
+- ssh2 SFTP stat/lstat requires individual calls per file (N round-trips)
+- Symlink mode bits (0o120000) in readdir do not indicate target type
 
-**Electron Security:**
-- [Security | Electron Official Docs](https://www.electronjs.org/docs/latest/tutorial/security)
-- [Context Isolation | Electron](https://www.electronjs.org/docs/latest/tutorial/context-isolation)
-- [Modern Alchemy: Turning XSS into RCE - Doyensec](https://blog.doyensec.com/2017/08/03/electron-framework-security.html)
-- [CVE-2024-1648: XSS in electron-pdf](https://security.snyk.io/vuln/SNYK-JS-ELECTRONPDF-6253730)
-- [Penetration Testing of Electron Apps](https://deepstrike.io/blog/penetration-testing-of-electron-based-applications)
+**@tanstack/react-virtual:**
+- Fixed size estimation critical for scroll stability
+- Overscan parameter controls pre-rendering buffer
+- Dynamic sizes require `measureElement` callback which introduces layout thrashing
 
-**Memory and Performance:**
-- [Overcoming Memory Issues in Electron Apps](https://infinitejs.com/posts/overcoming-memory-issues-electron-apps/)
-- [Electron Performance Guide](https://www.electronjs.org/docs/latest/tutorial/performance)
-- [Out of memory with fastPut - ssh2 Issue #316](https://github.com/mscdex/ssh2/issues/316)
-- [Connection reuse in AWS Lambda - Issue #364](https://github.com/theophilusx/ssh2-sftp-client/issues/364)
-
-**IPC and File Transfer:**
-- [How to efficiently pass large array - Electron Issue #1948](https://github.com/electron/electron/issues/1948)
-- [Inter-Process Communication | Electron](https://www.electronjs.org/docs/latest/tutorial/ipc)
+**macOS Finder Precedent:**
+- Column view: always name-sorted, no sort headers
+- List view: sortable column headers with indicators
+- Icon view: separate arrangement options
+- View preferences are per-window (closest to per-server in our case)

@@ -1,0 +1,20 @@
+/* ViewModeToggle - Toolbar button for switching between column and list views */
+
+.view-toggle {
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.15s ease-out;
+}
+
+.view-toggle:hover {
+  color: #fff;
+}
+
+.view-toggle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}

@@ -142,6 +142,20 @@ function HelpModal({ isOpen, onClose }: HelpModalProps): React.JSX.Element | nul
                 </tbody>
               </table>
 
+              <h4 className="help-subsection__title">View Modes</h4>
+              <table className="help-shortcuts">
+                <tbody>
+                  <tr>
+                    <td><kbd>Cmd</kbd>+<kbd>1</kbd></td>
+                    <td>Switch to Column view</td>
+                  </tr>
+                  <tr>
+                    <td><kbd>Cmd</kbd>+<kbd>2</kbd></td>
+                    <td>Switch to List view</td>
+                  </tr>
+                </tbody>
+              </table>
+
               <h4 className="help-subsection__title">General</h4>
               <table className="help-shortcuts">
                 <tbody>
@@ -159,6 +173,12 @@ function HelpModal({ isOpen, onClose }: HelpModalProps): React.JSX.Element | nul
             <h3 className="help-section__title">Features</h3>
             <div className="help-section__content">
               <dl className="help-features">
+                <dt>View Modes</dt>
+                <dd>
+                  Switch between Miller Column view (<kbd>Cmd</kbd>+<kbd>1</kbd>) and
+                  List view (<kbd>Cmd</kbd>+<kbd>2</kbd>) using the toolbar toggle or keyboard shortcuts.
+                </dd>
+
                 <dt>Miller Column Navigation</dt>
                 <dd>Browse directories in cascading columns, just like macOS Finder.</dd>
 

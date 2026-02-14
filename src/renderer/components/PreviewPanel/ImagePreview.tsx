@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { ImageMetadata } from '../../../shared/types';
+import { formatSize, formatDate } from '../../utils/formatters';
 
 interface ImagePreviewProps {
   dataUrl: string;
@@ -9,29 +10,6 @@ interface ImagePreviewProps {
   fileSize: number;
   mimeType: string;
   onImageClick?: () => void;  // For lightbox trigger
-}
-
-/**
- * Format file size for display.
- */
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/**
- * Format date for display.
- */
-function formatDate(date: Date | undefined): string {
-  if (!date) return '';
-  return new Date(date).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 /**

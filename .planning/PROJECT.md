@@ -4,6 +4,16 @@
 
 A desktop file explorer for browsing remote Ubuntu servers via SSH. It provides a macOS Finder-like experience with Miller column navigation, instant image/code/PDF previews with syntax highlighting, markdown lightbox viewer, bidirectional folder transfer, and per-server favorites for quick access to bookmarked folders. Built for personal use to make browsing remote servers as pleasant as browsing local files.
 
+## Current Milestone: v1.3 Metadata & List View
+
+**Goal:** Add file metadata display with a toggleable list view and sorting in both views.
+
+**Target features:**
+- List view with detail columns (Name, Size, Date Modified, Kind)
+- Toggle between Miller column view and list view
+- Sort by any metadata field in both views
+- Metadata from SFTP stat calls integrated into directory listings
+
 ## Current State
 
 **Shipped:** v1.2 Folder Operations (2026-01-30)
@@ -69,7 +79,13 @@ Browse remote servers visually with instant image and code previews — no more 
 
 ### Active
 
-(No active milestone — ready for v1.3 planning)
+**v1.3 Metadata & List View**
+- [ ] List view with detail columns (Name, Size, Date Modified, Kind)
+- [ ] View toggle between Miller columns and list view
+- [ ] Sortable columns in list view (click headers)
+- [ ] Sort control in Miller column view (dropdown/menu)
+- [ ] Metadata fetching via SFTP stat for directory listings
+- [ ] Sort preference persistence across sessions
 
 ### Out of Scope
 
@@ -141,4 +157,4 @@ Shipped v1.2 with ~29,000 lines TypeScript/TSX/CSS in 130+ source files.
 | 100+ page threshold for large PDF | Balance UX and performance warning | ✓ Good — user informed |
 
 ---
-*Last updated: 2026-01-30 after v1.2 milestone*
+*Last updated: 2026-02-10 after v1.3 milestone start*

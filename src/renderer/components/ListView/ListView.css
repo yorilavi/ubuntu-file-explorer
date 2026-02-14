@@ -1,0 +1,172 @@
+/* ListView - List view layout for directory browsing */
+/* BEM naming convention */
+
+/* Container */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Scroll container */
+.list-view__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Shared grid template -- MUST match between header and rows */
+.list-header,
+.list-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 80px 160px 140px;
+  align-items: center;
+  padding: 0 12px;
+  gap: 0 4px;
+}
+
+/* Header */
+.list-header {
+  height: 28px;
+  border-bottom: 1px solid #333;
+  position: sticky;
+  top: 0;
+  background: #1e1e1e;
+  z-index: 1;
+  padding-right: 29px; /* 12px + ~17px scrollbar gutter to prevent misalignment */
+}
+
+.list-header__cell {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0 4px;
+  font-family: inherit;
+  cursor: default;
+}
+
+.list-header__cell--sortable {
+  cursor: pointer;
+}
+
+.list-header__cell--sortable:hover {
+  color: #ccc;
+}
+
+.list-header__cell--active {
+  color: #fff;
+}
+
+/* Size column right-aligned in both header and rows */
+.list-header__cell--size,
+.list-row__size {
+  text-align: right;
+}
+
+/* Row */
+.list-row {
+  height: 32px;
+  cursor: default;
+  user-select: none;
+}
+
+.list-row:hover {
+  background: #2a2a2a;
+}
+
+.list-row--selected {
+  background: #2563eb30;
+}
+
+.list-row--selected:hover {
+  background: #2563eb40;
+}
+
+.list-row--focused {
+  outline: 1px solid #2563eb;
+  outline-offset: -1px;
+}
+
+.list-row--hidden {
+  opacity: 0.5;
+}
+
+.list-row--directory .list-row__name {
+  font-weight: 500;
+}
+
+/* Row columns */
+.list-row__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.list-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  padding: 0 4px;
+}
+
+.list-row__size {
+  font-size: 0.8125rem;
+  color: #888;
+  padding: 0 4px;
+}
+
+.list-row__modified {
+  font-size: 0.8125rem;
+  color: #888;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-row__kind {
+  font-size: 0.8125rem;
+  color: #888;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rename input in list row */
+.list-row__rename-input {
+  background: #2a2a2a;
+  border: 1px solid #2563eb;
+  color: #fff;
+  font-size: 0.8125rem;
+  padding: 1px 4px;
+  border-radius: 2px;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+}
+
+/* Empty state */
+.list-view__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* Loading state */
+.list-view__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #888;
+}

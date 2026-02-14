@@ -9,6 +9,8 @@ import {
   setPreviewPanelWidth,
   getShowHiddenFiles,
   setShowHiddenFiles,
+  getViewMode,
+  setViewMode,
 } from '../storage/ui-preferences-store';
 
 /**
@@ -55,6 +57,20 @@ export function registerUIPreferencesHandlers(): void {
    */
   ipcMain.handle('ui:setShowHiddenFiles', async (_event, show: boolean): Promise<void> => {
     setShowHiddenFiles(show);
+  });
+
+  /**
+   * Get view mode preference.
+   */
+  ipcMain.handle('ui:getViewMode', async (): Promise<string> => {
+    return getViewMode();
+  });
+
+  /**
+   * Save view mode preference.
+   */
+  ipcMain.handle('ui:setViewMode', async (_event, mode: string): Promise<void> => {
+    setViewMode(mode as 'columns' | 'list');
   });
 
   console.log('[ui-preferences-handlers] Registered UI preferences IPC handlers');

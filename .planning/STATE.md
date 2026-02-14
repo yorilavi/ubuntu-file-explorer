@@ -2,104 +2,75 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-30)
+See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** Browse remote servers visually with instant image and code previews
-**Current focus:** Planning next milestone
+**Current focus:** Phase 17 - View Mode Integration
 
 ## Current Position
 
-Phase: 14 of 14 complete (v1.2)
-Plan: All complete
-Status: Ready to plan next milestone
-Last activity: 2026-01-30 — v1.2 milestone complete
+Phase: 17 of 17 (View Mode Integration)
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-11 — Completed 17-02 App.tsx view mode integration
 
-Progress: [##################################] v1.0 + v1.1 + v1.2 Complete (14 phases, 43 plans)
-
-## Milestone Summary
-
-**v1.2 Folder Operations** — SHIPPED 2026-01-30
-
-Delivered:
-- Folder upload with recursive directory creation and .DS_Store filtering
-- Folder download with Finder-style conflict resolution
-- Progress tracking with cancel and retry for both operations
-- PDF preview with page navigation and zoom controls
-- PDF fullscreen lightbox with state preservation
-
-Stats:
-- 3 phases (12-14)
-- 9 plans
-- 19 requirements
-- 46 files changed
-- 10,324 lines added
-
----
-
-**v1.1 Feature Completion** — SHIPPED 2026-01-30
-
-Delivered:
-- Hidden files toggle with Cmd+Shift+. keyboard shortcut
-- Password authentication with safeStorage encryption
-- Move file operations with RemoteFolderPicker modal
-- Markdown lightbox with GFM rendering
-- Lazy loading for large code files (10,000+ lines)
-- Double-click reset for resize handles
-
-Stats:
-- 5 phases (7-11)
-- 10 plans
-- 21 requirements
-- 74 files changed
-- 11,528 lines added
-
----
-
-**v1.0 MVP** — SHIPPED 2026-01-28
-
-Delivered:
-- SSH connection with key authentication
-- Miller column navigation with keyboard support
-- Image and code preview with lightbox
-- File operations (download, upload, rename, delete)
-- Per-server favorites
-
-Stats:
-- 6 phases (1-6)
-- 22 plans (estimated)
-- 48 files, 8,227 lines
+Progress: [██████████] 100% (7/7 plans)
 
 ## Performance Metrics
 
 **Velocity (cumulative):**
-- Total plans completed: 43+ (22 v1.0 + 10 v1.1 + 9 v1.2)
+- Total plans completed: 41 (22 v1.0 + 10 v1.1 + 9 v1.2)
 - Total phases: 14 complete
 - Total milestones: 3 complete (v1.0, v1.1, v1.2)
 
+**v1.3 Velocity:**
+- Plans completed: 7
+- Phases completed: 3/3 (Phase 15, 16, 17 complete)
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 15-01 | Context menu hook | 4min | 2 | 2 |
+| 15-02 | Shared formatters & file kinds | 3min | 2 | 7 |
+| 16-01 | List view presentational components | 2min | 2 | 4 |
+| 16-02 | ListView container | 2min | 2 | 3 |
+| 17-01 | ViewModeToggle & IPC persistence | 1min | 2 | 5 |
+| 17-02 | App.tsx view mode integration | 2min | 1 | 1 |
+
 ## Accumulated Context
 
-### Decisions (v1.2)
+### Decisions
 
-| Decision | Phase | Rationale |
-|----------|-------|-----------|
-| Filter hidden files via segment check | 12-01 | Catches .DS_Store and ._* in any path segment |
-| Sequential file upload with progress | 12-01 | Simpler than parallel, reliable progress tracking |
-| Depth-sorted directory creation | 12-01 | Ensures parents exist before children |
-| Use 'close' event for SFTP WriteStream | 12-03 | ssh2 streams don't reliably emit 'finish' |
-| Finder-style rename for conflicts | 13-01 | "file (1).ext" pattern for conflict resolution |
-| Clean up partial files on cancel/error | 13-01 | Prevents leaving corrupt partial downloads |
-| Worker config in same file as usage | 14-02 | Avoids import order issues with react-pdf |
-| Preload current + 2 adjacent pages | 14-02 | Smooth navigation without memory bloat |
-| 100+ pages for large PDF warning | 14-02 | Balance between UX and performance warning |
-| PDFSlide uses same wheel interception | 14-03 | Consistent with MarkdownSlide pattern |
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [v1.3 roadmap]: 3-phase structure (utilities extraction -> list view core -> view integration)
+- [v1.3 roadmap]: Miller column sorting deferred to future milestone (MSORT-01, MSORT-02)
+- [v1.3 research]: Context menu hook extraction identified as highest-risk refactor
+- [15-01]: ConflictStrategy imported from shared/types (not redefined in hook)
+- [15-01]: Ref-based pattern for circular callback dependencies (retry <-> operation handlers)
+- [15-01]: formatBytes kept temporarily in hook for 15-02 extraction
+- [15-02]: Threshold-based formatSize (not Math.log) for clarity
+- [15-02]: formatDate accepts Date | string | undefined for IPC compatibility
+- [15-02]: getFileKind uses lastIndexOf for multi-dot filename handling
+- [16-01]: Reuse file-item__icon and file-item__context-menu CSS classes for visual consistency across views
+- [16-01]: 32px row height for list view (vs 28px Miller columns) for metadata readability
+- [16-01]: Scrollbar gutter compensation via padding-right: 29px on list header
+- [16-02]: 500ms type-ahead timeout (vs 800ms in useColumnNavigation) for faster search reset
+- [16-02]: sortEntries defined outside component as pure function for testability
+- [16-02]: ListView callback interface mirrors ColumnView (minus columnIndex on onFileSelect)
+- [17-01]: ViewModeToggle icon shows CURRENT mode, tooltip describes target mode with shortcut
+- [17-01]: No active/highlighted CSS state on view toggle (both modes equally valid)
+- [17-01]: viewMode defaults to 'columns' preserving existing Miller columns behavior
+- [17-02]: handleFileSelect columnIndex made optional for cross-view compatibility
+- [17-02]: Both views get key={selectedServer}, no key={viewMode} (navigateToPath handles path preservation)
+- [17-02]: viewMode state concrete default 'columns' (not null) avoids null checks everywhere
 
 ### Technical Notes
 
-All v1.2 features implemented and verified:
-- Folder upload with progress, cancel, retry
-- Folder download with conflict resolution
-- PDF preview with navigation and zoom
-- PDF lightbox with state preservation
+- SFTP readdir already returns full metadata (size, mtime, permissions) -- no backend changes needed
+- Orphaned list view components exist (DirectoryList.tsx, FileRow.tsx) as reference but cannot be used directly
+- @tanstack/react-virtual already in project for virtualization
+- electron-conf already handles persistence (use showHiddenFiles pattern for view mode)
 
 ### Blockers/Concerns
 
@@ -107,9 +78,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-01-30
-Stopped at: v1.2 milestone complete
-Resume file: None — ready for /gsd:new-milestone
+Last session: 2026-02-11
+Stopped at: Completed 17-02-PLAN.md (App.tsx view mode integration) -- Phase 17 complete, v1.3 milestone complete
+Resume file: None
 
 ---
-*Last updated: 2026-01-30*
+*Last updated: 2026-02-11*
