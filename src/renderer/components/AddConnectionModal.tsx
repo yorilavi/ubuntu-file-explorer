@@ -192,7 +192,7 @@ function AddConnectionModal({
       <div className="modal">
         <div className="modal__header">
           <h2 className="modal__title">Add Connection</h2>
-          <button className="modal__close" onClick={handleClose} title="Close">
+          <button className="modal__close" onClick={handleClose} data-tooltip="Close">
             &times;
           </button>
         </div>

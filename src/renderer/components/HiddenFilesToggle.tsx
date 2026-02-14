@@ -19,7 +19,7 @@ function HiddenFilesToggle({ showHidden, onToggle }: HiddenFilesToggleProps): Re
     <button
       className={buttonClasses}
       onClick={onToggle}
-      title="Toggle hidden files (Cmd+Shift+.)"
+      data-tooltip={showHidden ? 'Hide dotfiles (Cmd+Shift+.)' : 'Show dotfiles (Cmd+Shift+.)'}
       aria-pressed={showHidden}
       type="button"
     >

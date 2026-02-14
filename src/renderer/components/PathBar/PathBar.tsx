@@ -118,7 +118,8 @@ function PathBar({ path, onNavigate }: PathBarProps): React.JSX.Element {
     <nav
       className="path-bar"
       onClick={() => setIsEditing(true)}
-      title="Click to edit path (Cmd+L)"
+      data-tooltip="Click to edit path (Cmd+L)"
+      data-tooltip-pos="bottom"
     >
       <button
         type="button"

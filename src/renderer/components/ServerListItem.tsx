@@ -68,12 +68,12 @@ function ServerListItem({
       case 'loading-directory':
         return <span className="status-text">Loading...</span>;
       case 'ready':
-        return <span className="status-dot status-dot--connected" title="Connected" />;
+        return <span className="status-dot status-dot--connected" data-tooltip="Connected" />;
       case 'error':
         return (
           <span
             className="status-dot status-dot--error"
-            title={state.message}
+            data-tooltip="Connection error — click for details"
             onClick={toggleErrorDetails}
           />
         );
@@ -113,7 +113,7 @@ function ServerListItem({
             <button
               className="server-item__disconnect"
               onClick={handleDisconnect}
-              title="Disconnect"
+              data-tooltip="Disconnect"
             >
               &times;
             </button>
@@ -122,7 +122,7 @@ function ServerListItem({
             <button
               className="server-item__delete"
               onClick={handleDelete}
-              title="Delete connection"
+              data-tooltip="Delete connection"
             >
               🗑
             </button>

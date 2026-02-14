@@ -74,11 +74,11 @@ function FileRow({
       <div className="file-row__icon">
         {file.isDirectory ? (
           <span className="file-icon file-icon--folder">
-            {file.isSymlink && <span className="symlink-badge" title="Symlink" />}
+            {file.isSymlink && <span className="symlink-badge" data-tooltip="Symlink" />}
           </span>
         ) : (
           <span className="file-icon file-icon--file">
-            {file.isSymlink && <span className="symlink-badge" title="Symlink" />}
+            {file.isSymlink && <span className="symlink-badge" data-tooltip="Symlink" />}
           </span>
         )}
       </div>

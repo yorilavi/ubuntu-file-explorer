@@ -17,10 +17,12 @@ A macOS Finder-like file explorer for browsing remote Ubuntu/Linux servers via S
 - **Per-Server Favorites** — Bookmark frequently accessed folders for each server
 - **Hidden Files Toggle** — Show/hide dotfiles with `Cmd+Shift+.`
 - **Large File Support** — Stream and virtualize files with 10,000+ lines
+- **In-App Help** — Built-in help system with keyboard shortcuts and usage guide (`Cmd+/`)
 
 ## Requirements
 
 - macOS 12.0 (Monterey) or later
+- Node.js 18+ (for building from source)
 - SSH access to remote servers
 
 ## Installation
@@ -64,27 +66,46 @@ Host production
     Port 2222
 ```
 
-You can also add custom connections directly in the app.
+You can also add custom connections directly in the app using the **+** button in the sidebar.
 
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| `↑` `↓` | Navigate files |
-| `←` `→` | Navigate columns |
+| `Up` `Down` | Navigate files |
+| `Left` `Right` | Navigate columns |
 | `Enter` | Open folder / Select file |
-| `Space` | Open lightbox (images, markdown, PDF) |
-| `Escape` | Close lightbox / Cancel operation |
-| `Cmd+Shift+.` | Toggle hidden files |
-| `Delete` | Delete selected file |
+| `Space` | Open/close lightbox (full-screen preview) |
+| `Escape` | Close lightbox / Cancel active operation |
+| `Cmd+Shift+.` | Toggle hidden files (dotfiles) |
+| `Cmd+L` | Edit path bar directly |
+| `Cmd+/` | Open help dialog |
+| `Delete` | Delete selected file or folder |
 
 ### In Lightbox
 
 | Shortcut | Action |
 |----------|--------|
-| `←` `→` | Previous/next file |
-| `↑` `↓` | Previous/next page (PDF) |
-| `Escape` | Close lightbox |
+| `Up` `Down` | Previous/next file |
+| `Left` `Right` | Previous/next page (PDF) |
+| `Escape` or `Space` | Close lightbox |
+
+## Project Structure
+
+```
+src/
+├── main/           # Electron main process (SSH/SFTP, file ops, IPC)
+│   ├── ssh/        # SSH/SFTP connection service
+│   ├── ipc/        # IPC handler modules
+│   ├── cache/      # Preview cache management
+│   └── main.ts     # Entry point
+├── preload/        # Preload scripts (context bridge)
+├── renderer/       # React application (UI)
+│   ├── components/ # React components
+│   ├── hooks/      # Custom React hooks
+│   └── App.tsx     # Root component
+└── shared/         # Shared TypeScript types
+```
 
 ## Tech Stack
 
@@ -94,7 +115,7 @@ You can also add custom connections directly in the app.
 - [Vite](https://vitejs.dev/) — Fast build tool with HMR
 - [ssh2](https://github.com/mscdex/ssh2) — SSH/SFTP client
 - [react-pdf](https://github.com/wojtekmaj/react-pdf) — PDF rendering
-- [Shiki](https://shiki.style/) — Syntax highlighting
+- [react-syntax-highlighter](https://github.com/react-syntax-highlighter/react-syntax-highlighter) — Syntax highlighting
 
 ## Security
 
@@ -108,6 +129,8 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 ## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
