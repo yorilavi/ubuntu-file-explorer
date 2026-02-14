@@ -624,7 +624,7 @@ function App(): React.JSX.Element {
                       <ListView
                         key={selectedServer}
                         serverId={selectedServer}
-                        initialPath="/"
+                        initialPath={currentPath}
                         navigateTo={navigateToPath}
                         showHidden={showHidden ?? false}
                         onFileSelect={handleFileSelect}
