@@ -15,13 +15,16 @@ A macOS Finder-like file explorer for browsing remote Ubuntu/Linux servers via S
 - **File Operations** — Download, upload, rename, delete, and move files
 - **Folder Transfer** — Upload and download entire folders with progress tracking
 - **Per-Server Favorites** — Bookmark frequently accessed folders for each server
+- **List View** — Toggle between Miller columns and sortable list view with `Cmd+1` / `Cmd+2`
 - **Hidden Files Toggle** — Show/hide dotfiles with `Cmd+Shift+.`
 - **Large File Support** — Stream and virtualize files with 10,000+ lines
 - **In-App Help** — Built-in help system with keyboard shortcuts and usage guide (`Cmd+/`)
 
 ## Requirements
 
-- macOS 12.0 (Monterey) or later
+- **macOS** 12.0 (Monterey) or later
+- **Windows** 10 or later
+- **Linux** Ubuntu 20.04+ / Debian 11+ / Fedora 36+
 - Node.js 18+ (for building from source)
 - SSH access to remote servers
 
@@ -29,26 +32,38 @@ A macOS Finder-like file explorer for browsing remote Ubuntu/Linux servers via S
 
 ### Download
 
-Download the latest `.dmg` from [Releases](https://github.com/yorilavi/ubuntu-file-explorer/releases).
+Download the latest release for your platform from [Releases](https://github.com/yorilavi/ubuntu-file-explorer/releases).
 
 ### Build from Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/yorilavi/ubuntu-file-explorer.git
 cd ubuntu-file-explorer
-
-# Install dependencies
 npm install
+```
 
-# Run in development mode
+#### Development
+
+```bash
 npm start
+```
 
-# Build for production
+#### Production Build
+
+```bash
 npm run make
 ```
 
-The built app will be in the `out/` directory.
+This produces platform-specific packages in `out/make/`:
+
+| Platform | Output | Install |
+|----------|--------|---------|
+| **macOS** | `out/make/zip/darwin/arm64/*.zip` | Unzip, drag `.app` to `/Applications` |
+| **Windows** | `out/make/squirrel.windows/` | Run the `.exe` installer |
+| **Ubuntu/Debian** | `out/make/deb/x64/*.deb` | `sudo dpkg -i *.deb` |
+| **Fedora/RHEL** | `out/make/rpm/x64/*.rpm` | `sudo rpm -i *.rpm` |
+
+To update an existing install, quit the app and repeat the install step with the new build.
 
 ## SSH Configuration
 
@@ -77,6 +92,8 @@ You can also add custom connections directly in the app using the **+** button i
 | `Enter` | Open folder / Select file |
 | `Space` | Open/close lightbox (full-screen preview) |
 | `Escape` | Close lightbox / Cancel active operation |
+| `Cmd+1` | Miller column view |
+| `Cmd+2` | List view |
 | `Cmd+Shift+.` | Toggle hidden files (dotfiles) |
 | `Cmd+L` | Edit path bar directly |
 | `Cmd+/` | Open help dialog |
@@ -119,7 +136,7 @@ src/
 
 ## Security
 
-- Credentials encrypted via macOS Keychain (Electron safeStorage)
+- Credentials encrypted via OS keychain (Electron safeStorage)
 - Sandboxed renderer process
 - Context isolation enabled
 - No node integration in renderer
