@@ -19,6 +19,27 @@ function slugify(name: string): string {
 }
 
 /**
+ * Look up a computed SSH config parameter case-insensitively.
+ *
+ * SSH config keywords are case-insensitive (e.g. `identityFile` and
+ * `IdentityFile` are equivalent), but the ssh-config library keys the
+ * computed object by the parameter name exactly as written in the file.
+ * This matches the keyword regardless of the casing the user used.
+ */
+function getParam(
+  computed: Record<string, string | string[] | undefined>,
+  keyword: string
+): string | string[] | undefined {
+  const target = keyword.toLowerCase();
+  for (const key of Object.keys(computed)) {
+    if (key.toLowerCase() === target) {
+      return computed[key];
+    }
+  }
+  return undefined;
+}
+
+/**
  * Parse raw SSH config content into Server objects.
  *
  * Uses ssh-config library which handles:
@@ -49,17 +70,23 @@ export function parseSSHConfig(configContent: string): Server[] {
     const hostAlias = entry.value as string;
 
     // Use compute() to get merged settings (handles first-match semantics)
-    const computed = config.compute(hostAlias);
+    const computed = config.compute(hostAlias) as Record<
+      string,
+      string | string[] | undefined
+    >;
 
     // Determine auth method based on available config
     let authMethod: 'key' | 'password' | 'agent' = 'agent';
     let keyPath: string | undefined;
 
-    // Check for IdentityFile
-    const identityFile = computed.IdentityFile;
+    // Check for IdentityFile (case-insensitive: identityFile == IdentityFile)
+    const identityFile = getParam(computed, 'IdentityFile');
     if (identityFile) {
       // IdentityFile can be a string or array; use first one
       keyPath = Array.isArray(identityFile) ? identityFile[0] : identityFile;
+
+      // Trim stray surrounding whitespace (e.g. a trailing space after the path)
+      keyPath = keyPath.trim();
 
       // Strip surrounding quotes if present (SSH config allows quoted paths for spaces)
       if ((keyPath.startsWith('"') && keyPath.endsWith('"')) ||
@@ -77,13 +104,17 @@ export function parseSSHConfig(configContent: string): Server[] {
       authMethod = 'key';
     }
 
+    const hostName = getParam(computed, 'HostName');
+    const port = getParam(computed, 'Port');
+    const user = getParam(computed, 'User');
+
     const server: Server = {
       id: slugify(hostAlias),
       name: hostAlias,
       // HostName takes precedence, fallback to Host alias
-      host: (computed.HostName as string) || hostAlias,
-      port: computed.Port ? parseInt(computed.Port as string, 10) : 22,
-      username: (computed.User as string) || '',
+      host: (typeof hostName === 'string' ? hostName : undefined) || hostAlias,
+      port: typeof port === 'string' ? parseInt(port, 10) : 22,
+      username: typeof user === 'string' ? user : '',
       source: 'ssh-config',
       keyPath,
       authMethod,
