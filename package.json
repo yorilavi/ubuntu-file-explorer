@@ -1,7 +1,7 @@
 {
   "name": "ubuntu-file-explorer",
   "productName": "Ubuntu File Explorer",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "A macOS Finder-like file explorer for browsing remote Ubuntu/Linux servers via SSH/SFTP",
   "main": ".vite/build/main.js",
   "scripts": {
