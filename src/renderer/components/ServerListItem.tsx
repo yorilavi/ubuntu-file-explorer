@@ -9,6 +9,8 @@ interface ServerListItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onDelete?: () => void; // Only for custom connections
+  onEdit?: () => void; // Only for custom connections
+  onView?: () => void; // Only for read-only SSH-config servers
 }
 
 /**
@@ -23,6 +25,8 @@ function ServerListItem({
   isSelected,
   onSelect,
   onDelete,
+  onEdit,
+  onView,
 }: ServerListItemProps): React.JSX.Element {
   const [showErrorDetails, setShowErrorDetails] = useState(false);
 
@@ -49,6 +53,12 @@ function ServerListItem({
     if (onDelete && confirm(`Delete connection "${server.name}"?`)) {
       onDelete();
     }
+  };
+
+  const handleSettings = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Custom connections are editable; SSH-config servers are view-only.
+    (onEdit ?? onView)?.();
   };
 
   const toggleErrorDetails = (e: React.MouseEvent) => {
@@ -116,6 +126,15 @@ function ServerListItem({
               data-tooltip="Disconnect"
             >
               &times;
+            </button>
+          )}
+          {(onEdit || onView) && !isConnecting && (
+            <button
+              className="server-item__edit"
+              onClick={handleSettings}
+              data-tooltip={onEdit ? 'Connection settings' : 'View settings (read-only)'}
+            >
+              ⚙
             </button>
           )}
           {onDelete && !isConnected && !isConnecting && (

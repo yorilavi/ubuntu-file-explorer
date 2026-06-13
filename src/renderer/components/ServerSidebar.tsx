@@ -43,6 +43,8 @@ function ServerSidebar({
   const [servers, setServers] = useState<Server[]>([]);
   const [connectionStates, setConnectionStates] = useState<Record<string, ConnectionState>>({});
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editConnectionId, setEditConnectionId] = useState<string | null>(null);
+  const [viewServer, setViewServer] = useState<Server | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [collapsedServers, setCollapsedServers] = useState<Set<string>>(new Set());
 
@@ -116,6 +118,22 @@ function ServerSidebar({
     } catch (error) {
       console.error('Disconnect failed:', error);
     }
+  };
+
+  const handleEditConnection = (serverId: string) => {
+    setEditConnectionId(serverId);
+    setShowAddModal(true);
+  };
+
+  const handleViewConnection = (server: Server) => {
+    setViewServer(server);
+    setShowAddModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowAddModal(false);
+    setEditConnectionId(null);
+    setViewServer(null);
   };
 
   const handleConnectionAdded = async () => {
@@ -197,6 +215,8 @@ function ServerSidebar({
             isSelected={isSelected}
             onSelect={() => onServerSelect(server.id)}
             onDelete={showDelete ? () => handleDelete(server.id) : undefined}
+            onEdit={showDelete ? () => handleEditConnection(server.id) : undefined}
+            onView={showDelete ? undefined : () => handleViewConnection(server)}
           />
         </div>
 
@@ -292,9 +312,12 @@ function ServerSidebar({
       </div>
 
       <AddConnectionModal
+        key={editConnectionId ?? viewServer?.id ?? 'new'}
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={handleModalClose}
         onConnectionAdded={handleConnectionAdded}
+        editConnectionId={editConnectionId ?? undefined}
+        viewServer={viewServer ?? undefined}
       />
     </div>
   );

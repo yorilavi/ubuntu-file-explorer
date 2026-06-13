@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { CustomConnection } from '../../shared/types';
+import type { CustomConnection, Server } from '../../shared/types';
 
 // Eye icon for showing password
 const EyeIcon = () => (
@@ -21,7 +21,8 @@ interface AddConnectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConnectionAdded: () => void;
-  editConnectionId?: string; // Optional: if provided, we're editing
+  editConnectionId?: string; // Optional: if provided, we're editing a custom connection
+  viewServer?: Server; // Optional: if provided, read-only view of an SSH-config server
 }
 
 type AuthMethod = 'key' | 'password' | 'agent';
@@ -55,6 +56,7 @@ function AddConnectionModal({
   onClose,
   onConnectionAdded,
   editConnectionId,
+  viewServer,
 }: AddConnectionModalProps): React.JSX.Element | null {
   const [form, setForm] = useState<FormState>(initialFormState);
   const [error, setError] = useState<string | null>(null);
@@ -64,11 +66,51 @@ function AddConnectionModal({
   const [hasStoredPassword, setHasStoredPassword] = useState(false);
   const [passwordModified, setPasswordModified] = useState(false);
 
-  // Check for stored credential when editing
+  const isEditing = Boolean(editConnectionId);
+  const isViewing = Boolean(viewServer);
+  const readOnly = isViewing;
+
+  // When viewing an SSH-config server, populate fields from the passed-in
+  // Server object (these servers live in ~/.ssh/config, not the store).
   useEffect(() => {
-    if (editConnectionId) {
-      window.electronAPI.hasCredential(editConnectionId).then(setHasStoredPassword);
+    if (!viewServer) {
+      return;
     }
+    setForm({
+      host: viewServer.host,
+      port: viewServer.port,
+      username: viewServer.username,
+      displayName: viewServer.name,
+      authMethod: viewServer.authMethod,
+      keyPath: viewServer.keyPath ?? '',
+      password: '',
+    });
+  }, [viewServer?.id]);
+
+  // When editing, load the existing connection's values and credential state.
+  useEffect(() => {
+    if (!editConnectionId) {
+      return;
+    }
+
+    window.electronAPI.hasCredential(editConnectionId).then(setHasStoredPassword);
+
+    window.electronAPI.getConnection(editConnectionId).then((connection) => {
+      if (!connection) {
+        return;
+      }
+      setForm({
+        host: connection.host,
+        port: connection.port,
+        username: connection.username,
+        displayName: connection.displayName ?? '',
+        authMethod: connection.authMethod,
+        keyPath: connection.keyPath ?? initialFormState.keyPath,
+        password: '',
+      });
+      // Reset transient password-edit tracking for the freshly loaded record
+      setPasswordModified(false);
+    });
   }, [editConnectionId]);
 
   if (!isOpen) {
@@ -134,6 +176,11 @@ function AddConnectionModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Read-only view (SSH-config server) has nothing to submit.
+    if (readOnly) {
+      return;
+    }
+
     if (!validateForm()) {
       return;
     }
@@ -152,20 +199,29 @@ function AddConnectionModal({
         keyPath: form.authMethod === 'key' ? form.keyPath.trim() : undefined,
       };
 
-      // Only pass password for storage if savePassword is checked
-      // The password is still used for the connection attempt, but not persisted
-      const passwordToSave = form.authMethod === 'password' && savePassword ? form.password : undefined;
-      const result = await window.electronAPI.addConnection(connection, passwordToSave);
+      // Only pass password for storage if savePassword is checked.
+      // When editing, an untouched password field (still showing the stored
+      // placeholder) must NOT overwrite the saved credential.
+      const passwordUntouched = isEditing && hasStoredPassword && !passwordModified;
+      const passwordToSave =
+        form.authMethod === 'password' && savePassword && !passwordUntouched
+          ? form.password
+          : undefined;
+
+      const result =
+        isEditing && editConnectionId
+          ? await window.electronAPI.updateConnection(editConnectionId, connection, passwordToSave)
+          : await window.electronAPI.addConnection(connection, passwordToSave);
 
       if (result.success) {
         setForm(initialFormState);
         onConnectionAdded();
         onClose();
       } else {
-        setError(result.error || 'Failed to add connection');
+        setError(result.error || (isEditing ? 'Failed to update connection' : 'Failed to add connection'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add connection');
+      setError(err instanceof Error ? err.message : (isEditing ? 'Failed to update connection' : 'Failed to add connection'));
     } finally {
       setIsSubmitting(false);
     }
@@ -191,13 +247,21 @@ function AddConnectionModal({
     <div className="modal-overlay" onClick={handleBackdropClick}>
       <div className="modal">
         <div className="modal__header">
-          <h2 className="modal__title">Add Connection</h2>
+          <h2 className="modal__title">
+            {isViewing ? 'Connection Settings' : isEditing ? 'Edit Connection' : 'Add Connection'}
+          </h2>
           <button className="modal__close" onClick={handleClose} data-tooltip="Close">
             &times;
           </button>
         </div>
 
         <form className="modal__form" onSubmit={handleSubmit}>
+          {readOnly && (
+            <div className="form-readonly-note">
+              Read-only — this connection comes from <code>~/.ssh/config</code>. Edit that file to
+              change it.
+            </div>
+          )}
           <div className="form-field">
             <label htmlFor="host" className="form-field__label">
               Host <span className="form-field__required">*</span>
@@ -210,7 +274,8 @@ function AddConnectionModal({
               value={form.host}
               onChange={handleInputChange}
               placeholder="example.com"
-              autoFocus
+              disabled={readOnly}
+              autoFocus={!readOnly}
             />
           </div>
 
@@ -227,6 +292,7 @@ function AddConnectionModal({
               onChange={handleInputChange}
               min={1}
               max={65535}
+              disabled={readOnly}
             />
           </div>
 
@@ -242,6 +308,7 @@ function AddConnectionModal({
               value={form.username}
               onChange={handleInputChange}
               placeholder="root"
+              disabled={readOnly}
             />
           </div>
 
@@ -257,6 +324,7 @@ function AddConnectionModal({
               value={form.displayName}
               onChange={handleInputChange}
               placeholder="My Server (optional)"
+              disabled={readOnly}
             />
           </div>
 
@@ -270,6 +338,7 @@ function AddConnectionModal({
               className="form-field__select"
               value={form.authMethod}
               onChange={handleInputChange}
+              disabled={readOnly}
             >
               <option value="key">SSH Key</option>
               <option value="password">Password</option>
@@ -290,14 +359,17 @@ function AddConnectionModal({
                 value={form.keyPath}
                 onChange={handleInputChange}
                 placeholder="~/.ssh/id_rsa"
+                disabled={readOnly}
               />
-              <span className="form-field__hint">
-                Common locations: ~/.ssh/id_rsa, ~/.ssh/id_ed25519
-              </span>
+              {!readOnly && (
+                <span className="form-field__hint">
+                  Common locations: ~/.ssh/id_rsa, ~/.ssh/id_ed25519
+                </span>
+              )}
             </div>
           )}
 
-          {form.authMethod === 'password' && (
+          {form.authMethod === 'password' && !readOnly && (
             <div className="form-field">
               <label htmlFor="password" className="form-field__label">
                 Password <span className="form-field__required">*</span>
@@ -354,15 +426,23 @@ function AddConnectionModal({
               onClick={handleClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {readOnly ? 'Close' : 'Cancel'}
             </button>
-            <button
-              type="submit"
-              className="btn btn--primary"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Adding...' : 'Add Connection'}
-            </button>
+            {!readOnly && (
+              <button
+                type="submit"
+                className="btn btn--primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? isEditing
+                    ? 'Saving...'
+                    : 'Adding...'
+                  : isEditing
+                    ? 'Save Changes'
+                    : 'Add Connection'}
+              </button>
+            )}
           </div>
         </form>
       </div>
