@@ -106,6 +106,55 @@ export function registerSSHHandlers(mainWindow: BrowserWindow): void {
   );
 
   /**
+   * Get a single custom connection by ID (for editing).
+   * Returns undefined for SSH-config servers (not stored) or unknown IDs.
+   */
+  ipcMain.handle(
+    'ssh:get-connection',
+    async (_event, id: string): Promise<CustomConnection | undefined> => {
+      console.log('[ssh-handlers] Getting connection:', id);
+      return getStoredConnection(id);
+    }
+  );
+
+  /**
+   * Update an existing custom connection.
+   * Upserts by ID so the same record is overwritten. If a password is
+   * provided and authMethod is password, the stored credential is replaced.
+   */
+  ipcMain.handle(
+    'ssh:update-connection',
+    async (
+      _event,
+      id: string,
+      connection: Omit<CustomConnection, 'id'>,
+      password?: string
+    ): Promise<{ success: boolean; id?: string; error?: string }> => {
+      try {
+        console.log('[ssh-handlers] Updating connection:', id);
+
+        // Save with the existing ID so saveConnection overwrites in place
+        const saved = saveConnection({ ...connection, id } as CustomConnection);
+
+        // Replace stored credential only when a new password is supplied
+        if (password && connection.authMethod === 'password') {
+          saveCredential(saved.id, password);
+        }
+
+        // Drop any live session so edits take effect on the next connect
+        disconnectSSH(id);
+        clearSFTPCache(id);
+
+        return { success: true, id: saved.id };
+      } catch (err) {
+        const error = err instanceof Error ? err.message : 'Unknown error';
+        console.error('[ssh-handlers] Failed to update connection:', error);
+        return { success: false, error };
+      }
+    }
+  );
+
+  /**
    * Remove a custom connection.
    */
   ipcMain.handle('ssh:remove-connection', async (_event, id: string): Promise<void> => {

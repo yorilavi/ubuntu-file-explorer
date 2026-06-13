@@ -179,6 +179,23 @@ const electronAPI = {
     ipcRenderer.invoke('ssh:add-connection', connection, password),
 
   /**
+   * Get a single custom connection by ID (for editing).
+   * Resolves to undefined for SSH-config servers or unknown IDs.
+   */
+  getConnection: (id: string): Promise<CustomConnection | undefined> =>
+    ipcRenderer.invoke('ssh:get-connection', id),
+
+  /**
+   * Update an existing custom SSH connection.
+   */
+  updateConnection: (
+    id: string,
+    connection: Omit<CustomConnection, 'id'>,
+    password?: string
+  ): Promise<{ success: boolean; id?: string; error?: string }> =>
+    ipcRenderer.invoke('ssh:update-connection', id, connection, password),
+
+  /**
    * Remove a custom SSH connection.
    */
   removeConnection: (id: string): Promise<void> =>
