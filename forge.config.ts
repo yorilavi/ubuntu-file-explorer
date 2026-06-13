@@ -7,7 +7,7 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, rmSync, cpSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 const config: ForgeConfig = {
@@ -35,7 +35,11 @@ const config: ForgeConfig = {
         const src = join(outputPath, appName);
         const dest = join('/Applications', appName);
         rmSync(dest, { recursive: true, force: true });
-        cpSync(src, dest, { recursive: true });
+        // Use `ditto`, not fs.cpSync: macOS .framework bundles rely on
+        // relative symlinks (Versions/Current/...). cpSync rewrites them to
+        // absolute paths into out/, producing a non-self-contained bundle
+        // that crash-loops (icudtl.dat not found / GPU process unusable).
+        execFileSync('/usr/bin/ditto', [src, dest]);
         execFileSync(
           '/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister',
           ['-f', dest]
