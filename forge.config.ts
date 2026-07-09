@@ -33,6 +33,11 @@ const config: ForgeConfig = {
           return;
         }
         const src = join(outputPath, appName);
+        // Flipping fuses and customizing Info.plist happen after the
+        // Electron binary's original ad-hoc signature was created, breaking
+        // its seal — and arm64 macOS refuses to launch a bundle with an
+        // invalid signature ("can't be opened"). Re-sign ad-hoc to reseal.
+        execFileSync('/usr/bin/codesign', ['--force', '--deep', '--sign', '-', src]);
         const dest = join('/Applications', appName);
         rmSync(dest, { recursive: true, force: true });
         // Use `ditto`, not fs.cpSync: macOS .framework bundles rely on
