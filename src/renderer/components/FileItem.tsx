@@ -31,7 +31,6 @@ function FileItem({
   isFocused,
   isHidden,
   serverId,
-  columnIndex: _columnIndex,
   showHiddenFiles,
   onRefresh,
   onRefreshChild,
