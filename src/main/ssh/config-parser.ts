@@ -62,68 +62,92 @@ export function parseSSHConfig(configContent: string): Server[] {
       continue;
     }
 
-    // Skip non-Host directives or wildcard '*'
-    if (entry.param !== 'Host' || entry.value === '*') {
+    if (entry.param !== 'Host') {
       continue;
     }
 
-    const hostAlias = entry.value as string;
-
-    // Use compute() to get merged settings (handles first-match semantics)
-    const computed = config.compute(hostAlias) as Record<
-      string,
-      string | string[] | undefined
-    >;
-
-    // Determine auth method based on available config
-    let authMethod: 'key' | 'password' | 'agent' = 'agent';
-    let keyPath: string | undefined;
-
-    // Check for IdentityFile (case-insensitive: identityFile == IdentityFile)
-    const identityFile = getParam(computed, 'IdentityFile');
-    if (identityFile) {
-      // IdentityFile can be a string or array; use first one
-      keyPath = Array.isArray(identityFile) ? identityFile[0] : identityFile;
-
-      // Trim stray surrounding whitespace (e.g. a trailing space after the path)
-      keyPath = keyPath.trim();
-
-      // Strip surrounding quotes if present (SSH config allows quoted paths for spaces)
-      if ((keyPath.startsWith('"') && keyPath.endsWith('"')) ||
-          (keyPath.startsWith("'") && keyPath.endsWith("'"))) {
-        keyPath = keyPath.slice(1, -1);
+    // A Host line may declare several aliases ("Host gb10 promaxgb10-97ee").
+    // ssh-config returns a plain string for one alias and an array of
+    // { val } objects for several. Normalize to a list of alias strings.
+    for (const hostAlias of hostAliasesOf(entry.value)) {
+      // Skip wildcard/negation patterns; they are templates, not servers.
+      if (/[*?!]/.test(hostAlias)) {
+        continue;
       }
-
-      // Unescape backslash-escaped spaces (SSH config uses "\ " for spaces in paths)
-      keyPath = keyPath.replace(/\\ /g, ' ');
-
-      // Expand ~ to home directory if present
-      if (keyPath.startsWith('~')) {
-        keyPath = join(homedir(), keyPath.slice(1));
-      }
-      authMethod = 'key';
+      servers.push(buildServer(config, hostAlias));
     }
-
-    const hostName = getParam(computed, 'HostName');
-    const port = getParam(computed, 'Port');
-    const user = getParam(computed, 'User');
-
-    const server: Server = {
-      id: slugify(hostAlias),
-      name: hostAlias,
-      // HostName takes precedence, fallback to Host alias
-      host: (typeof hostName === 'string' ? hostName : undefined) || hostAlias,
-      port: typeof port === 'string' ? parseInt(port, 10) : 22,
-      username: typeof user === 'string' ? user : '',
-      source: 'ssh-config',
-      keyPath,
-      authMethod,
-    };
-
-    servers.push(server);
   }
 
   return servers;
+}
+
+/** Normalize ssh-config's Host value (string or array of { val }) to alias strings. */
+function hostAliasesOf(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => (typeof v === 'string' ? v : v?.val))
+      .filter((v): v is string => typeof v === 'string' && v.length > 0);
+  }
+  return [];
+}
+
+/** Build a Server from the merged settings for one Host alias. */
+function buildServer(config: ReturnType<typeof SSHConfig.parse>, hostAlias: string): Server {
+  // Use compute() to get merged settings (handles first-match semantics)
+  const computed = config.compute(hostAlias) as Record<
+    string,
+    string | string[] | undefined
+  >;
+
+  // Determine auth method based on available config
+  let authMethod: 'key' | 'password' | 'agent' = 'agent';
+  let keyPath: string | undefined;
+
+  // Check for IdentityFile (case-insensitive: identityFile == IdentityFile)
+  const identityFile = getParam(computed, 'IdentityFile');
+  if (identityFile) {
+    // IdentityFile can be a string or array; use first one
+    keyPath = Array.isArray(identityFile) ? identityFile[0] : identityFile;
+
+    // Trim stray surrounding whitespace (e.g. a trailing space after the path)
+    keyPath = keyPath.trim();
+
+    // Strip surrounding quotes if present (SSH config allows quoted paths for spaces)
+    if ((keyPath.startsWith('"') && keyPath.endsWith('"')) ||
+        (keyPath.startsWith("'") && keyPath.endsWith("'"))) {
+      keyPath = keyPath.slice(1, -1);
+    }
+
+    // Unescape backslash-escaped spaces (SSH config uses "\ " for spaces in paths)
+    keyPath = keyPath.replace(/\\ /g, ' ');
+
+    // Expand ~ to home directory if present
+    if (keyPath.startsWith('~')) {
+      keyPath = join(homedir(), keyPath.slice(1));
+    }
+    authMethod = 'key';
+  }
+
+  const hostName = getParam(computed, 'HostName');
+  const port = getParam(computed, 'Port');
+  const user = getParam(computed, 'User');
+
+  const server: Server = {
+    id: slugify(hostAlias),
+    name: hostAlias,
+    // HostName takes precedence, fallback to Host alias
+    host: (typeof hostName === 'string' ? hostName : undefined) || hostAlias,
+    port: typeof port === 'string' ? parseInt(port, 10) : 22,
+    username: typeof user === 'string' ? user : '',
+    source: 'ssh-config',
+    keyPath,
+    authMethod,
+  };
+
+  return server;
 }
 
 /**

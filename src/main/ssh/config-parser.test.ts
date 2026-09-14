@@ -70,4 +70,33 @@ describe('parseSSHConfig', () => {
     expect(servers).toHaveLength(1);
     expect(servers[0].name).toBe('real');
   });
+
+  it('expands a Host line with several aliases into one server per alias', () => {
+    // Regression: `Host gb10 promaxgb10-97ee` used to throw inside slugify
+    // (ssh-config returns an array for multi-alias lines), which discarded
+    // the entire config and left the sidebar empty.
+    const servers = parseSSHConfig(
+      ['Host gb10 promaxgb10-97ee', '  HostName promaxgb10-97ee', '  User yori', '  IdentityFile ~/.ssh/id_ed25519'].join('\n')
+    );
+
+    expect(servers.map((s) => s.name)).toEqual(['gb10', 'promaxgb10-97ee']);
+    expect(servers.map((s) => s.host)).toEqual(['promaxgb10-97ee', 'promaxgb10-97ee']);
+    expect(servers.every((s) => s.username === 'yori' && s.authMethod === 'key')).toBe(true);
+  });
+
+  it('skips wildcard and negation patterns but keeps literal aliases on the same line', () => {
+    const servers = parseSSHConfig(
+      ['Host web-? !web-3 web-prod', '  HostName 10.0.0.9', '  User deploy', '', 'Host *.internal', '  User svc'].join('\n')
+    );
+
+    expect(servers.map((s) => s.name)).toEqual(['web-prod']);
+  });
+
+  it('does not let one bad Host line discard the rest of the config', () => {
+    const servers = parseSSHConfig(
+      ['Host a b', '  HostName x', '', 'Host c', '  HostName y', '  User u'].join('\n')
+    );
+
+    expect(servers.map((s) => s.name)).toEqual(['a', 'b', 'c']);
+  });
 });
