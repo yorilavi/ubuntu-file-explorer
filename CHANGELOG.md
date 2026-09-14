@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **SSH config parsing**: A `Host` line with several aliases (e.g. `Host gb10 promaxgb10-97ee`) used to throw inside the parser, which discarded the entire config and left the sidebar empty. Each alias now becomes its own server entry, and wildcard/negation patterns (`*`, `?`, `!`) are skipped.
+- **Folder upload**: the upload handler's callback was missing `file.name` from its dependency list.
+
+### Changed
+
+- Rewrote the README with a quick start, per-field SSH config mapping, data storage locations, and a troubleshooting section.
+
+### Internal
+
+- Migrated to ESLint 9 with a flat config (`eslint.config.mjs`) and fixed all remaining lint errors.
+- Added an npm override pinning `yauzl` to 3.x: the 2.x version used by Electron Forge's packager silently aborts zip extraction on Node 24+, which made `npm run package` exit without producing anything.
+- Bumped Electron to 40.10.6.
+
 ## [1.3.1] - 2026-06-13
 
 ### Fixed
