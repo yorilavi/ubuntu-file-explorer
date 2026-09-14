@@ -196,7 +196,7 @@ function App(): React.JSX.Element {
     setSelectedFile(null);
   }, [selectedServer]);
 
-  const handleFileSelect = useCallback((file: FileEntry, _columnIndex?: number) => {
+  const handleFileSelect = useCallback((file: FileEntry) => {
     setSelectedFile(file);
   }, []);
 

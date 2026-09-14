@@ -316,7 +316,7 @@ export function useFileContextMenu({
       activeToastRef.current = null;
       setActiveOperationId(null);
     }
-  }, [serverId, file.path, onRefresh, handleCancelOperation]);
+  }, [serverId, file.path, file.name, onRefresh, handleCancelOperation]);
 
   const handleDelete = useCallback(async () => {
     setContextMenu(null);

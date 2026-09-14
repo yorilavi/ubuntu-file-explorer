@@ -50,7 +50,9 @@ export async function enumerateLocalFolder(
 
   for (const file of files) {
     // Construct full path - file.parentPath is the directory containing this entry
-    const parentPath = (file as any).parentPath || (file as any).path || sourcePath;
+    // parentPath is Node 20.12+/21.4+; `path` is the older name. Fall back to sourcePath for flat listings.
+    const dirent = file as typeof file & { parentPath?: string; path?: string };
+    const parentPath = dirent.parentPath || dirent.path || sourcePath;
     const fullPath = path.join(parentPath, file.name);
     const relativePath = path.relative(sourcePath, fullPath);
 
@@ -225,8 +227,8 @@ async function uploadSingleFile(
     const onAbort = () => {
       readStream.destroy();
       writeStream.destroy();
-      // Try to clean up partial upload
-      sftp.unlink(remotePath, () => {});
+      // Try to clean up partial upload; ignore failures since the file may not exist yet
+      sftp.unlink(remotePath, () => { /* best-effort cleanup */ });
       reject(new Error('Operation cancelled'));
     };
 

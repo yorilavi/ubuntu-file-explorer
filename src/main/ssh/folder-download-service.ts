@@ -338,16 +338,16 @@ async function downloadSingleFile(
     readStream.on('error', (err: Error) => {
       signal.removeEventListener('abort', onAbort);
       writeStream.destroy();
-      // Clean up partial file
-      unlink(localPath).catch(() => {});
+      // Clean up partial file; ignore failures since the file may not exist yet
+      unlink(localPath).catch(() => { /* best-effort cleanup */ });
       reject(err);
     });
 
     writeStream.on('error', (err: Error) => {
       signal.removeEventListener('abort', onAbort);
       readStream.destroy();
-      // Clean up partial file
-      unlink(localPath).catch(() => {});
+      // Clean up partial file; ignore failures since the file may not exist yet
+      unlink(localPath).catch(() => { /* best-effort cleanup */ });
       reject(err);
     });
 
